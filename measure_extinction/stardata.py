@@ -6,8 +6,18 @@ import warnings
 
 import numpy as np
 from astropy.io import fits
+from astropy import constants as const
 
 __all__ = ["StarData", "BandData", "SpecData"]
+
+# Jy to ergs/(cm^2 s A)
+#   1 Jy = 1e-26 W/(m^2 Hz)
+#   1 W = 1e7 ergs
+#   1 m^2 = 1e4 cm^2
+#   1 um = 1e4 A
+#   Hz/um = c[micron/s]/(lambda[micron])^2
+# const = 1e-26*1e7*1e-4*1e-4 = 1e-27
+Jy_to_cgs_const = 1e-27*const.c.to('micron/s').value
 
 
 def read_line_val(line):
@@ -262,12 +272,9 @@ class BandData():
                                                     0.5*(_flux2 - _flux1))
                     self.band_waves[pband_name] = poss_bands[pband_name][1]
                 elif _mag_vals[2] == 'mJy':
-                    light_speed = 2.998e-6
                     self.band_waves[pband_name] = poss_bands[pband_name][1]
-                    mfac = (1e-3 * 1e-26 * 1e7
-                            * (light_speed
-                               / np.square(self.band_waves[pband_name]))
-                            * (1e4) * 1e8)
+                    mfac = (1e-3 * Jy_to_cgs_const
+                            / np.square(self.band_waves[pband_name]))
                     self.band_fluxes[pband_name] = (_mag_vals[0]*mfac,
                                                     _mag_vals[1]*mfac)
                 else:
@@ -294,20 +301,52 @@ class BandData():
         else:
             self.ave_band_fluxes = np.average(self.flat_bands_fluxes)
 
-# -----------------------------------------------------------
-# the object to store the data for the spectroscopic observations
-#   by this it means wavelength range (e.g. IUE, FUSE, NIR, etc.)
+
 class SpecData():
+    """
+    Spectroscopic data (used by StarData)
+
+    """
     # -----------------------------------------------------------
     def __init__(self, type):
+        """
+        Parameters
+        ----------
+        type: string
+            desciptive string of type of data (e.g., IUE, FUSE, IRS)
+        """
         self.type = type
         self.n_waves = 0
-    # -----------------------------------------------------------
 
-    # -----------------------------------------------------------
-    # generic reading of spectra from FITS table
-    #  assumes a homoginized format
     def read_spectra(self, line, path='./'):
+        """
+        Read spectra from a FITS file
+
+        FITS file has a binary table in the 1st extension
+        Header needs to have:
+
+        - wmin, wmax : min/max of wavelengths in file
+
+        Expected columns are:
+
+        - wave
+        - flux
+        - sigma [uncertainty in flux units]
+        - npts [number of observations include at this wavelength]
+
+        Parameters
+        ----------
+        line : string
+            formated line from DAT file
+            example: 'IUE = hd029647_iue.fits'
+
+        path : string, optional
+            location of the FITS files path
+
+        Returns
+        -------
+        Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
+        """
         eqpos = line.find('=')
         self.file = line[eqpos+2:].rstrip()
 
@@ -316,7 +355,7 @@ class SpecData():
         tdata = datafile[1].data  # data are in the 1st extension
         theader = datafile[1].header  # header
 
-        self.wave_range = [theader['wmin'],theader['wmax']]
+        self.wave_range = [theader['wmin'], theader['wmax']]
         self.waves = tdata['wavelength']
         self.flux = tdata['flux']
         self.uncs = tdata['sigma']
@@ -324,16 +363,33 @@ class SpecData():
         self.n_waves = len(self.waves)
 
         # trim any data that is not finite
-        indxs, = np.where(np.isfinite(self.flux) == False)
+        indxs, = np.where(np.isfinite(self.flux) is False)
         if len(indxs) > 0:
             self.npts[indxs] = 0
-    # -----------------------------------------------------------
 
-    # -----------------------------------------------------------
-    # specific details for IUE spectra
     def read_iue(self, line, path='./'):
+        """
+        Read in IUE spectra
+
+        Removes data with wavelengths > 3200 A
+        Converts the wavelengths from Anstroms to microns
+
+        Parameters
+        ----------
+        line : string
+            formated line from DAT file
+            example: 'IUE = hd029647_iue.fits'
+
+        path : string, optional
+            location of the FITS files path
+
+        Returns
+        -------
+        Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
+        """
         self.read_spectra(line, path)
-        # trim the long wavelength data (bad)
+
+        # trim the long wavelength data by setting the npts to zero
         indxs, = np.where(self.waves > 3200.)
         if len(indxs) > 0:
             self.npts[indxs] = 0
@@ -342,41 +398,103 @@ class SpecData():
 
         # exclude regions
         # lya = [8.0, 8.55]
-        #ex_regions = [[8.23-0.1,8.23+0.1],
+        # ex_regions = [[8.23-0.1,8.23+0.1],
         #              [6.4,6.6],
         #              [7.1,7.3],
         #              [7.45,7.55],
         #              [8.7,10.0]]
 
-        #x = 1.0/self.waves
-        #for exreg in ex_regions:
+        # x = 1.0/self.waves
+        # for exreg in ex_regions:
         #    indxs, = np.where((x >= exreg[0]) & (x <= exreg[1]))
         #    if len(indxs) > 0:
         #        self.npts[indxs] = 0
 
-    # -----------------------------------------------------------
-    # -----------------------------------------------------------
-    # specific details for IRS spectra
     def read_irs(self, line, path='./'):
+        """
+        Read in Spitzer/IRS spectra
+
+        Converts the fluxes from Jy to ergs/(cm^2 s A)
+
+        Parameters
+        ----------
+        line : string
+            formated line from DAT file
+            example: 'IRS = hd029647_irs.fits'
+
+        path : string, optional
+            location of the FITS files path
+
+        Returns
+        -------
+        Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
+        """
         self.read_spectra(line, path)
 
-        # convert units of spectra from Jy to ergs/(cm^2 s A)
-        #   standardization
-        light_speed = 2.998e-6
-        mfac = 1e-26*1e7*(light_speed/np.square(self.waves))*(1e4)*1e8
+        # standardization
+        mfac = Jy_to_cgs_const/np.square(self.waves)
         self.flux *= mfac
         self.uncs *= mfac
 
-        # correct the spectra if correction factors are present
+    def correct_irs(self):
+        """
+        Correct the IRS spectra if the appropriate corfacs are present
+        in the DAT file
+
+        Does a multiplicative correction that can include a linear
+        term if corfac_irs_zerowave and corfac_irs_slope factors are present.
+        Otherwise, just apply a multiplicative factor based on corfac_irs.
+
+        Returns
+        -------
+        Updated self.(flux, uncs) if IRS corfacs present
+        """
+        # correct the IRS spectra if corfacs defined
+        if 'IRS' in self.corfac.keys():
+            if (('IRS_zerowave' in self.corfac.keys())
+                    and ('IRS_slope' in self.corfac.keys())):
+                mod_line = (self.corfac['IRS']
+                            + (self.corfac['IRS_slope']
+                               * (self.data['IRS'].waves
+                                  - self.corfac['IRS_zerowave'])))
+                self.data['IRS'].flux *= mod_line
+                self.data['IRS'].uncs *= mod_line
+            else:
+                self.data['IRS'].flux *= self.corfac['IRS']
+                self.data['IRS'].uncs *= self.corfac['IRS']
 
 
-# -----------------------------------------------------------
-
-# -----------------------------------------------------------
-# the object to store the data for a single star/model
 class StarData():
-    # -----------------------------------------------------------
+    """
+    Photometric and spectroscopic data for a star
+
+    Contains:
+
+    file : string
+        DAT filename
+
+    path : string
+        DAT filename path
+
+    sptype : string
+        spectral type of star
+
+    data : dict of key:BandData or SpecData
+        key gives the type of data (e.g., BANDS, IUE, IRS)
+
+    corfac : dict of key:correction factors
+        key gives the type (e.g., IRS, IRS_slope)
+    """
     def __init__(self, datfile, path='./'):
+        """
+        Parameters
+        ----------
+        datfile: string
+            filename of the DAT file
+
+        path : string, optional
+            DAT file path
+        """
         self.file = datfile
         self.path = path
         self.sptype = ''
@@ -411,20 +529,5 @@ class StarData():
                 self.data['IRS'] = SpecData('IRS')
                 self.data['IRS'].read_irs(line, path=self.path)
 
-        # correct the IRS spectra if corfacs defined
-        if 'IRS' in self.corfac.keys():
-            if (('IRS_zerowave' in self.corfac.keys())
-                    and ('IRS_slope' in self.corfac.keys())):
-                mod_line = (self.corfac['IRS']
-                            + (self.corfac['IRS_slope']
-                               * (self.data['IRS'].waves
-                                  - self.corfac['IRS_zerowave'])))
-                self.data['IRS'].flux *= mod_line
-                self.data['IRS'].uncs *= mod_line
-            else:
-                self.data['IRS'].flux *= self.corfac['IRS']
-                self.data['IRS'].uncs *= self.corfac['IRS']
-
-
-    # -----------------------------------------------------------
-# -----------------------------------------------------------
+        # apply correction factors if present
+        self.correct_irs()
