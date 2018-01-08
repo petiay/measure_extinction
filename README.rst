@@ -63,7 +63,7 @@ License
 -------
 
 This code is licensed under a 3-clause BSD style license (see the
-``LICENSE.rst`` file).
+``LICENSE`` file).
 
 .. _AstroPy: http://www.astropy.org/
 .. _contributing: http://docs.astropy.org/en/stable/index.html#contributing
