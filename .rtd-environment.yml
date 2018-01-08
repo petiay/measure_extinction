@@ -1,0 +1,13 @@
+name: measure_extinction
+
+channels:
+    - astropy
+
+dependencies:
+    - python>=3
+    - astropy
+    - matplotlib
+    - numpy
+    - scipy
+#   - pip:
+#       - dependency_from_pip
