@@ -15,8 +15,8 @@ User Documentation
 .. toctree::
    :maxdepth: 2
 
-   Observed Data Formats (TBA, DAT file, spectra)
-   Extinction Calculation (pair method, units, basics of extinction measuring)
+   Observed Data Formats <data_formats.rst>
+   Extinction Calculation <calc_extinction.rst>
    Plotting <plotting.rst>
 
 Reporting Issues
