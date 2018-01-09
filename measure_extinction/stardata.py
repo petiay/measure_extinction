@@ -1,7 +1,6 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import os.path
 import math
 import warnings
 
@@ -196,7 +195,7 @@ class BandData():
 
     def get_band_mag(self, band_name):
         """
-        Get the magnitude  and uncertainties for a band based
+        Get the magnitude and uncertainties for a band based
         on measurements colors and V band or direct measurements in the band
 
         Parameters
@@ -211,8 +210,22 @@ class BandData():
         """
         band_data = self.bands.get(band_name)
         if band_data is not None:
-            return self.bands.get(band_name) \
-                    + (self.band_units.get(band_name),)
+            if self.band_units[band_name] == 'mJy':
+                # case of the IRAC/MIPS photometry
+                # need to convert to Vega magnitudes
+                pbands = self.get_poss_bands()
+                band_zflux_wave = pbands[band_name]
+
+                flux_p_unc = self.bands[band_name]
+                flux = ((1e-3 * Jy_to_cgs_const / band_zflux_wave[1]**2)
+                        * flux_p_unc[0])
+                mag_unc = -2.5*np.log10((flux_p_unc[0] - flux_p_unc[1])
+                                        / (flux_p_unc[0] + flux_p_unc[1]))
+                mag = -2.5*np.log10(flux/band_zflux_wave[0])
+
+                return (mag, mag_unc, 'mag')
+            else:
+                return self.bands[band_name] + (self.band_units[band_name],)
         else:
             _mag = 0.0
             _mag_unc = 0.
