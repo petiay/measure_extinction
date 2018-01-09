@@ -57,6 +57,7 @@ class ExtData():
         self.x = {}
         self.curve = {}
         self.uncs = {}
+        self.npts = {}
 
         if filename is not None:
             self.read_ext_data(filename)
@@ -177,7 +178,7 @@ class ExtData():
         extnames = [hdulist[i].name for i in range(len(hdulist))]
 
         # the extinction curve itself
-        poss_extnames = ['BANDS', 'IUE', 'STIS', 'IRS']
+        poss_extnames = ['BAND', 'IUE', 'STIS', 'IRS']
         for curname in poss_extnames:
             curext = "%sEXT" % curname
             if curext in extnames:
@@ -185,7 +186,14 @@ class ExtData():
                 if 'X' in hdulist[curext].data.columns.names:
                     self.x[curname] = hdulist[curext].data['X']
                 self.curve[curname] = hdulist[curext].data['EXT']
-                self.uncs[curname] = hdulist[curext].data['UNC']
+                if 'UNC' in hdulist[curext].data.columns.names:
+                    self.uncs[curname] = hdulist[curext].data['UNC']
+                else:
+                    self.uncs[curname] = hdulist[curext].data['EXT_UNC']
+                if 'NPTS' in hdulist[curext].data.columns.names:
+                    self.npts[curname] = hdulist[curext].data['NPTS']
+                else:
+                    self.npts[curname] = np.full(len(self.waves[curname]), 1)
 
         # get the parameters of the extiinction curve
         pheader = hdulist[0].header
