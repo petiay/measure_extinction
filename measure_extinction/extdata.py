@@ -19,7 +19,7 @@ class ExtData():
 
     Atributes:
 
-    ext_type : string
+    type : string
         extinction curve type (e.g., elv or alav)
 
     red_file : string
@@ -32,25 +32,34 @@ class ExtData():
         measurements are A(V), R(V), N(HI), etc.
         tuples are measurement, uncertainty
 
-    ext_waves : dict of key:wavelengths
-    ext_x : dict of key:wavenumbers
-    ext_curve : dict of key:E(lambda-v) measurements
-    ext_curve_uncs : dict of key:E(lambda-v) measurement uncertainties
+    waves : dict of key:wavelengths
+    x : dict of key:wavenumbers
+    curve : dict of key:E(lambda-v) measurements
+    uncs : dict of key:E(lambda-v) measurement uncertainties
         key is BANDS, IUE, IRS, etc.
 
     fm90 : list of FM90 parameters tuples
         tuples are measurement, uncertainty
     """
-    def __init__(self):
-        self.ext_type = ''
+    def __init__(self, filename=None):
+        """
+        Parameters
+        ----------
+        filename : string, optional [default=None]
+            Full filename to a save extinction curve
+        """
+        self.type = ''
         self.red_file = ''
         self.comp_file = ''
         self.columns = []
         self.fm90 = []
-        self.ext_waves = {}
-        self.ext_x = {}
-        self.ext_curve = {}
-        self.ext_curve_uncs = {}
+        self.waves = {}
+        self.x = {}
+        self.curve = {}
+        self.uncs = {}
+
+        if filename is not None:
+            self.read_ext_data(filename)
 
     def calc_elv_bands(self, red_star, comp_star):
         """
@@ -152,6 +161,14 @@ class ExtData():
         self.ext_curve['STIS'] /= ebv
 
     def read_ext_data(self, ext_filename):
+        """
+        Read in a save extinction curve
+
+        Parameters
+        ----------
+        filename : string
+            Full filename to a save extinction curve
+        """
 
         # read in the FITS file
         hdulist = fits.open(ext_filename)
@@ -160,62 +177,38 @@ class ExtData():
         extnames = [hdulist[i].name for i in range(len(hdulist))]
 
         # the extinction curve itself
-        self.ext_waves['BANDS'] = hdulist['BANDEXT'].data['WAVELENGTH']
-        if 'X' in hdulist['BANDEXT'].data.columns.names:
-            self.ext_x['BANDS'] = hdulist['BANDEXT'].data['X']
-        self.ext_curve['BANDS'] = hdulist['BANDEXT'].data['EXT']
-        self.ext_curve_uncs['BANDS'] = hdulist['BANDEXT'].data['UNC']
-
-        if 'IUEEXT' in extnames:
-            self.ext_waves['STIS'] = hdulist['IUEEXT'].data['WAVELENGTH']
-            if 'X' in hdulist['IUEEXT'].data.columns.names:
-                self.ext_x['STIS'] = hdulist['IUEEXT'].data['X']
-            self.ext_curve['STIS'] = hdulist['IUEEXT'].data['EXT']
-            self.ext_curve_uncs['STIS'] = hdulist['IUEEXT'].data['EXT_UNC']
-
-        if 'IRSEXT' in extnames:
-            self.ext_waves['IRS'] = hdulist['IRSEXT'].data['WAVELENGTH']
-            if 'X' in hdulist['IRSEXT'].data.columns.names:
-                self.ext_x['IRS'] = hdulist['IRSEXT'].data['X']
-            self.ext_curve['IRS'] = hdulist['IRSEXT'].data['EXT']
-            self.ext_curve_uncs['IRS'] = hdulist['IRSEXT'].data['EXT_UNC']
+        poss_extnames = ['BANDS', 'IUE', 'STIS', 'IRS']
+        for curname in poss_extnames:
+            curext = "%sEXT" % curname
+            if curext in extnames:
+                self.waves[curname] = hdulist[curext].data['WAVELENGTH']
+                if 'X' in hdulist[curext].data.columns.names:
+                    self.x[curname] = hdulist[curext].data['X']
+                self.curve[curname] = hdulist[curext].data['EXT']
+                self.uncs[curname] = hdulist[curext].data['UNC']
 
         # get the parameters of the extiinction curve
         pheader = hdulist[0].header
-        self.exttype = pheader.get('EXTTYPE')
-        if pheader.get('AV'):
-            self.av = (float(pheader.get('AV')), float(pheader.get('AV_UNC')))
-        if pheader.get('EBV'):
-            self.ebv = (float(pheader.get('EBV')),
-                        float(pheader.get('EBV_UNC')))
-        if pheader.get('RV'):
-            self.rv = (float(pheader.get('RV')),
-                       float(pheader.get('RV_UNC')))
-        if pheader.get('LOGHI'):
-            self.loghi = (float(pheader.get('LOGHI')),
-                          float(pheader.get('LOGHI_U')))
-        if pheader.get('LOGHIMW'):
-            self.loghimw = (float(pheader.get('LOGHIMW')),
-                            float(pheader.get('LHIMW_U')))
-        if pheader.get('NHIAV'):
-            self.nhiav = (float(pheader.get('NHIAV')),
-                          float(pheader.get('NHIAV_U')))
+        self.type = pheader.get('EXTTYPE')
+
+        column_keys = ['AV', 'EBV', 'RV', 'LOGHI', 'LOGHIMW', 'NHIAV']
+        for curkey in column_keys:
+            if pheader.get(curkey):
+                self.columns[curkey] = (float(pheader.get(curkey)),
+                                        float(pheader.get('%s_UNC' % curkey)))
 
         if pheader.get('FMC2'):
+            FM90_keys = ['C1', 'C2', 'C3', 'C4', 'x0', 'gam']
             self.fm90 = {}
-            self.fm90['C2'] = (float(pheader.get('FMC2')),
-                               float(pheader.get('FMC2U')))
-            self.fm90['C3'] = (float(pheader.get('FMC3')),
-                               float(pheader.get('FMC3U')))
-            self.fm90['C4'] = (float(pheader.get('FMC4')),
-                               float(pheader.get('FMC4U')))
-            self.fm90['x0'] = (float(pheader.get('FMx0')),
-                               float(pheader.get('FMx0U')))
-            self.fm90['gamma'] = (float(pheader.get('FMgam')),
-                                  float(pheader.get('FMgamU')))
+            for curkey in FM90_keys:
+                if pheader.get(curkey):
+                    self.fm90[curkey] = (float(pheader.get('FM%s' % curkey)),
+                                         float(pheader.get('FM%sU' % curkey)))
             # for completeness, populate C1 using from the FM07 relationship
-            self.fm90['C1'] = (2.09 - 2.84*self.fm90['C2'][0],
-                               2.84*self.fm90['C2'][1])
+            # if not already present
+            if 'C1' not in self.fm90.keys():
+                self.fm90['C1'] = (2.09 - 2.84*self.fm90['C2'][0],
+                                   2.84*self.fm90['C2'][1])
 
     def read_ext_data_idlsave(self, ext_filename):
         spec_dict = readsav(ext_filename)

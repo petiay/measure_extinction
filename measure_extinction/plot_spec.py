@@ -23,7 +23,6 @@ def plot_obsdata(ax, starobs):
     # plot the bands and all spectra for this star
     for curtype in starobs.data.keys():
         gindxs, = np.where(starobs.data[curtype].npts > 0)
-        print(curtype, len(gindxs))
         if len(gindxs) < 20:
             # plot small number of points (usually BANDS data) as
             # points with errorbars
