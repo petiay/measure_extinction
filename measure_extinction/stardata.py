@@ -51,10 +51,22 @@ class BandData():
     """
     Photometric band data (used by StarData)
 
-    Contains:
+    Attributes:
 
-    type: string
+    type : string
         desciptive string of type of data (currently always 'BANDS')
+
+    waves : array of floats
+        wavelengths
+
+    flux : array of floats
+        fluxes
+
+    uncs : array of floats
+        uncertainties on the fluxes
+
+    npts : array of floats
+        number of measurements contributing to the flux points
 
     n_bands : int
         number of bands
@@ -119,6 +131,7 @@ class BandData():
 
         self.n_bands = len(self.bands)
 
+    @staticmethod
     def get_poss_bands():
         """
         Provides the possible bands and bands wavelengths and zeromag fluxes
@@ -183,7 +196,7 @@ class BandData():
     def get_band_mag(self, band_name):
         """
         Get the magnitude  and uncertainties for a band based
-        on measured colors and V band
+        on measurements colors and V band or direct measurements in the band
 
         Parameters
         ----------
@@ -244,9 +257,6 @@ class BandData():
                                          + self.bands['(R-I)'][1]**2)
             if (_mag != 0.0) & (_mag_unc != 0.0):
                 return (_mag, _mag_unc, 'mag')
-            else:
-                warnings.warn("requested magnitude %s not present" % band_name,
-                              UserWarning)
 
     def get_band_fluxes(self):
         """
@@ -254,9 +264,8 @@ class BandData():
 
         Returns
         -------
-        Updates self.band_fluxes and self.waves
-        Also sets self.(n_flat_bands, flat_band_waves,
-                        flat_bands_fluxes, flat_bands_uncs)
+        Updates self.band_fluxes and self.and_waves
+        Also sets self.(n_waves, waves, fluxes, npts)
         """
         poss_bands = self.get_poss_bands()
 
@@ -283,29 +292,41 @@ class BandData():
         # also store the band data in flat numpy vectors for
         #   computational speed in fitting routines
         # mimics the format of the spectral data
-        self.n_flat_bands = len(self.band_waves)
-        self.flat_bands_waves = np.zeros(self.n_flat_bands)
-        self.flat_bands_fluxes = np.zeros(self.n_flat_bands)
-        self.flat_bands_uncs = np.zeros(self.n_flat_bands)
+        self.n_waves = len(self.band_waves)
+        self.waves = np.zeros(self.n_waves)
+        self.fluxes = np.zeros(self.n_waves)
+        self.uncs = np.zeros(self.n_waves)
+        self.npts = np.full(self.n_waves, 1.0)
 
         for k, pband_name in enumerate(self.band_waves.keys()):
-            self.flat_bands_waves[k] = self.band_waves[pband_name]
-            self.flat_bands_fluxes[k] = self.band_fluxes[pband_name][0]
-            self.flat_bands_uncs[k] = self.band_fluxes[pband_name][1]
-
-        # useful for normalization
-        if np.sum(self.flat_bands_uncs) > 0:
-            self.ave_band_fluxes = \
-                    np.average(self.flat_bands_fluxes,
-                               weights=self.flat_bands_uncs**(-2))
-        else:
-            self.ave_band_fluxes = np.average(self.flat_bands_fluxes)
+            self.waves[k] = self.band_waves[pband_name]
+            self.fluxes[k] = self.band_fluxes[pband_name][0]
+            self.uncs[k] = self.band_fluxes[pband_name][1]
 
 
 class SpecData():
     """
     Spectroscopic data (used by StarData)
 
+    Attributes:
+
+    waves : array of floats
+        wavelengths
+
+    fluxes : array of floats
+        fluxes
+
+    uncs : array of floats
+        uncertainties on the fluxes
+
+    npts : array of floats
+        number of measurements contributing to the flux points
+
+    n_waves : int
+        number of wavelengths
+
+    wmin, wmax : floats
+        wavelength min and max
     """
     # -----------------------------------------------------------
     def __init__(self, type):
@@ -357,13 +378,13 @@ class SpecData():
 
         self.wave_range = [theader['wmin'], theader['wmax']]
         self.waves = tdata['wavelength']
-        self.flux = tdata['flux']
+        self.fluxes = tdata['flux']
         self.uncs = tdata['sigma']
         self.npts = tdata['npts']
         self.n_waves = len(self.waves)
 
         # trim any data that is not finite
-        indxs, = np.where(np.isfinite(self.flux) is False)
+        indxs, = np.where(np.isfinite(self.fluxes) is False)
         if len(indxs) > 0:
             self.npts[indxs] = 0
 
@@ -410,17 +431,17 @@ class SpecData():
         #    if len(indxs) > 0:
         #        self.npts[indxs] = 0
 
-    def read_irs(self, line, path='./'):
+    def read_stis(self, line, path='./'):
         """
-        Read in Spitzer/IRS spectra
+        Read in STIS spectra
 
-        Converts the fluxes from Jy to ergs/(cm^2 s A)
+        Converts the wavelengths from Anstroms to microns
 
         Parameters
         ----------
         line : string
             formated line from DAT file
-            example: 'IRS = hd029647_irs.fits'
+            example: 'STIS = hd029647_stis.fits'
 
         path : string, optional
             location of the FITS files path
@@ -431,37 +452,56 @@ class SpecData():
         """
         self.read_spectra(line, path)
 
-        # standardization
-        mfac = Jy_to_cgs_const/np.square(self.waves)
-        self.flux *= mfac
-        self.uncs *= mfac
+        # convert wavelengths from Angstroms to microns (standardization)
+        self.waves *= 1e-4
 
-    def correct_irs(self):
+    def read_irs(self, line, path='./', corfac=None):
         """
-        Correct the IRS spectra if the appropriate corfacs are present
-        in the DAT file
+        Read in Spitzer/IRS spectra
 
+        Converts the fluxes from Jy to ergs/(cm^2 s A)
+
+        Correct the IRS spectra if the appropriate corfacs are present
+        in the DAT file.
         Does a multiplicative correction that can include a linear
         term if corfac_irs_zerowave and corfac_irs_slope factors are present.
         Otherwise, just apply a multiplicative factor based on corfac_irs.
 
+        Parameters
+        ----------
+        line : string
+            formated line from DAT file
+            example: 'IRS = hd029647_irs.fits'
+
+        path : string, optional
+            location of the FITS files path
+
+        corfac : dict of key: coefficients
+            keys identify the spectrum to be corrected and how
+
         Returns
         -------
-        Updated self.(flux, uncs) if IRS corfacs present
+        Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
         """
+        self.read_spectra(line, path)
+
+        # standardization
+        mfac = Jy_to_cgs_const/np.square(self.waves)
+        self.fluxes *= mfac
+        self.uncs *= mfac
+
         # correct the IRS spectra if corfacs defined
-        if 'IRS' in self.corfac.keys():
-            if (('IRS_zerowave' in self.corfac.keys())
-                    and ('IRS_slope' in self.corfac.keys())):
-                mod_line = (self.corfac['IRS']
-                            + (self.corfac['IRS_slope']
-                               * (self.data['IRS'].waves
-                                  - self.corfac['IRS_zerowave'])))
-                self.data['IRS'].flux *= mod_line
-                self.data['IRS'].uncs *= mod_line
+        if 'IRS' in corfac.keys():
+            if (('IRS_zerowave' in corfac.keys())
+                    and ('IRS_slope' in corfac.keys())):
+                mod_line = (corfac['IRS']
+                            + (corfac['IRS_slope']
+                               * (self.waves - corfac['IRS_zerowave'])))
+                self.fluxes *= mod_line
+                self.uncs *= mod_line
             else:
-                self.data['IRS'].flux *= self.corfac['IRS']
-                self.data['IRS'].uncs *= self.corfac['IRS']
+                self.fluxes *= corfac['IRS']
+                self.uncs *= corfac['IRS']
 
 
 class StarData():
@@ -512,7 +552,7 @@ class StarData():
         # covert the photoemtric band data to fluxes in all possible bands
         self.data['BANDS'].get_band_fluxes()
 
-        # extract and store the data in individual ObsData objects
+        # go through and get info before reading the spectra
         for line in self.datfile_lines:
             if line.find('sptype') == 0:
                 self.sptype = read_line_val(line)
@@ -522,12 +562,16 @@ class StarData():
                 self.corfac['IRS_slope'] = float(read_line_val(line))
             elif line.find('corfac_irs') == 0:
                 self.corfac['IRS'] = float(read_line_val(line))
-            elif line.find('IUE') == 0 or line.find('STIS') == 0:
+
+        # read the spectra
+        for line in self.datfile_lines:
+            if line.find('IUE') == 0:
+                self.data['IUE'] = SpecData('IUE')
+                self.data['IUE'].read_iue(line, path=self.path)
+            if line.find('STIS') == 0:
                 self.data['STIS'] = SpecData('STIS')
-                self.data['STIS'].read_iue(line, path=self.path)
+                self.data['STIS'].read_stis(line, path=self.path)
             elif line.find('IRS') == 0 and line.find('IRS15') < 0:
                 self.data['IRS'] = SpecData('IRS')
-                self.data['IRS'].read_irs(line, path=self.path)
-
-        # apply correction factors if present
-        self.correct_irs()
+                self.data['IRS'].read_irs(line, path=self.path,
+                                          corfac=self.corfac)

@@ -1,19 +1,110 @@
-from scipy.io.idl import readsav
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
-from astropy.io import fits
-import numpy as np
 import string
 import math
 
+import numpy as np
+from scipy.io.idl import readsav
+from astropy.io import fits
+
+from stardata import StarData
+
+__all__ = ["ExtData"]
+
 
 class ExtData():
+    """
+    Extinction for a single line-of-sight
+
+    Atributes:
+
+    ext_type : string
+        extinction curve type (e.g., elv or alav)
+
+    red_file : string
+        reddened star filename
+
+    comp_file : string
+        comparison star filename
+
+    columns : list of tuples of column measurements
+        measurements are A(V), R(V), N(HI), etc.
+        tuples are measurement, uncertainty
+
+    ext_waves : dict of key:wavelengths
+    ext_x : dict of key:wavenumbers
+    ext_curve : dict of key:E(lambda-v) measurements
+    ext_curve_uncs : dict of key:E(lambda-v) measurement uncertainties
+        key is BANDS, IUE, IRS, etc.
+
+    fm90 : list of FM90 parameters tuples
+        tuples are measurement, uncertainty
+    """
     def __init__(self):
         self.ext_type = ''
-        self.reddened_file = ''
+        self.red_file = ''
+        self.comp_file = ''
+        self.columns = []
+        self.fm90 = []
         self.ext_waves = {}
         self.ext_x = {}
         self.ext_curve = {}
         self.ext_curve_uncs = {}
+
+    def calc_elv_bands(self, red_star, comp_star):
+        """
+        Calculate the E(lambda-V) for the photometric band data
+
+        Parameters
+        ----------
+        red_star : :class:StarData
+            Observed data for the reddened star
+
+        comp_star : :class:StarData
+            Observed data for the comparison star
+
+        Returns
+        -------
+        Updated self.ext_(waves, x, curve, curve_uncs)['BANDS']
+        """
+        pass
+
+    def calc_elv_spectra(self, red_star, comp_star):
+        """
+        Calculate the E(lambda-V) for the spectroscopic data
+
+        Parameters
+        ----------
+        red_star : :class:StarData
+            Observed data for the reddened star
+
+        comp_star : :class:StarData
+            Observed data for the comparison star
+
+        Returns
+        -------
+        Updated self.ext_(waves, x, curve, curve_uncs)['BANDS']
+        """
+        pass
+
+    def calc_elv(self, red_star, comp_star):
+        """
+        Calculate the E(lambda-V) basic extinction measurement
+
+        Parameters
+        ----------
+        red_star : :class:StarData
+            Observed data for the reddened star
+
+        comp_star : :class:StarData
+            Observed data for the comparison star
+
+        Returns
+        -------
+        Updated self.ext_(waves, x, curve, curve_uncs)
+        """
+        pass
 
     def calc_ext_elvebv(self, reddened_star, model_fluxes_bands,
                         model_fluxes_spectra, ebv):
@@ -136,24 +227,6 @@ class ExtData():
         indxs, = np.where(spec_dict['xcurv'] > 0.)
         self.ext_waves['MODEL'] = 1.0/spec_dict['xcurv'][indxs]
         self.ext_curve['MODEL'] = spec_dict['bestcurv'][indxs]
-
-        #print(spec_dict.keys())
-
-        #fig = pyplot.figure()
-        #ax = fig.add_subplot(1,1,1)
-
-        #print(spec_dict['xcurv'], spec_dict['bestcurv'], spec_dict['realcurv'])
-
-        #print(len(spec_dict['wavein']), len(spec_dict['xcurv']), len(spec_dict['bestcurv']), len(spec_dict['realcurv']))
-
-        #ax.plot(spec_dict['xcurv'],spec_dict['bestcurv'])
-        #ax.plot(1e4/spec_dict['wavein'][indxs],spec_dict['realcurv'][indxs])
-
-        #ax.set_ylim(-5.,20.)
-
-        #pyplot.show()
-
-        #exit()
 
     def ext_uncs(self, mcmc_samples):
         # pick 100 of the samples to compute the covariance matrix
