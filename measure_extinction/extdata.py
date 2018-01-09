@@ -3,6 +3,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import string
 import math
+import warnings
 
 import numpy as np
 from scipy.io.idl import readsav
@@ -11,6 +12,33 @@ from astropy.io import fits
 from stardata import StarData
 
 __all__ = ["ExtData"]
+
+
+# globals
+# possible datasets (also extension names in saved FITS file)
+_poss_datasources = ['BAND', 'IUE', 'STIS', 'IRS']
+
+
+def _flux_unc_as_mags(fluxes, uncs):
+    """
+    Provide the flux uncertainties in magnitudes accounting for the
+    case where (fluxes-uncs) is negative
+    """
+    uncs_mag = np.empty(len(fluxes))
+
+    # fluxes-uncs case
+    indxs, = np.where(fluxes - uncs <= 0)
+    if len(indxs) > 0:
+        uncs_mag[indxs] = -2.5*np.log10(fluxes[indxs]
+                                        / (fluxes[indxs] + uncs[indxs]))
+
+    # normal case
+    indxs, = np.where(fluxes - uncs > 0)
+    if len(indxs) > 0:
+        uncs_mag[indxs] = -2.5*np.log10((fluxes[indxs] - uncs[indxs])
+                                        / (fluxes[indxs] + uncs[indxs]))
+
+    return uncs_mag
 
 
 class ExtData():
@@ -34,8 +62,9 @@ class ExtData():
 
     waves : dict of key:wavelengths
     x : dict of key:wavenumbers
-    curve : dict of key:E(lambda-v) measurements
+    ext : dict of key:E(lambda-v) measurements
     uncs : dict of key:E(lambda-v) measurement uncertainties
+    npts : number of mesurements at each wavelength
         key is BANDS, IUE, IRS, etc.
 
     fm90 : list of FM90 parameters tuples
@@ -55,66 +84,110 @@ class ExtData():
         self.fm90 = []
         self.waves = {}
         self.x = {}
-        self.curve = {}
+        self.exts = {}
         self.uncs = {}
         self.npts = {}
 
         if filename is not None:
             self.read_ext_data(filename)
 
-    def calc_elv_bands(self, red_star, comp_star):
+    def calc_elv_bands(self, redstar, compstar):
         """
         Calculate the E(lambda-V) for the photometric band data
 
         Parameters
         ----------
-        red_star : :class:StarData
+        redstar : :class:StarData
             Observed data for the reddened star
 
-        comp_star : :class:StarData
+        compstar : :class:StarData
             Observed data for the comparison star
 
         Returns
         -------
-        Updated self.ext_(waves, x, curve, curve_uncs)['BANDS']
+        Updated self.ext_(waves, x, exts, uncs)['BANDS']
         """
         pass
 
-    def calc_elv_spectra(self, red_star, comp_star):
+    def calc_elv_spectra(self, red, comp, src):
         """
         Calculate the E(lambda-V) for the spectroscopic data
 
         Parameters
         ----------
-        red_star : :class:StarData
+        red : :class:StarData
             Observed data for the reddened star
 
-        comp_star : :class:StarData
+        star : :class:StarData
             Observed data for the comparison star
+
+        src : string
+            data source (see global _poss_datasources)
 
         Returns
         -------
-        Updated self.ext_(waves, x, curve, curve_uncs)['BANDS']
+        Updated self.(waves, x, exts, uncs)[src]
         """
-        pass
+        self.type = 'elv'
+        if ((src in red.data.keys())
+                & (src in red.data.keys())):
+            # check that the wavelenth grids are identical
+            delt_wave = red.data[src].waves - comp.data[src].waves
+            if np.sum(np.absolute(delt_wave)) > 0.01:
+                warnings.warn("wavelength grids not equal for %s" % src,
+                              UserWarning)
+            else:
+                # extinction is referenced to V band to
+                # remove unknown or uncertain distances
+                red_V = red.data['BAND'].get_band_mag('V')
+                comp_V = comp.data['BAND'].get_band_mag('V')
 
-    def calc_elv(self, red_star, comp_star):
+                # setup the needed variables
+                self.waves[src] = red.data[src].waves
+                n_waves = len(self.waves[src])
+                self.exts[src] = np.zeros(n_waves)
+                self.uncs[src] = np.zeros(n_waves)
+                self.npts[src] = np.zeros(n_waves)
+
+                # only compute the extinction for good, positive fluxes
+                indxs, = np.where((red.data[src].npts > 0)
+                                  & (comp.data[src].npts > 0)
+                                  & (red.data[src].fluxes > 0)
+                                  & (comp.data[src].fluxes > 0))
+                self.exts[src][indxs] = \
+                    (-2.5*np.log10(red.data[src].fluxes[indxs]
+                     / comp.data[src].fluxes[indxs])
+                     + (comp_V[0] - red_V[0]))
+                self.uncs[src] = np.sqrt(
+                    np.square(_flux_unc_as_mags(red.data[src].fluxes[indxs],
+                                                red.data[src].uncs[indxs]))
+                    + np.square(_flux_unc_as_mags(comp.data[src].fluxes[indxs],
+                                                  comp.data[src].uncs[indxs]))
+                    + np.square(red_V[1])
+                    + np.square(comp_V[1]))
+                self.npts[src][indxs] = np.full(len(indxs), 1)
+
+    def calc_elv(self, redstar, compstar):
         """
         Calculate the E(lambda-V) basic extinction measurement
 
         Parameters
         ----------
-        red_star : :class:StarData
+        redstar : :class:StarData
             Observed data for the reddened star
 
-        comp_star : :class:StarData
+        compstar : :class:StarData
             Observed data for the comparison star
 
         Returns
         -------
-        Updated self.ext_(waves, x, curve, curve_uncs)
+        Updated self.ext_(waves, x, exts, uncs)
         """
-        pass
+        for cursrc in _poss_datasources:
+            if cursrc == 'BAND':
+                pass
+            else:
+                self.calc_elv_spectra(redstar, compstar, cursrc)
 
     def calc_ext_elvebv(self, reddened_star, model_fluxes_bands,
                         model_fluxes_spectra, ebv):
@@ -163,7 +236,7 @@ class ExtData():
 
     def read_ext_data(self, ext_filename):
         """
-        Read in a save extinction curve
+        Read in a saved extinction curve
 
         Parameters
         ----------
@@ -178,14 +251,13 @@ class ExtData():
         extnames = [hdulist[i].name for i in range(len(hdulist))]
 
         # the extinction curve itself
-        poss_extnames = ['BAND', 'IUE', 'STIS', 'IRS']
-        for curname in poss_extnames:
+        for curname in _poss_datasources:
             curext = "%sEXT" % curname
             if curext in extnames:
                 self.waves[curname] = hdulist[curext].data['WAVELENGTH']
                 if 'X' in hdulist[curext].data.columns.names:
                     self.x[curname] = hdulist[curext].data['X']
-                self.curve[curname] = hdulist[curext].data['EXT']
+                self.exts[curname] = hdulist[curext].data['EXT']
                 if 'UNC' in hdulist[curext].data.columns.names:
                     self.uncs[curname] = hdulist[curext].data['UNC']
                 else:

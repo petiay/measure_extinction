@@ -1,6 +1,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import os.path
 import math
 import warnings
 
@@ -54,7 +55,7 @@ class BandData():
     Attributes:
 
     type : string
-        desciptive string of type of data (currently always 'BANDS')
+        desciptive string of type of data (currently always 'BAND')
 
     waves : array of floats
         wavelengths
@@ -88,7 +89,7 @@ class BandData():
         Parameters
         ----------
         type: string
-            desciptive string of type of data (currently always 'BANDS')
+            desciptive string of type of data (currently always 'BAND')
         """
         self.type = type
         self.n_bands = 0
@@ -371,8 +372,11 @@ class SpecData():
         eqpos = line.find('=')
         self.file = line[eqpos+2:].rstrip()
 
+        # check if file exists
+        full_filename = path + self.file
+
         # open and read the spectrum
-        datafile = fits.open(path + self.file)
+        datafile = fits.open(full_filename)
         tdata = datafile[1].data  # data are in the 1st extension
         theader = datafile[1].header  # header
 
@@ -414,22 +418,9 @@ class SpecData():
         indxs, = np.where(self.waves > 3200.)
         if len(indxs) > 0:
             self.npts[indxs] = 0
+
         # convert wavelengths from Angstroms to microns (standardization)
         self.waves *= 1e-4
-
-        # exclude regions
-        # lya = [8.0, 8.55]
-        # ex_regions = [[8.23-0.1,8.23+0.1],
-        #              [6.4,6.6],
-        #              [7.1,7.3],
-        #              [7.45,7.55],
-        #              [8.7,10.0]]
-
-        # x = 1.0/self.waves
-        # for exreg in ex_regions:
-        #    indxs, = np.where((x >= exreg[0]) & (x <= exreg[1]))
-        #    if len(indxs) > 0:
-        #        self.npts[indxs] = 0
 
     def read_stis(self, line, path='./'):
         """
@@ -546,11 +537,11 @@ class StarData():
         self.datfile_lines = list(f)
 
         # get the photometric band data
-        self.data['BANDS'] = BandData('BANDS')
-        self.data['BANDS'].read_bands(self.datfile_lines)
+        self.data['BAND'] = BandData('BAND')
+        self.data['BAND'].read_bands(self.datfile_lines)
 
         # covert the photoemtric band data to fluxes in all possible bands
-        self.data['BANDS'].get_band_fluxes()
+        self.data['BAND'].get_band_fluxes()
 
         # go through and get info before reading the spectra
         for line in self.datfile_lines:

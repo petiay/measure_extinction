@@ -11,13 +11,13 @@ from extdata import ExtData
 __all__ = ["plot_extdata"]
 
 
-def _get_ext_ytitle(type):
+def _get_ext_ytitle(exttype):
     """
     Format the extinction type nicely for plotting
 
     Parameters
     ----------
-    type : string
+    exttype : string
         type of extinction curve (e.g., elv, alav, elvebv)
 
     Returns
@@ -25,15 +25,17 @@ def _get_ext_ytitle(type):
     ptype : string
         Latex formated string for plotting
     """
-    if type == 'elv':
+    if exttype == 'elv':
         return '$E(\lambda - V)$'
-    elif type == 'elvebv':
+    elif exttype == 'elvebv':
         return '$E(\lambda - V)/E(B - V)$'
-    elif type == 'alav':
+    elif exttype == 'alav':
         return '$A(\lambda)/A(V)$'
+    else:
+        return "%s (not found)" % exttype
 
 
-def plot_extdata(ax, extdata):
+def plot_extdata(ax, extdata, fontsize=18):
     """
     Plot an extinction curve
 
@@ -43,6 +45,9 @@ def plot_extdata(ax, extdata):
 
     extdata : ExtData object
         contains the measured extinction curve
+
+    fontsize : float, optional [default=18]
+        base font size
     """
     for curtype in extdata.waves.keys():
         gindxs, = np.where(extdata.npts[curtype] > 0)
@@ -50,19 +55,18 @@ def plot_extdata(ax, extdata):
             # plot small number of points (usually BANDS data) as
             # points with errorbars
             ax.errorbar(extdata.waves[curtype][gindxs],
-                        extdata.curve[curtype][gindxs],
+                        extdata.exts[curtype][gindxs],
                         yerr=extdata.uncs[curtype][gindxs],
                         fmt='o')
         else:
             ax.plot(extdata.waves[curtype][gindxs],
-                    extdata.curve[curtype][gindxs],
+                    extdata.exts[curtype][gindxs],
                     '-')
 
     # finish configuring the plot
     ax.set_yscale('linear')
     ax.set_xscale('log')
     ax.set_xlabel('$\lambda$ [$\mu m$]', fontsize=1.3*fontsize)
-    print(extdata.type)
     ax.set_ylabel(_get_ext_ytitle(extdata.type),
                   fontsize=1.3*fontsize)
     ax.tick_params('both', length=10, width=2, which='major')
