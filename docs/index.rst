@@ -9,6 +9,16 @@ This package is developed in the
 `astropy affiliated package <http://www.astropy.org/affiliated/>`_
 template.
 
+User Documentation
+==================
+
+.. toctree::
+   :maxdepth: 2
+
+   Observed Data Formats (TBA, DAT file, spectra)
+   Extinction Calculation (pair method, units, basics of extinction measuring)
+   Plotting <plotting.rst>
+
 Reporting Issues
 ================
 

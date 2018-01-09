@@ -8,6 +8,44 @@ import numpy as np
 
 from stardata import StarData
 
+
+def plot_obsdata(ax, starobs):
+    """
+    Plot all the data for a star (bands and spectra)
+
+    Parameters
+    ----------
+    ax : matplotlib plot object
+
+    starobs : StarData object
+        contains all the observations
+    """
+    # plot the bands and all spectra for this star
+    for curtype in starobs.data.keys():
+        gindxs, = np.where(starobs.data[curtype].npts > 0)
+        print(curtype, len(gindxs))
+        if len(gindxs) < 20:
+            # plot small number of points (usually BANDS data) as
+            # points with errorbars
+            ax.errorbar(starobs.data[curtype].waves[gindxs],
+                        starobs.data[curtype].fluxes[gindxs],
+                        yerr=starobs.data[curtype].uncs[gindxs],
+                        fmt='o')
+        else:
+            ax.plot(starobs.data[curtype].waves[gindxs],
+                    starobs.data[curtype].fluxes[gindxs],
+                    '-')
+
+    # finish configuring the plot
+    ax.set_yscale('log')
+    ax.set_xscale('log')
+    ax.set_xlabel('$\lambda$ [$\mu m$]', fontsize=1.3*fontsize)
+    ax.set_ylabel('$F(\lambda)$ [$ergs\ cm^{-2}\ s\ \AA$]',
+                  fontsize=1.3*fontsize)
+    ax.tick_params('both', length=10, width=2, which='major')
+    ax.tick_params('both', length=5, width=1, which='minor')
+
+
 if __name__ == "__main__":
 
     # commandline parser
@@ -40,29 +78,9 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(figsize=(10, 13))
 
     # plot the bands and all spectra for this star
-    for curtype in starobs.data.keys():
-        gindxs = np.where(starobs.data[curtype].npts > 0)
-        if len(gindxs) < 20:
-            # plot small number of points (usually BANDS data) as
-            # points with errorbars
-            ax.errorbar(starobs.data[curtype].waves[gindxs],
-                        starobs.data[curtype].fluxes[gindxs],
-                        yerr=starobs.data[curtype].uncs[gindxs],
-                        fmt='o')
-        else:
-            ax.plot(starobs.data[curtype].waves[gindxs],
-                    starobs.data[curtype].flux[gindxs],
-                    '-')
+    plot_obsdata(ax, starobs)
 
-    # finish configuring the plot
-    ax.set_yscale('log')
-    ax.set_xscale('log')
-    ax.set_xlabel('$\lambda$ [$\mu m$]', fontsize=1.3*fontsize)
-    ax.set_ylabel('$F(\lambda)$ [$ergs\ cm^{-2}\ s\ \AA$]',
-                  fontsize=1.3*fontsize)
-    ax.tick_params('both', length=10, width=2, which='major')
-    ax.tick_params('both', length=5, width=1, which='minor')
-
+    # use the whitespace better
     fig.tight_layout()
 
     # plot or save to a file
