@@ -64,3 +64,4 @@ Reference API
 =============
 
 .. automodapi:: measure_extinction.stardata
+.. automodapi:: measure_extinction.extdata

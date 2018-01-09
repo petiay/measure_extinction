@@ -56,11 +56,15 @@ class ExtData():
         tuples are measurement, uncertainty
 
     waves : dict of key:wavelengths
+
     x : dict of key:wavenumbers
-    ext : dict of key:E(lambda-v) measurements
-    uncs : dict of key:E(lambda-v) measurement uncertainties
-    npts : number of mesurements at each wavelength
         key is BANDS, IUE, IRS, etc.
+
+    ext : dict of key:E(lambda-v) measurements
+
+    uncs : dict of key:E(lambda-v) measurement uncertainties
+
+    npts : dict of key:number of mesurements at each wavelength
 
     fm90 : list of FM90 parameters tuples
         tuples are measurement, uncertainty
