@@ -579,3 +579,38 @@ class StarData():
                 self.data['IRS'] = SpecData('IRS')
                 self.data['IRS'].read_irs(line, path=self.path,
                                           corfac=self.corfac)
+
+    def plot_obsdata(self, ax, fontsize=18):
+        """
+        Plot all the data for a star (bands and spectra)
+
+        Parameters
+        ----------
+        ax : matplotlib plot object
+
+        fontsize : float, optional [default=18]
+            base font size
+        """
+        # plot the bands and all spectra for this star
+        for curtype in self.data.keys():
+            gindxs, = np.where(self.data[curtype].npts > 0)
+            if len(gindxs) < 20:
+                # plot small number of points (usually BANDS data) as
+                # points with errorbars
+                ax.errorbar(self.data[curtype].waves[gindxs],
+                            self.data[curtype].fluxes[gindxs],
+                            yerr=self.data[curtype].uncs[gindxs],
+                            fmt='o')
+            else:
+                ax.plot(self.data[curtype].waves[gindxs],
+                        self.data[curtype].fluxes[gindxs],
+                        '-')
+
+        # finish configuring the plot
+        ax.set_yscale('log')
+        ax.set_xscale('log')
+        ax.set_xlabel('$\lambda$ [$\mu m$]', fontsize=1.3*fontsize)
+        ax.set_ylabel('$F(\lambda)$ [$ergs\ cm^{-2}\ s\ \AA$]',
+                      fontsize=1.3*fontsize)
+        ax.tick_params('both', length=10, width=2, which='major')
+        ax.tick_params('both', length=5, width=1, which='minor')
