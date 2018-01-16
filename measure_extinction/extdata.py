@@ -188,7 +188,7 @@ class ExtData():
                     (-2.5*np.log10(red.data[src].fluxes[indxs]
                      / comp.data[src].fluxes[indxs])
                      + (comp_V[0] - red_V[0]))
-                self.uncs[src] = np.sqrt(
+                self.uncs[src][indxs] = np.sqrt(
                     np.square(_flux_unc_as_mags(red.data[src].fluxes[indxs],
                                                 red.data[src].uncs[indxs]))
                     + np.square(_flux_unc_as_mags(comp.data[src].fluxes[indxs],
@@ -275,3 +275,49 @@ class ExtData():
             if 'C1' not in self.fm90.keys():
                 self.fm90['C1'] = (2.09 - 2.84*self.fm90['C2'][0],
                                    2.84*self.fm90['C2'][1])
+
+    @staticmethod
+    def _get_ext_ytitle(exttype):
+        """
+        Format the extinction type nicely for plotting
+
+        Parameters
+        ----------
+        exttype : string
+            type of extinction curve (e.g., elv, alav, elvebv)
+
+        Returns
+        -------
+        ptype : string
+            Latex formated string for plotting
+        """
+        if exttype == 'elv':
+            return '$E(\lambda - V)$'
+        elif exttype == 'elvebv':
+            return '$E(\lambda - V)/E(B - V)$'
+        elif exttype == 'alav':
+            return '$A(\lambda)/A(V)$'
+        else:
+            return "%s (not found)" % exttype
+
+    def plot_ext(self, ax):
+        """
+        Plot an extinction curve
+
+        Parameters
+        ----------
+        ax : matplotlib plot object
+        """
+        for curtype in self.waves.keys():
+            gindxs, = np.where(self.npts[curtype] > 0)
+            if len(gindxs) < 20:
+                # plot small number of points (usually BANDS data) as
+                # points with errorbars
+                ax.errorbar(self.waves[curtype][gindxs],
+                            self.exts[curtype][gindxs],
+                            yerr=self.uncs[curtype][gindxs],
+                            fmt='o')
+            else:
+                ax.plot(self.waves[curtype][gindxs],
+                        self.exts[curtype][gindxs],
+                        '-')

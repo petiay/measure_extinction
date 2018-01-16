@@ -317,6 +317,8 @@ class BandData():
             self.fluxes[k] = self.band_fluxes[pband_name][0]
             self.uncs[k] = self.band_fluxes[pband_name][1]
 
+        self.wave_range = [min(self.waves), max(self.waves)]
+
 
 class SpecData():
     """
@@ -393,7 +395,7 @@ class SpecData():
         tdata = datafile[1].data  # data are in the 1st extension
         theader = datafile[1].header  # header
 
-        self.wave_range = [theader['wmin'], theader['wmax']]
+        self.wave_range = np.array([theader['wmin'], theader['wmax']])
         self.waves = tdata['wavelength']
         self.fluxes = tdata['flux']
         self.uncs = tdata['sigma']
@@ -434,6 +436,7 @@ class SpecData():
 
         # convert wavelengths from Angstroms to microns (standardization)
         self.waves *= 1e-4
+        self.wave_range *= 1e-4
 
     def read_stis(self, line, path='./'):
         """
@@ -580,7 +583,10 @@ class StarData():
                 self.data['IRS'].read_irs(line, path=self.path,
                                           corfac=self.corfac)
 
-    def plot_obsdata(self, ax, fontsize=18):
+    def plot_obs(self, ax, pcolor=None,
+                 norm_wave_range=None,
+                 mlam4=False,
+                 yoffset=0.0):
         """
         Plot all the data for a star (bands and spectra)
 
@@ -588,29 +594,73 @@ class StarData():
         ----------
         ax : matplotlib plot object
 
-        fontsize : float, optional [default=18]
-            base font size
+        pcolor : matplotlib color
+            color to use for all the data
+
+        norm_wave_range : list of 2 floats
+            min/max wavelength range to use to normalize data
+
+        mlam4 : boolean
+            plot the data multipled by lamda^4
+            removes the Rayleigh-Jeans slope
+
+        yoffset : float
+            addiative offset for the data
         """
+        # find the data to use for the normalization if requested
+        if norm_wave_range is not None:
+            normtype = None
+            for curtype in self.data.keys():
+                if ((norm_wave_range[0] >= self.data[curtype].wave_range[0])
+                        & ((norm_wave_range[1]
+                            <= self.data[curtype].wave_range[1]))):
+                    # prioritize spectra over photometric bands
+                    if normtype is not None:
+                        if normtype == "BAND":
+                            normtype = curtype
+                    else:
+                        normtype = curtype
+            if normtype is None:
+                return
+                # raise ValueError("requested normalization range not valid")
+
+            gindxs, = np.where((self.data[normtype].npts > 0)
+                               & ((self.data[normtype].waves
+                                   >= norm_wave_range[0])
+                                  & (self.data[normtype].waves
+                                     <= norm_wave_range[1])))
+
+            if len(gindxs) > 0:
+                if mlam4:
+                    ymult = np.power(self.data[normtype].waves[gindxs], 4.0)
+                else:
+                    ymult = np.full((len(self.data[normtype].waves[gindxs])),
+                                    1.0)
+                normval = np.average(self.data[normtype].fluxes[gindxs]*ymult)
+            else:
+                raise ValueError("no good data in reqeusted norm range")
+        else:
+            normval = 1.0
+
         # plot the bands and all spectra for this star
         for curtype in self.data.keys():
             gindxs, = np.where(self.data[curtype].npts > 0)
+
+            if mlam4:
+                ymult = np.power(self.data[curtype].waves[gindxs], 4.0)
+            else:
+                ymult = np.full((len(self.data[curtype].waves[gindxs])), 1.0)
+            # multiply by the overall normalization
+            ymult /= normval
+
             if len(gindxs) < 20:
                 # plot small number of points (usually BANDS data) as
                 # points with errorbars
                 ax.errorbar(self.data[curtype].waves[gindxs],
-                            self.data[curtype].fluxes[gindxs],
-                            yerr=self.data[curtype].uncs[gindxs],
-                            fmt='o')
+                            ymult*self.data[curtype].fluxes[gindxs] + yoffset,
+                            yerr=ymult*self.data[curtype].uncs[gindxs],
+                            fmt='o', color=pcolor)
             else:
                 ax.plot(self.data[curtype].waves[gindxs],
-                        self.data[curtype].fluxes[gindxs],
-                        '-')
-
-        # finish configuring the plot
-        ax.set_yscale('log')
-        ax.set_xscale('log')
-        ax.set_xlabel('$\lambda$ [$\mu m$]', fontsize=1.3*fontsize)
-        ax.set_ylabel('$F(\lambda)$ [$ergs\ cm^{-2}\ s\ \AA$]',
-                      fontsize=1.3*fontsize)
-        ax.tick_params('both', length=10, width=2, which='major')
-        ax.tick_params('both', length=5, width=1, which='minor')
+                        ymult*self.data[curtype].fluxes[gindxs] + yoffset,
+                        '-', color=pcolor)

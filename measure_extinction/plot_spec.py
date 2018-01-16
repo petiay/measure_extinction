@@ -3,7 +3,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import argparse
 import matplotlib.pyplot as plt
-import matplotlib
+import matplotlib as mpl
 
 from stardata import StarData
 
@@ -28,19 +28,28 @@ if __name__ == "__main__":
     # plotting setup for easier to read plots
     fontsize = 18
     font = {'size': fontsize}
-    matplotlib.rc('font', **font)
-    matplotlib.rc('lines', linewidth=1)
-    matplotlib.rc('axes', linewidth=2)
-    matplotlib.rc('xtick.major', width=2)
-    matplotlib.rc('xtick.minor', width=2)
-    matplotlib.rc('ytick.major', width=2)
-    matplotlib.rc('ytick.minor', width=2)
+    mpl.rc('font', **font)
+    mpl.rc('lines', linewidth=1)
+    mpl.rc('axes', linewidth=2)
+    mpl.rc('xtick.major', width=2)
+    mpl.rc('xtick.minor', width=2)
+    mpl.rc('ytick.major', width=2)
+    mpl.rc('ytick.minor', width=2)
 
     # setup the plot
     fig, ax = plt.subplots(figsize=(10, 13))
 
     # plot the bands and all spectra for this star
-    starobs.plot_obsdata(ax, fontsize=fontsize)
+    starobs.plot_obs(ax)
+
+    # finish configuring the plot
+    ax.set_yscale('log')
+    ax.set_xscale('log')
+    ax.set_xlabel('$\lambda$ [$\mu m$]', fontsize=1.3*fontsize)
+    ax.set_ylabel('$F(\lambda)$ [$ergs\ cm^{-2}\ s\ \AA$]',
+                  fontsize=1.3*fontsize)
+    ax.tick_params('both', length=10, width=2, which='major')
+    ax.tick_params('both', length=5, width=1, which='minor')
 
     # use the whitespace better
     fig.tight_layout()
