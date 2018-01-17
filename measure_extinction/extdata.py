@@ -220,6 +220,62 @@ class ExtData():
             else:
                 self.calc_elv_spectra(redstar, compstar, cursrc)
 
+    def get_fitdata(self, req_datasources,
+                    remove_uvwind_region=False,
+                    remove_lya_region=False):
+        """
+        Get the data to use in fitting the extinction curve
+
+        Parameters
+        ----------
+        req_datasources : list of str
+            list of data sources (e.g., []'IUE', 'BANDS'])
+
+        remove_uvwind_region : boolean, optional (default=False)
+            remove the UV wind regions from the returned data
+
+        remove_lya_region : boolean, optional (default=False)
+            remove the Ly-alpha regions from the returned data
+
+        Returns
+        -------
+        (x, y, y_unc) : tuple of arrays
+            x, y, and uncertainties for y
+        """
+        xdata = []
+        ydata = []
+        uncdata = []
+        nptsdata = []
+        for cursrc in req_datasources:
+            xdata.append(1.0/self.waves[cursrc])
+            ydata.append(self.exts[cursrc])
+            uncdata.append(self.uncs[cursrc])
+            nptsdata.append(self.npts[cursrc])
+        x = np.concatenate(xdata)
+        y = np.concatenate(ydata)
+        unc = np.concatenate(uncdata)
+        npts = np.concatenate(nptsdata)
+
+        # remove uv wind line regions
+        if remove_uvwind_region:
+            npts[np.logical_and(6.4 <= x, x < 6.6)] = 0
+            npts[np.logical_and(7.1 <= x, x < 7.3)] = 0
+
+        # remove Lya line region
+        if remove_lya_region:
+            npts[np.logical_and(8.0 <= x, x < 8.475)] = 0
+
+        # sort the data
+        # at the same time, remove points with no data
+        gindxs, = np.where(npts > 0)
+        sindxs = np.argsort(x[gindxs])
+        gindxs = gindxs[sindxs]
+        x = x[gindxs]
+        y = y[gindxs]
+        unc = unc[gindxs]
+
+        return (x, y, unc)
+
     def read_ext_data(self, ext_filename):
         """
         Read in a saved extinction curve
