@@ -79,10 +79,9 @@ class ExtData():
         self.type = ''
         self.red_file = ''
         self.comp_file = ''
-        self.columns = []
-        self.fm90 = []
+        self.columns = {}
+        self.fm90 = {}
         self.waves = {}
-        self.x = {}
         self.exts = {}
         self.uncs = {}
         self.npts = {}
@@ -214,6 +213,8 @@ class ExtData():
         Updated self.ext_(waves, x, exts, uncs)
         """
         self.type = 'elv'
+        self.red_file = redstar.file
+        self.comp_file = compstar.file
         for cursrc in _poss_datasources:
             if cursrc == 'BAND':
                 self.calc_elv_bands(redstar, compstar)
@@ -276,9 +277,76 @@ class ExtData():
 
         return (x, y, unc)
 
+    def save_ext_data(self, ext_filename,
+                      p92_best_params=None):
+        """
+        Save the extinction curve to a FITS file
+
+        Parameters
+        ----------
+        filename : string
+            Full filename to a save extinction curve
+
+        p92_best_params : tuple of 2 float vectors
+           Best fit parameter names and values for the P92 fit
+        """
+        # generate the primary header
+        pheader = fits.Header()
+        hname = ['EXTTYPE', 'R_FILE', 'C_FILE', 'EBV', 'EBV_UNC']
+        hcomment = ['Type of ext curve (options: elv, elvebv, alav)',
+                    'Data File of Reddened Star',
+                    'Data File of Comparison Star',
+                    'E(B-V)','E(B-V) uncertainty']
+        hval = ['elv', self.red_file, self.comp_file, -1.0, -1.0]
+
+        # P92 best fit parameters
+        if p92_best_params is not None:
+            hname = np.concatenate((hname, p92_best_params[0]))
+            hval = np.concatenate((hval, p92_best_params[1]))
+            p92_comment = [pname + ': P92 parameter' 
+                           for pname in p92_best_params[0]]
+            hcomment = np.concatenate((hcomment, p92_comment))
+
+        # other possible header keywords
+        #   setup to populate if info passed (TBD)
+        #         'LOGT','LOGT_UNC','LOGG','LOGG_UNC','LOGZ','LOGZ_UNC',
+        #         'AV','AV_unc','RV','RV_unc',
+        #         'FMC2','FMC2U','FMC3','FMC3U','FMC4','FMC4U',
+        #         'FMx0','FMx0U','FMgam','FMgamU',
+        #         'LOGHI','LOGHI_U','LOGHIMW','LHIMW_U',
+        #         'NHIAV','NHIAV_U','NHIEBV','NHIEBV_U'
+
+        for k in range(len(hname)):
+            pheader.set(hname[k],hval[k],hcomment[k])
+
+        pheader.add_comment('Created with measure_extinction package')
+        pheader.add_comment('https://github.com/karllark/measure_extinction')
+        phdu = fits.PrimaryHDU(header=pheader)
+        
+        hdulist = fits.HDUList([phdu])
+
+        # write the portions of the extinction curve from each dataset
+        # individual extensions so that the full info is perserved
+        for curname in self.exts.keys():
+            col1 = fits.Column(name='WAVELENGTH', format='E', 
+                               array=self.waves[curname])
+            col2 = fits.Column(name='EXT', format='E', 
+                               array=self.exts[curname])
+            col3 = fits.Column(name='UNC', format='E', 
+                               array=self.uncs[curname])
+            col4 = fits.Column(name='NPTS', format='E', 
+                               array=self.npts[curname])
+            cols = fits.ColDefs([col1, col2, col3, col4])
+            tbhdu = fits.BinTableHDU.from_columns(cols)
+            tbhdu.header.set('EXTNAME', '%sEXT' % curname, 
+                             '%s based extinction' % curname)
+            hdulist.append(tbhdu)
+
+        hdulist.writeto(ext_filename, overwrite=True)
+
     def read_ext_data(self, ext_filename):
         """
-        Read in a saved extinction curve
+        Read in a saved extinction curve from a FITS file
 
         Parameters
         ----------
@@ -297,8 +365,6 @@ class ExtData():
             curext = "%sEXT" % curname
             if curext in extnames:
                 self.waves[curname] = hdulist[curext].data['WAVELENGTH']
-                if 'X' in hdulist[curext].data.columns.names:
-                    self.x[curname] = hdulist[curext].data['X']
                 self.exts[curname] = hdulist[curext].data['EXT']
                 if 'UNC' in hdulist[curext].data.columns.names:
                     self.uncs[curname] = hdulist[curext].data['UNC']
@@ -316,8 +382,9 @@ class ExtData():
         column_keys = ['AV', 'EBV', 'RV', 'LOGHI', 'LOGHIMW', 'NHIAV']
         for curkey in column_keys:
             if pheader.get(curkey):
-                self.columns[curkey] = (float(pheader.get(curkey)),
-                                        float(pheader.get('%s_UNC' % curkey)))
+                if pheader.get('%s_UNC' % curkey):
+                    self.columns[curkey] = (pheader.get(curkey),
+                                            pheader.get('%s_UNC' % curkey))
 
         if pheader.get('FMC2'):
             FM90_keys = ['C1', 'C2', 'C3', 'C4', 'x0', 'gam']
