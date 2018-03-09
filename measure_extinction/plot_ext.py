@@ -41,7 +41,7 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(figsize=(10, 13))
 
     # plot the bands and all spectra for this star
-    extdata.plot_extdata(ax)
+    extdata.plot_ext(ax)
 
     # finish configuring the plot
     ax.set_yscale('linear')
