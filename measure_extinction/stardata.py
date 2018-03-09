@@ -509,7 +509,12 @@ class SpecData():
             else:
                 self.fluxes *= corfac['IRS']
                 self.uncs *= corfac['IRS']
-
+        
+        # remove bad long wavelength IRS data if keyword set
+        if 'IRS_maxwave' in corfac.keys():
+            indxs, = np.where(self.waves > corfac['IRS_maxwave'])
+            if len(indxs) > 0:
+                self.npts[indxs] = 0
 
 class StarData():
     """
@@ -567,6 +572,8 @@ class StarData():
                 self.corfac['IRS_zerowave'] = float(read_line_val(line))
             elif line.find('corfac_irs_slope') == 0:
                 self.corfac['IRS_slope'] = float(read_line_val(line))
+            elif line.find('corfac_irs_maxwave') == 0:
+                self.corfac['IRS_maxwave'] = float(read_line_val(line))
             elif line.find('corfac_irs') == 0:
                 self.corfac['IRS'] = float(read_line_val(line))
 

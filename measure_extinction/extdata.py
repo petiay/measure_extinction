@@ -248,10 +248,11 @@ class ExtData():
         uncdata = []
         nptsdata = []
         for cursrc in req_datasources:
-            xdata.append(1.0/self.waves[cursrc])
-            ydata.append(self.exts[cursrc])
-            uncdata.append(self.uncs[cursrc])
-            nptsdata.append(self.npts[cursrc])
+            if cursrc in self.waves.keys():
+                xdata.append(1.0/self.waves[cursrc])
+                ydata.append(self.exts[cursrc])
+                uncdata.append(self.uncs[cursrc])
+                nptsdata.append(self.npts[cursrc])
         x = np.concatenate(xdata)
         y = np.concatenate(ydata)
         unc = np.concatenate(uncdata)
