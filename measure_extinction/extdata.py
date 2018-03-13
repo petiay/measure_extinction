@@ -304,7 +304,7 @@ class ExtData():
         if p92_best_params is not None:
             hname = np.concatenate((hname, p92_best_params[0]))
             hval = np.concatenate((hval, p92_best_params[1]))
-            p92_comment = [pname + ': P92 parameter' 
+            p92_comment = [pname + ': P92 parameter'
                            for pname in p92_best_params[0]]
             hcomment = np.concatenate((hcomment, p92_comment))
 
@@ -323,23 +323,23 @@ class ExtData():
         pheader.add_comment('Created with measure_extinction package')
         pheader.add_comment('https://github.com/karllark/measure_extinction')
         phdu = fits.PrimaryHDU(header=pheader)
-        
+
         hdulist = fits.HDUList([phdu])
 
         # write the portions of the extinction curve from each dataset
         # individual extensions so that the full info is perserved
         for curname in self.exts.keys():
-            col1 = fits.Column(name='WAVELENGTH', format='E', 
+            col1 = fits.Column(name='WAVELENGTH', format='E',
                                array=self.waves[curname])
-            col2 = fits.Column(name='EXT', format='E', 
+            col2 = fits.Column(name='EXT', format='E',
                                array=self.exts[curname])
-            col3 = fits.Column(name='UNC', format='E', 
+            col3 = fits.Column(name='UNC', format='E',
                                array=self.uncs[curname])
-            col4 = fits.Column(name='NPTS', format='E', 
+            col4 = fits.Column(name='NPTS', format='E',
                                array=self.npts[curname])
             cols = fits.ColDefs([col1, col2, col3, col4])
             tbhdu = fits.BinTableHDU.from_columns(cols)
-            tbhdu.header.set('EXTNAME', '%sEXT' % curname, 
+            tbhdu.header.set('EXTNAME', '%sEXT' % curname,
                              '%s based extinction' % curname)
             hdulist.append(tbhdu)
 
@@ -386,6 +386,9 @@ class ExtData():
                 if pheader.get('%s_UNC' % curkey):
                     self.columns[curkey] = (pheader.get(curkey),
                                             pheader.get('%s_UNC' % curkey))
+                else:
+                    self.columns[curkey] = (pheader.get(curkey),
+                                            0.0)
 
         if pheader.get('FMC2'):
             FM90_keys = ['C1', 'C2', 'C3', 'C4', 'x0', 'gam']
@@ -424,24 +427,38 @@ class ExtData():
         else:
             return "%s (not found)" % exttype
 
-    def plot_ext(self, ax):
+    def plot_ext(self, ax, color=None,
+                 alav=False):
         """
         Plot an extinction curve
 
         Parameters
         ----------
         ax : matplotlib plot object
+
+        alav : boolean [False]
+            plot A(lambda)/A(V)
+            convert from E(lambda-V) using A(V)
+
+        color : matplotlib color
+            color for all the data plotted
         """
         for curtype in self.waves.keys():
             gindxs, = np.where(self.npts[curtype] > 0)
+            y = self.exts[curtype][gindxs]
+            yu = self.uncs[curtype][gindxs]
+            if alav:
+                y = (y/float(self.columns['AV'][0])) + 1.0
+                yu /= float(self.columns['AV'][0])
+
             if len(gindxs) < 20:
                 # plot small number of points (usually BANDS data) as
                 # points with errorbars
                 ax.errorbar(self.waves[curtype][gindxs],
-                            self.exts[curtype][gindxs],
-                            yerr=self.uncs[curtype][gindxs],
-                            fmt='o')
+                            y,
+                            yerr=yu,
+                            fmt='o', color=color)
             else:
                 ax.plot(self.waves[curtype][gindxs],
-                        self.exts[curtype][gindxs],
-                        '-')
+                        y,
+                        '-', color=color)
