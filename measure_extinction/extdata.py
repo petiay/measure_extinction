@@ -297,7 +297,7 @@ class ExtData():
         hcomment = ['Type of ext curve (options: elv, elvebv, alav)',
                     'Data File of Reddened Star',
                     'Data File of Comparison Star',
-                    'E(B-V)','E(B-V) uncertainty']
+                    'E(B-V)', 'E(B-V) uncertainty']
         hval = ['elv', self.red_file, self.comp_file, -1.0, -1.0]
 
         # P92 best fit parameters
@@ -318,7 +318,7 @@ class ExtData():
         #         'NHIAV','NHIAV_U','NHIEBV','NHIEBV_U'
 
         for k in range(len(hname)):
-            pheader.set(hname[k],hval[k],hcomment[k])
+            pheader.set(hname[k], hval[k], hcomment[k])
 
         pheader.add_comment('Created with measure_extinction package')
         pheader.add_comment('https://github.com/karllark/measure_extinction')
@@ -390,6 +390,7 @@ class ExtData():
                     self.columns[curkey] = (pheader.get(curkey),
                                             0.0)
 
+        # get FM90 parameters if they exist
         if pheader.get('FMC2'):
             FM90_keys = ['C1', 'C2', 'C3', 'C4', 'x0', 'gam']
             self.fm90 = {}
@@ -402,6 +403,19 @@ class ExtData():
             if 'C1' not in self.fm90.keys():
                 self.fm90['C1'] = (2.09 - 2.84*self.fm90['C2'][0],
                                    2.84*self.fm90['C2'][1])
+
+        # get P92 parameters if they exist
+        if pheader.get('BKG_amp'):
+            P92_mkeys = ['BKG', 'FUV', 'NUV',
+                         'SIL1', 'SIL2', 'FIR']
+            P92_types = ['AMP', 'LAMBDA', 'B', 'N']
+            self.p92_best_fit = {}
+            for curmkey in P92_mkeys:
+                for curtype in P92_types:
+                    curkey = '%s_%s' % (curmkey, curtype)
+                    if pheader.get(curkey):
+                        self.p92_best_fit[curkey] = \
+                            float(pheader.get('%s' % curkey))
 
     @staticmethod
     def _get_ext_ytitle(exttype):
