@@ -114,7 +114,7 @@ class BandData():
         for line in lines:
             eqpos = line.find('=')
             pmpos = line.find('+/-')
-            if (eqpos >= 0) & (pmpos >= 0):
+            if (eqpos >= 0) & (pmpos >= 0) & (line[0] != '#'):
                 # check for reference or unit
                 colpos = (max((line.find(';'), line.find('#'),
                           line.find('mJy'))))
@@ -509,7 +509,7 @@ class SpecData():
             else:
                 self.fluxes *= corfac['IRS']
                 self.uncs *= corfac['IRS']
-        
+
         # remove bad long wavelength IRS data if keyword set
         if 'IRS_maxwave' in corfac.keys():
             indxs, = np.where(self.waves > corfac['IRS_maxwave'])
@@ -537,7 +537,8 @@ class StarData():
     corfac : dict of key:correction factors
         key gives the type (e.g., IRS, IRS_slope)
     """
-    def __init__(self, datfile, path='./'):
+    def __init__(self, datfile, path='',
+                 photonly=False):
         """
         Parameters
         ----------
@@ -565,6 +566,7 @@ class StarData():
         self.data['BAND'].get_band_fluxes()
 
         # go through and get info before reading the spectra
+
         for line in self.datfile_lines:
             if line.find('sptype') == 0:
                 self.sptype = read_line_val(line)
@@ -578,17 +580,18 @@ class StarData():
                 self.corfac['IRS'] = float(read_line_val(line))
 
         # read the spectra
-        for line in self.datfile_lines:
-            if line.find('IUE') == 0:
-                self.data['IUE'] = SpecData('IUE')
-                self.data['IUE'].read_iue(line, path=self.path)
-            if line.find('STIS') == 0:
-                self.data['STIS'] = SpecData('STIS')
-                self.data['STIS'].read_stis(line, path=self.path)
-            elif line.find('IRS') == 0 and line.find('IRS15') < 0:
-                self.data['IRS'] = SpecData('IRS')
-                self.data['IRS'].read_irs(line, path=self.path,
-                                          corfac=self.corfac)
+        if not photonly:
+            for line in self.datfile_lines:
+                if line.find('IUE') == 0:
+                    self.data['IUE'] = SpecData('IUE')
+                    self.data['IUE'].read_iue(line, path=self.path)
+                elif line.find('STIS') == 0:
+                    self.data['STIS'] = SpecData('STIS')
+                    self.data['STIS'].read_stis(line, path=self.path)
+                elif line.find('IRS') == 0 and line.find('IRS15') < 0:
+                    self.data['IRS'] = SpecData('IRS')
+                    self.data['IRS'].read_irs(line, path=self.path,
+                                              corfac=self.corfac)
 
     def plot_obs(self, ax, pcolor=None,
                  norm_wave_range=None,
