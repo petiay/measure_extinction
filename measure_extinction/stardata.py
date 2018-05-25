@@ -516,6 +516,7 @@ class SpecData():
             if len(indxs) > 0:
                 self.npts[indxs] = 0
 
+
 class StarData():
     """
     Photometric and spectroscopic data for a star
@@ -596,7 +597,10 @@ class StarData():
     def plot_obs(self, ax, pcolor=None,
                  norm_wave_range=None,
                  mlam4=False,
-                 yoffset=0.0):
+                 yoffset=0.0,
+                 annotate_key=None,
+                 legend_key=None,
+                 fontsize=None):
         """
         Plot all the data for a star (bands and spectra)
 
@@ -616,6 +620,15 @@ class StarData():
 
         yoffset : float
             addiative offset for the data
+
+        annotate_key : string
+            annotate the spectrum using the given data key
+
+        legend_key : string
+            legend the spectrum using the given data key
+
+        fontsize : int
+            fontsize for plot
         """
         # find the data to use for the normalization if requested
         if norm_wave_range is not None:
@@ -657,20 +670,45 @@ class StarData():
             gindxs, = np.where(self.data[curtype].npts > 0)
 
             if mlam4:
-                ymult = np.power(self.data[curtype].waves[gindxs], 4.0)
+                ymult = np.power(self.data[curtype].waves, 4.0)
             else:
-                ymult = np.full((len(self.data[curtype].waves[gindxs])), 1.0)
+                ymult = np.full((len(self.data[curtype].waves)), 1.0)
             # multiply by the overall normalization
             ymult /= normval
+
+            if curtype == legend_key:
+                legval = '%s / %s' % (self.file, self.sptype)
+            else:
+                legval = None
 
             if len(gindxs) < 20:
                 # plot small number of points (usually BANDS data) as
                 # points with errorbars
                 ax.errorbar(self.data[curtype].waves[gindxs],
                             ymult*self.data[curtype].fluxes[gindxs] + yoffset,
-                            yerr=ymult*self.data[curtype].uncs[gindxs],
-                            fmt='o', color=pcolor)
+                            yerr=ymult[gindxs]*self.data[curtype].uncs[gindxs],
+                            fmt='o', color=pcolor, label=legval)
             else:
                 ax.plot(self.data[curtype].waves[gindxs],
-                        ymult*self.data[curtype].fluxes[gindxs] + yoffset,
-                        '-', color=pcolor)
+                        (ymult[gindxs]
+                         * self.data[curtype].fluxes[gindxs] + yoffset),
+                        '-', color=pcolor, label=legval)
+
+            if curtype == annotate_key:
+                max_gwave = max(self.data[annotate_key].waves[gindxs])
+                ann_wave_range = np.array([max_gwave-5.0, max_gwave-1.0])
+                ann_indxs = np.where((self.data[annotate_key].waves
+                                      >= ann_wave_range[0]) &
+                                     (self.data[annotate_key].waves
+                                      <= ann_wave_range[1]) &
+                                     (self.data[annotate_key].npts > 0))
+                ann_val = np.median(self.data[annotate_key].fluxes[ann_indxs]
+                                    * ymult[ann_indxs])
+                ann_val += yoffset
+                ax.annotate('%s / %s' % (self.file, self.sptype),
+                            xy=(max_gwave, ann_val),
+                            xytext=(max_gwave+5., ann_val),
+                            verticalalignment="center",
+                            arrowprops=dict(facecolor=pcolor,
+                                            shrink=0.1),
+                            fontsize=0.85 * fontsize, rotation=-0.)

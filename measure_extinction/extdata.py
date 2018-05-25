@@ -376,9 +376,11 @@ class ExtData():
                 else:
                     self.npts[curname] = np.full(len(self.waves[curname]), 1)
 
-        # get the parameters of the extiinction curve
+        # get the parameters of the extinction curve
         pheader = hdulist[0].header
         self.type = pheader.get('EXTTYPE')
+        self.red_file = pheader.get('R_FILE')
+        self.comp_file = pheader.get('C_FILE')
 
         column_keys = ['AV', 'EBV', 'RV', 'LOGHI', 'LOGHIMW', 'NHIAV']
         for curkey in column_keys:
@@ -442,7 +444,10 @@ class ExtData():
             return "%s (not found)" % exttype
 
     def plot_ext(self, ax, color=None,
-                 alav=False):
+                 alav=False,
+                 annotate_key=None,
+                 legend_key=None,
+                 fontsize=None):
         """
         Plot an extinction curve
 
@@ -456,6 +461,15 @@ class ExtData():
 
         color : matplotlib color
             color for all the data plotted
+
+        annotate_key : string
+            annotate the spectrum using the given data key
+
+        legend_key : string
+            legend the spectrum using the given data key
+
+        fontsize : int
+            fontsize for plot
         """
         for curtype in self.waves.keys():
             gindxs, = np.where(self.npts[curtype] > 0)
@@ -465,14 +479,54 @@ class ExtData():
                 y = (y/float(self.columns['AV'][0])) + 1.0
                 yu /= float(self.columns['AV'][0])
 
+            if curtype == legend_key:
+                legval = '%s / %s' % (self.file, self.sptype)
+            else:
+                legval = None
+
             if len(gindxs) < 20:
                 # plot small number of points (usually BANDS data) as
                 # points with errorbars
                 ax.errorbar(self.waves[curtype][gindxs],
                             y,
                             yerr=yu,
-                            fmt='o', color=color)
+                            fmt='o', color=color, label=legval)
             else:
                 ax.plot(self.waves[curtype][gindxs],
                         y,
-                        '-', color=color)
+                        '-', color=color, label=legval)
+
+            if curtype == annotate_key:
+                max_gwave = max(self.waves[annotate_key][gindxs])
+                ann_wave_range = np.array([max_gwave-5.0, max_gwave-1.0])
+                ann_indxs = np.where((self.waves[annotate_key]
+                                      >= ann_wave_range[0]) &
+                                     (self.waves[annotate_key]
+                                      <= ann_wave_range[1]) &
+                                     (self.npts[annotate_key] > 0))
+                ann_val = np.median(self.exts[annotate_key][ann_indxs])
+                ax.annotate(self.red_file,
+                            xy=(max_gwave, ann_val),
+                            xytext=(max_gwave+5., ann_val),
+                            verticalalignment="center",
+                            arrowprops=dict(facecolor=color,
+                                            shrink=0.1),
+                            fontsize=0.85 * fontsize, rotation=-0.)
+
+        # annotate the spectra
+        #ann_wave_range = np.array([max_gwave-5.0, max_gwave-1.0])
+        #ann_indxs = np.where((extdata[k].data[spec_name].waves
+        #                      >= ann_wave_range[0]) &
+        #                     (extdata[k].data[spec_name].waves
+        #                      <= ann_wave_range[1]) &
+        #                     (extdata[k].data[spec_name].npts > 0))
+        #ann_val = np.median(extdata[k].data[spec_name].fluxes[ann_indxs]
+        #                    *ymult[ann_indxs])
+        #ann_val *= norm_val
+        #ann_val += off_val
+        #ax.annotate(starnames[k]+'/'+extdata[k].sptype, xy=(ann_xvals[0],
+        #                                                     ann_val),
+        #            xytext=(ann_xvals[1], ann_val),
+        #            verticalalignment="center",
+        #            arrowprops=dict(facecolor=col_vals[i%6], shrink=0.1),
+        #            fontsize=0.85*fontsize, rotation=-0.)
