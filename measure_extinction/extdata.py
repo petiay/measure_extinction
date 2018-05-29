@@ -443,7 +443,9 @@ class ExtData():
         else:
             return "%s (not found)" % exttype
 
-    def plot_ext(self, ax, color=None,
+    def plot_ext(self, ax,
+                 color=None,
+                 alpha=None,
                  alav=False,
                  annotate_key=None,
                  legend_key=None,
@@ -461,6 +463,9 @@ class ExtData():
 
         color : matplotlib color
             color for all the data plotted
+
+        alpha : float
+            tranparancy value (0=transparent, 1=opaque)
 
         annotate_key : string
             annotate the spectrum using the given data key
@@ -490,11 +495,11 @@ class ExtData():
                 ax.errorbar(self.waves[curtype][gindxs],
                             y,
                             yerr=yu,
-                            fmt='o', color=color, label=legval)
+                            fmt='o', color=color, alpha=alpha, label=legval)
             else:
                 ax.plot(self.waves[curtype][gindxs],
                         y,
-                        '-', color=color, label=legval)
+                        '-', color=color, alpha=alpha, label=legval)
 
             if curtype == annotate_key:
                 max_gwave = max(self.waves[annotate_key][gindxs])
