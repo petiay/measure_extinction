@@ -6,12 +6,23 @@ import warnings
 import numpy as np
 from astropy.io import fits
 
-__all__ = ["ExtData"]
+__all__ = ["ExtData", "AverageExtData"]
 
 
 # globals
 # possible datasets (also extension names in saved FITS file)
 _poss_datasources = ['BAND', 'IUE', 'STIS', 'IRS']
+
+
+def _rebin(a, rebin_fac):
+    """
+    Hack code to rebin a 1d array
+    """
+    new_len = int(a.shape[0]/rebin_fac)
+    new_a = np.full((new_len), 0.)
+    for i in range(new_len):
+        new_a[i] = np.mean(a[i*rebin_fac:((i+1)*rebin_fac)-1])
+    return(new_a)
 
 
 def _flux_unc_as_mags(fluxes, uncs):
@@ -34,6 +45,75 @@ def _flux_unc_as_mags(fluxes, uncs):
                                         / (fluxes[indxs] + uncs[indxs]))
 
     return uncs_mag
+
+
+def AverageExtData(extdatas,
+                   alav=None):
+    """
+    Generate the average extinction curve from a list of ExtData objects
+
+    """
+    aveext = ExtData()
+    if alav is None:
+        aveext.type = extdatas[0].type
+    else:
+        aveext.type = 'alav'
+
+    gkeys = list(extdatas[0].waves.keys())
+    gkeys.remove('BAND')
+    for src in gkeys:
+        aveext.waves[src] = extdatas[0].waves[src]
+        n_waves = len(aveext.waves[src])
+        aveext.exts[src] = np.zeros(n_waves)
+        aveext.uncs[src] = np.zeros(n_waves)
+        aveext.npts[src] = np.zeros(n_waves)
+        for cext in extdatas:
+            if src in cext.waves.keys():
+                gindxs, = np.where(cext.npts[src] > 0)
+                y = cext.exts[src][gindxs]
+                yu = cext.uncs[src][gindxs]
+                if alav is not None:
+                    y = (y/float(cext.columns['AV'][0])) + 1.0
+                    yu /= float(cext.columns['AV'][0])
+                aveext.exts[src][gindxs] += y
+                aveext.uncs[src][gindxs] += np.square(yu)
+                aveext.npts[src][gindxs] += cext.npts[src][gindxs]
+        gindxs, = np.where(aveext.npts[src] > 0)
+        aveext.exts[src][gindxs] /= aveext.npts[src][gindxs]
+        aveext.uncs[src][gindxs] /= aveext.npts[src][gindxs]
+        aveext.uncs[src][gindxs] = (np.sqrt(aveext.uncs[src][gindxs])
+                                    / aveext.npts[src][gindxs])
+
+    # do the photometric band data separately
+    src = 'BAND'
+    # possible band waves and number of curves with those waves
+    pwaves = {}
+    pwaves_uncs = {}
+    pwaves_npts = {}
+    for cext in extdatas:
+        for k, cwave in enumerate(cext.waves[src]):
+            y = cext.exts[src][k]
+            yu = cext.uncs[src][k]
+            if alav is not None:
+                y = (y/float(cext.columns['AV'][0])) + 1.0
+                yu /= float(cext.columns['AV'][0])
+            if cwave in pwaves.keys():
+                pwaves[cwave] += y
+                pwaves_uncs[cwave] += np.square(yu)
+                pwaves_npts[cwave] += 1.
+            else:
+                pwaves[cwave] = y
+                pwaves_uncs[cwave] = np.square(yu)
+                pwaves_npts[cwave] = 1.
+
+    aveext.waves[src] = np.array(list(pwaves.keys()))
+    aveext.exts[src] = (np.array(list(pwaves.values()))
+                        / np.array(list(pwaves_npts.values())))
+    aveext.uncs[src] = (np.sqrt(np.array(list(pwaves_uncs.values())))
+                        / np.array(list(pwaves_npts.values())))
+    aveext.npts[src] = np.array(list(pwaves_npts.values()))
+
+    return aveext
 
 
 class ExtData():
@@ -447,6 +527,7 @@ class ExtData():
                  color=None,
                  alpha=None,
                  alav=False,
+                 rebin_fac=None,
                  annotate_key=None,
                  legend_key=None,
                  fontsize=None):
@@ -460,6 +541,9 @@ class ExtData():
         alav : boolean [False]
             plot A(lambda)/A(V)
             convert from E(lambda-V) using A(V)
+
+        rebin_fac : int
+            factor by which to rebin spectra
 
         color : matplotlib color
             color for all the data plotted
@@ -478,6 +562,7 @@ class ExtData():
         """
         for curtype in self.waves.keys():
             gindxs, = np.where(self.npts[curtype] > 0)
+            x = self.waves[curtype][gindxs]
             y = self.exts[curtype][gindxs]
             yu = self.uncs[curtype][gindxs]
             if alav:
@@ -492,13 +577,14 @@ class ExtData():
             if len(gindxs) < 20:
                 # plot small number of points (usually BANDS data) as
                 # points with errorbars
-                ax.errorbar(self.waves[curtype][gindxs],
-                            y,
-                            yerr=yu,
+                ax.errorbar(x, y, yerr=yu,
                             fmt='o', color=color, alpha=alpha, label=legval)
             else:
-                ax.plot(self.waves[curtype][gindxs],
-                        y,
+                if rebin_fac is not None:
+                    x = _rebin(x, rebin_fac)
+                    y = _rebin(y, rebin_fac)
+
+                ax.plot(x, y,
                         '-', color=color, alpha=alpha, label=legval)
 
             if curtype == annotate_key:
@@ -517,21 +603,3 @@ class ExtData():
                             arrowprops=dict(facecolor=color,
                                             shrink=0.1),
                             fontsize=0.85 * fontsize, rotation=-0.)
-
-        # annotate the spectra
-        #ann_wave_range = np.array([max_gwave-5.0, max_gwave-1.0])
-        #ann_indxs = np.where((extdata[k].data[spec_name].waves
-        #                      >= ann_wave_range[0]) &
-        #                     (extdata[k].data[spec_name].waves
-        #                      <= ann_wave_range[1]) &
-        #                     (extdata[k].data[spec_name].npts > 0))
-        #ann_val = np.median(extdata[k].data[spec_name].fluxes[ann_indxs]
-        #                    *ymult[ann_indxs])
-        #ann_val *= norm_val
-        #ann_val += off_val
-        #ax.annotate(starnames[k]+'/'+extdata[k].sptype, xy=(ann_xvals[0],
-        #                                                     ann_val),
-        #            xytext=(ann_xvals[1], ann_val),
-        #            verticalalignment="center",
-        #            arrowprops=dict(facecolor=col_vals[i%6], shrink=0.1),
-        #            fontsize=0.85*fontsize, rotation=-0.)
