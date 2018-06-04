@@ -388,6 +388,11 @@ class ExtData():
                            for pname in p92_best_params[0]]
             hcomment = np.concatenate((hcomment, p92_comment))
 
+        # P92 emcee results
+        if hasattr(self, 'p92_emcee_param_names'):
+            print(p92_emcee_param_names)
+            exit()
+
         # other possible header keywords
         #   setup to populate if info passed (TBD)
         #         'LOGT','LOGT_UNC','LOGG','LOGG_UNC','LOGZ','LOGZ_UNC',

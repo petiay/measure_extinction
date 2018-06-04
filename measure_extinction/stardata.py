@@ -677,7 +677,9 @@ class StarData():
             ymult /= normval
 
             if curtype == legend_key:
-                legval = '%s / %s' % (self.file, self.sptype)
+                red_name = self.file.replace('.dat', '')
+                red_name = red_name.replace('DAT_files/', '')
+                legval = '%s / %s' % (red_name, self.sptype)
             else:
                 legval = None
 
