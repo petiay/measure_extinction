@@ -530,6 +530,7 @@ class ExtData():
                  rebin_fac=None,
                  annotate_key=None,
                  legend_key=None,
+                 legend_label=None,
                  fontsize=None):
         """
         Plot an extinction curve
@@ -557,6 +558,9 @@ class ExtData():
         legend_key : string
             legend the spectrum using the given data key
 
+        legend_label : string
+            label to use for legend
+
         fontsize : int
             fontsize for plot
         """
@@ -570,7 +574,10 @@ class ExtData():
                 yu /= float(self.columns['AV'][0])
 
             if curtype == legend_key:
-                legval = '%s / %s' % (self.file, self.sptype)
+                if legend_label is None:
+                    legval = self.red_file
+                else:
+                    legval = legend_label
             else:
                 legval = None
 
