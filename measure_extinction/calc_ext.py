@@ -7,7 +7,6 @@ import matplotlib
 
 from stardata import StarData
 from extdata import ExtData
-from plot_ext import plot_extdata
 
 
 if __name__ == "__main__":
@@ -51,7 +50,7 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(figsize=(10, 13))
 
     # plot the bands and all spectra for this star
-    plot_extdata(ax, extdata)
+    extdata.plot_ext(ax)
 
     # use the whitespace better
     fig.tight_layout()
