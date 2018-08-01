@@ -78,4 +78,133 @@ Terminology Summary
 Example
 -------
 
-Give an example using the measure_extinction code.
+Spectra
+^^^^^^^
+
+HD 283809 and HD 64802 are two stars with similar spectral types have
+observed ultraviolet spectra from IUE or HST/STIS and optical/NIR photometry
+from ground-based observations.  These two stars differ in that HD 283809
+is seen through a large column of dust and HD 64802 is seen through
+very little.
+
+The DAT file for both stars is given in the data directory for this
+package along with the STIS (HD 283809) and IUE (HD 64802) spectra.  Using
+these files, the spectra of both stars can be plotted by reading in the
+observed data using the StarData object and then calling the member function
+plot_obs.
+
+.. code-block:: python
+
+   from measure_extinction.stardata import StarData
+   starobs = StarData(dat_filename)
+
+   fig, ax = plt.subplots()
+   starobs.plot_obs(ax)
+
+The spectra for both stars are plotted using those data files.  Which star
+is reddened is clear as it has a non-stellar slope for a early type star
+and clearly shows the 2175 A absorption feature.
+
+.. plot::
+
+   import pkg_resources
+
+   from measure_extinction.stardata import StarData
+
+   # get the location of the data files
+   data_path = pkg_resources.resource_filename('measure_extinction',
+                                               'data/')
+
+   # read in the observed data on the star
+   redstar = StarData('hd283809.dat', path=data_path)
+   compstar = StarData('hd064802.dat', path=data_path)
+
+   fig, ax = plt.subplots()
+
+   # plot the bands and all spectra for both stars
+   redstar.plot_obs(ax, pcolor='r')
+   compstar.plot_obs(ax, pcolor='b')
+
+   # finish configuring the plot
+   ax.set_title('HD 283809 (reddened) & HD 64802 (comparion)')
+   ax.set_yscale('log')
+   ax.set_xscale('log')
+   ax.set_ylim(1e-17, 1e-9)
+   ax.set_xlabel('$\lambda$ [$\mu m$]')
+   ax.set_ylabel('$F(\lambda)$ [$ergs\ cm^{-2}\ s\ \AA$]')
+   ax.tick_params('both', length=10, width=2, which='major')
+   ax.tick_params('both', length=5, width=1, which='minor')
+
+   # use the whitespace better
+   fig.tight_layout()
+
+   plt.show()
+
+Extinction
+^^^^^^^^^^
+
+Measuring the extinction is done by reading in observed data for both
+stars in to StarData objects and then using an ExtData object and the
+calc_elv member function.
+
+.. code-block:: python
+
+   from measure_extinction.stardata import StarData
+   from measure_extinction.extdata import ExtData
+
+   redstar = StarData(red_dat_filename)
+   compstar = StarData(comp_dat_filename)
+
+   extdata = ExtData()
+   extdata.calc_elv(redstar, compstar)
+
+   fig, ax = plt.subplots()
+   extdata.plot_ext(ax)
+
+.. plot::
+
+   import pkg_resources
+
+   from measure_extinction.stardata import StarData
+   from measure_extinction.extdata import ExtData
+
+   # get the location of the data files
+   data_path = pkg_resources.resource_filename('measure_extinction',
+                                               'data/')
+
+   # read in the observed data on the star
+   redstar = StarData('hd283809.dat', path=data_path)
+   compstar = StarData('hd064802.dat', path=data_path)
+
+   # calculate the extinction curve
+   extdata = ExtData()
+   extdata.calc_elv(redstar, compstar)
+
+   fig, ax = plt.subplots()
+
+   # plot the bands and all spectra for this star
+   extdata.plot_ext(ax)
+
+   # finish configuring the plot
+   ax.set_title('HD 283809/HD 64802 extinction')
+   ax.set_xscale('log')
+   #ax.set_ylim(1e-17, 1e-9)
+   ax.set_xlabel('$\lambda$ [$\mu m$]')
+   ax.set_ylabel('$E(\lambda - V)$ [mag]')
+   ax.tick_params('both', length=10, width=2, which='major')
+   ax.tick_params('both', length=5, width=1, which='minor')
+
+   # use the whitespace better
+   fig.tight_layout()
+
+   plt.show()
+
+Normalization
+^^^^^^^^^^^^^
+
+Derive A(V).  Transform E(l-V) to A(l)/A(V).  Calculate R(V).
+
+Comparison to Models
+^^^^^^^^^^^^^^^^^^^^
+
+Show comparisons to existing R(V) dependent models using dust_extinction.
