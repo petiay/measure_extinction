@@ -28,8 +28,8 @@ User Documentation
 .. toctree::
    :maxdepth: 2
 
-   Observed Data Formats <data_formats.rst>
    Extinction Calculation <calc_extinction.rst>
+   Observed Data Formats <data_formats.rst>
    Plotting <plotting.rst>
 
 Reporting Issues
