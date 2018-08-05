@@ -2,8 +2,21 @@
 Measure Extinction
 ##################
 
-``measure_extinction`` is a python package to ...
+``measure_extinction`` is a python package to measure extinction
+due to dust absorbing photons or scattering photons out of
+the line-of-sight.
+Extinction applies to the case for a star seen behind a foreground
+screen of dust.
+This package provides the tools to measure dust extinction curves using
+observations of two effectively identical stars, differing only in that one
+is seen through more dust than the other.
 
+Models of the wavelength dependence of dust extinction can be found in the
+`dust_extinction package <http://dust-extinction.readthedocs.io/>`_.
+More complex geometries of stars and dust include additional radiative
+transfer effects resulting in attenuation.
+Models of the wavelength dependence of dust attenuation can be found in the
+`dust_attenuation package <http://dust-attenuation.readthedocs.io/>`_.
 
 This package is developed in the
 `astropy affiliated package <http://www.astropy.org/affiliated/>`_
@@ -15,8 +28,8 @@ User Documentation
 .. toctree::
    :maxdepth: 2
 
-   Observed Data Formats <data_formats.rst>
    Extinction Calculation <calc_extinction.rst>
+   Observed Data Formats <data_formats.rst>
    Plotting <plotting.rst>
 
 Reporting Issues
@@ -64,4 +77,5 @@ Reference API
 =============
 
 .. automodapi:: measure_extinction.stardata
+
 .. automodapi:: measure_extinction.extdata

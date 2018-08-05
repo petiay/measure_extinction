@@ -301,6 +301,74 @@ class ExtData():
             else:
                 self.calc_elv_spectra(redstar, compstar, cursrc)
 
+    def trans_elv_elvebv(self):
+        """
+        Transform E(lambda-V) to E(lambda -V)/E(B-V) by
+        normalizing by E(lambda-B).
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        Updates self.ext_(exts, uncs)
+        """
+        if self.type != 'elv':
+            warnings.warn("attempt to normalize a non-elv curve with ebv",
+                          UserWarning)
+        else:
+            # determine the index for the B band
+            dwaves = np.absolute(self.waves['BAND'] - 0.438)
+            sindxs = np.argsort(dwaves)
+            bindx = sindxs[0]
+            if dwaves[bindx] > 0.02:
+                warnings.warn("no B band mesurement in E(l-V)",
+                              UserWarning)
+            else:
+                # normalize each portion of the extinction curve
+                ebv = self.exts['BAND'][bindx]
+                for curname in self.exts.keys():
+                    self.exts[curname] /= ebv
+                    self.uncs[curname] /= ebv
+                self.type = 'elvebv'
+
+    def trans_elv_alav(self, akav=0.112):
+        """
+        Transform E(lambda-V) to A(lambda)/A(V) by normalizing to
+        A(V) and adding 1.
+
+        Parameters
+        ----------
+        akav : float  [default = 0.112]
+           Value of A(K)/A(V)
+           default is from Rieke & Lebosky (1985)
+           van de Hulst No. 15 curve has A(K)/A(V) = 0.0885
+
+        Returns
+        -------
+        Updates self.ext_(exts, uncs)
+        """
+        if self.type != 'elv':
+            warnings.warn("attempt to normalize a non-elv curve with av",
+                          UserWarning)
+        else:
+            # determine the index for the B band
+            dwaves = np.absolute(self.waves['BAND'] - 2.19)
+            sindxs = np.argsort(dwaves)
+            kindx = sindxs[0]
+            if dwaves[kindx] > 0.02:
+                warnings.warn("no K band mesurement in E(l-V)",
+                              UserWarning)
+            else:
+                # normalize each portion of the extinction curve
+                ekv = self.exts['BAND'][kindx]
+                av = ekv/(akav - 1)
+                for curname in self.exts.keys():
+                    self.exts[curname] /= av
+                    self.exts[curname] += 1.0
+                    self.uncs[curname] /= av
+                self.type = 'alav'
+
     def get_fitdata(self, req_datasources,
                     remove_uvwind_region=False,
                     remove_lya_region=False):
@@ -378,7 +446,7 @@ class ExtData():
                     'Data File of Reddened Star',
                     'Data File of Comparison Star',
                     'E(B-V)', 'E(B-V) uncertainty']
-        hval = ['elv', self.red_file, self.comp_file, -1.0, -1.0]
+        hval = [self.type, self.red_file, self.comp_file, -1.0, -1.0]
 
         # P92 best fit parameters
         if p92_best_params is not None:
