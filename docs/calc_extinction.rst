@@ -17,8 +17,13 @@ as it just means finding two stars with the same 2D spectral types
 (temperature and luminosity) and the metallicities.
 As a result, measuring extinction is a simple matter of dividing the
 the observations of the two stars and a small amount of math to convert
-it to magnitudes.  Of course, there are a few details with which to be
-concerned.
+it to magnitudes.  Using observations taken with the same instrumentation
+for both the reddened and comparison star means that only good relative
+calibration is needed.  Instead of using observations of a star with little
+to no reddening, a model stellar atmosphere can be used
+('Fitzpatrick & Massa 2005 <https://ui.adsabs.harvard.edu//#abs/2005AJ....130.1127F/abstract>'_).
+This can provide a better match, but it comes at the expense of requiring
+good absolute calibration.
 
 The basic measurement is given the magnitude excess relative to a
 reference wavelength measurement.
