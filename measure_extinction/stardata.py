@@ -278,7 +278,7 @@ class BandData():
 
         Returns
         -------
-        Updates self.band_fluxes and self.and_waves
+        Updates self.band_fluxes and self.band_waves
         Also sets self.(n_waves, waves, fluxes, npts)
         """
         poss_bands = self.get_poss_bands()
@@ -318,6 +318,30 @@ class BandData():
             self.uncs[k] = self.band_fluxes[pband_name][1]
 
         self.wave_range = [min(self.waves), max(self.waves)]
+
+    def get_band_mags_from_fluxes(self):
+        """
+        Compute the magnitudes from fluxes in each band
+        Useful for generating "observed data" from models
+
+        Returns
+        -------
+        Updates self.bands and self.band_units
+        """
+        poss_bands = self.get_poss_bands()
+
+        for cband in self.band_fluxes.keys():
+            if cband in poss_bands.keys():
+                self.bands[cband] = (-2.5*np.log10(self.band_fluxes[cband][0]
+                                                   / poss_bands[cband][0]),
+                                     0.0)
+                self.band_waves[cband] = poss_bands[cband][1]
+                self.band_units[cband] = 'mag'
+            else:
+                warnings.warn("cannot get mag for %s" % cband,
+                              UserWarning)
+
+        self.n_bands = len(self.bands)
 
 
 class SpecData():
@@ -393,14 +417,16 @@ class SpecData():
         # open and read the spectrum
         datafile = fits.open(full_filename)
         tdata = datafile[1].data  # data are in the 1st extension
-        theader = datafile[1].header  # header
 
-        self.wave_range = np.array([theader['wmin'], theader['wmax']])
         self.waves = tdata['wavelength']
         self.fluxes = tdata['flux']
         self.uncs = tdata['sigma']
         self.npts = tdata['npts']
         self.n_waves = len(self.waves)
+
+        # theader = datafile[1].header  # header
+        # self.wave_range = np.array([theader['wmin'], theader['wmax']])
+        self.wave_range = np.array([min(self.waves), max(self.waves)])
 
         # trim any data that is not finite
         indxs, = np.where(np.isfinite(self.fluxes) is False)
@@ -428,6 +454,7 @@ class SpecData():
         Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
         """
         self.read_spectra(line, path)
+        print(self.wave_range)
 
         # trim the long wavelength data by setting the npts to zero
         indxs, = np.where(self.waves > 3200.)
@@ -586,6 +613,9 @@ class StarData():
                 if line.find('IUE') == 0:
                     self.data['IUE'] = SpecData('IUE')
                     self.data['IUE'].read_iue(line, path=self.path)
+                elif line.find('STIS_Opt') == 0:
+                    self.data['STIS_Opt'] = SpecData('STIS_Opt')
+                    self.data['STIS_Opt'].read_stis(line, path=self.path)
                 elif line.find('STIS') == 0:
                     self.data['STIS'] = SpecData('STIS')
                     self.data['STIS'].read_stis(line, path=self.path)
