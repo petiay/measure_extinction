@@ -17,8 +17,13 @@ as it just means finding two stars with the same 2D spectral types
 (temperature and luminosity) and the metallicities.
 As a result, measuring extinction is a simple matter of dividing the
 the observations of the two stars and a small amount of math to convert
-it to magnitudes.  Of course, there are a few details with which to be
-concerned.
+it to magnitudes.  Using observations taken with the same instrumentation
+for both the reddened and comparison star means that only good relative
+calibration is needed.  Instead of using observations of a star with little
+to no reddening, a model stellar atmosphere can be used
+(e.g., `Fitzpatrick & Massa 2005 <https://ui.adsabs.harvard.edu//#abs/2005AJ....130.1127F/abstract>`_).
+This can provide a better match, but it comes at the expense of requiring
+good absolute calibration.
 
 The basic measurement is given the magnitude excess relative to a
 reference wavelength measurement.
@@ -33,9 +38,16 @@ Thus, the dust extinction at :math:`\lambda` wavelength is:
 .. math ::
   E(\lambda - V) = m(\lambda - V)_r - m(\lambda - V)_c
 
+      = m(\lambda)_r - m(\lambda)_c - m(V)_r + m(V)_c
+
+      = -2.5 \ln [F_r(\lambda)/F_c(\lambda)] + 2.5 \ln [F_r(V)/F_c(V)]
+
 where :math:`m(\lambda - V)` is the difference in magnitudes between the flux at
-:math:`\lambda` and the V band, :math:`r` refers to the
-reddened star, and :math:`c` refers to the comparison star.
+:math:`\lambda` and the V band, :math:`m(\lambda)` is the magnitude,
+:math:`F(\lambda)` is the flux,
+:math:`r` refers to the reddened star, and :math:`c` refers to the comparison
+star.  Note that since :math:`E(\lambda - V)` is a differential measurement
+there is not dependence on the zero point of the magnitude system.
 
 This extinction measurement can be normalized allowing comparison with
 extinction along other lines-of-sight.
@@ -77,6 +89,8 @@ Terminology Summary
 ^^^^^^^^^^^^^^^^^^^
 
 * :math:`m(\lambda - V)` = magnitude difference between :math:`\lambda` wavelength and V band
+* :math:`m(\lambda)` = magnitude at :math:`\lambda`
+* :math:`F(\lambda)` = flux at :math:`\lambda`
 * :math:`E(\lambda - V)` = extinction excess between :math:`\lambda` wavelength and V band
 * |Av| = V band extinction
 * :math:`R(V) = A(V)/E(B-V)` = total-to-selective extinction

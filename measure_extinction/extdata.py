@@ -51,7 +51,6 @@ def AverageExtData(extdatas,
                    alav=None):
     """
     Generate the average extinction curve from a list of ExtData objects
-
     """
     aveext = ExtData()
     if alav is None:
