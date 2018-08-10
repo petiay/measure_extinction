@@ -5,7 +5,7 @@ import argparse
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-from stardata import StarData
+from measure_extinction.stardata import StarData
 
 
 if __name__ == "__main__":

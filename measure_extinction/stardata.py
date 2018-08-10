@@ -5,7 +5,8 @@ import math
 import warnings
 
 import numpy as np
-from astropy.io import fits
+# from astropy.io import fits
+from astropy.table import Table
 from astropy import constants as const
 
 __all__ = ["StarData", "BandData", "SpecData"]
@@ -415,14 +416,20 @@ class SpecData():
         full_filename = path + self.file
 
         # open and read the spectrum
-        datafile = fits.open(full_filename)
-        tdata = datafile[1].data  # data are in the 1st extension
+        # datafile = fits.open(full_filename)
+        # tdata = datafile[1].data  # data are in the 1st extension
+        tdata = Table.read(full_filename)
 
-        self.waves = tdata['wavelength']
-        self.fluxes = tdata['flux']
-        self.uncs = tdata['sigma']
-        self.npts = tdata['npts']
+        self.waves = tdata['WAVELENGTH'].data
+        self.fluxes = tdata['FLUX'].data
+        self.uncs = tdata['SIGMA'].data
+        self.npts = tdata['NPTS'].data
         self.n_waves = len(self.waves)
+
+        # include the model if it exists
+        #   currently only used for FUSE H2 model
+        if 'MODEL' in tdata.colnames:
+            self.model = tdata['MODEL'].data
 
         # theader = datafile[1].header  # header
         # self.wave_range = np.array([theader['wmin'], theader['wmax']])
@@ -432,6 +439,30 @@ class SpecData():
         indxs, = np.where(np.isfinite(self.fluxes) is False)
         if len(indxs) > 0:
             self.npts[indxs] = 0
+
+    def read_fuse(self, line, path='./'):
+        """
+        Read in FUSE spectra
+
+        Converts the wavelengths from Anstroms to microns
+
+        Parameters
+        ----------
+        line : string
+            formated line from DAT file
+            example: 'STIS = hd029647_fuse.fits'
+
+        path : string, optional
+            location of the FITS files path
+
+        Returns
+        -------
+        Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
+        """
+        self.read_spectra(line, path)
+
+        # convert wavelengths from Angstroms to microns (standardization)
+        self.waves *= 1e-4
 
     def read_iue(self, line, path='./'):
         """
@@ -454,7 +485,6 @@ class SpecData():
         Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
         """
         self.read_spectra(line, path)
-        print(self.wave_range)
 
         # trim the long wavelength data by setting the npts to zero
         indxs, = np.where(self.waves > 3200.)
@@ -613,6 +643,9 @@ class StarData():
                 if line.find('IUE') == 0:
                     self.data['IUE'] = SpecData('IUE')
                     self.data['IUE'].read_iue(line, path=self.path)
+                elif line.find('FUSE') == 0:
+                    self.data['FUSE'] = SpecData('FUSE')
+                    self.data['FUSE'].read_fuse(line, path=self.path)
                 elif line.find('STIS_Opt') == 0:
                     self.data['STIS_Opt'] = SpecData('STIS_Opt')
                     self.data['STIS_Opt'].read_stis(line, path=self.path)
