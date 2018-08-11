@@ -5,7 +5,8 @@ import math
 import warnings
 
 import numpy as np
-from astropy.io import fits
+# from astropy.io import fits
+from astropy.table import Table
 from astropy import constants as const
 
 __all__ = ["StarData", "BandData", "SpecData"]
@@ -278,7 +279,7 @@ class BandData():
 
         Returns
         -------
-        Updates self.band_fluxes and self.and_waves
+        Updates self.band_fluxes and self.band_waves
         Also sets self.(n_waves, waves, fluxes, npts)
         """
         poss_bands = self.get_poss_bands()
@@ -318,6 +319,30 @@ class BandData():
             self.uncs[k] = self.band_fluxes[pband_name][1]
 
         self.wave_range = [min(self.waves), max(self.waves)]
+
+    def get_band_mags_from_fluxes(self):
+        """
+        Compute the magnitudes from fluxes in each band
+        Useful for generating "observed data" from models
+
+        Returns
+        -------
+        Updates self.bands and self.band_units
+        """
+        poss_bands = self.get_poss_bands()
+
+        for cband in self.band_fluxes.keys():
+            if cband in poss_bands.keys():
+                self.bands[cband] = (-2.5*np.log10(self.band_fluxes[cband][0]
+                                                   / poss_bands[cband][0]),
+                                     0.0)
+                self.band_waves[cband] = poss_bands[cband][1]
+                self.band_units[cband] = 'mag'
+            else:
+                warnings.warn("cannot get mag for %s" % cband,
+                              UserWarning)
+
+        self.n_bands = len(self.bands)
 
 
 class SpecData():
@@ -391,21 +416,53 @@ class SpecData():
         full_filename = path + self.file
 
         # open and read the spectrum
-        datafile = fits.open(full_filename)
-        tdata = datafile[1].data  # data are in the 1st extension
-        theader = datafile[1].header  # header
+        # datafile = fits.open(full_filename)
+        # tdata = datafile[1].data  # data are in the 1st extension
+        tdata = Table.read(full_filename)
 
-        self.wave_range = np.array([theader['wmin'], theader['wmax']])
-        self.waves = tdata['wavelength']
-        self.fluxes = tdata['flux']
-        self.uncs = tdata['sigma']
-        self.npts = tdata['npts']
+        self.waves = tdata['WAVELENGTH'].data
+        self.fluxes = tdata['FLUX'].data
+        self.uncs = tdata['SIGMA'].data
+        self.npts = tdata['NPTS'].data
         self.n_waves = len(self.waves)
+
+        # include the model if it exists
+        #   currently only used for FUSE H2 model
+        if 'MODEL' in tdata.colnames:
+            self.model = tdata['MODEL'].data
+
+        # theader = datafile[1].header  # header
+        # self.wave_range = np.array([theader['wmin'], theader['wmax']])
+        self.wave_range = np.array([min(self.waves), max(self.waves)])
 
         # trim any data that is not finite
         indxs, = np.where(np.isfinite(self.fluxes) is False)
         if len(indxs) > 0:
             self.npts[indxs] = 0
+
+    def read_fuse(self, line, path='./'):
+        """
+        Read in FUSE spectra
+
+        Converts the wavelengths from Anstroms to microns
+
+        Parameters
+        ----------
+        line : string
+            formated line from DAT file
+            example: 'STIS = hd029647_fuse.fits'
+
+        path : string, optional
+            location of the FITS files path
+
+        Returns
+        -------
+        Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
+        """
+        self.read_spectra(line, path)
+
+        # convert wavelengths from Angstroms to microns (standardization)
+        self.waves *= 1e-4
 
     def read_iue(self, line, path='./'):
         """
@@ -586,6 +643,12 @@ class StarData():
                 if line.find('IUE') == 0:
                     self.data['IUE'] = SpecData('IUE')
                     self.data['IUE'].read_iue(line, path=self.path)
+                elif line.find('FUSE') == 0:
+                    self.data['FUSE'] = SpecData('FUSE')
+                    self.data['FUSE'].read_fuse(line, path=self.path)
+                elif line.find('STIS_Opt') == 0:
+                    self.data['STIS_Opt'] = SpecData('STIS_Opt')
+                    self.data['STIS_Opt'].read_stis(line, path=self.path)
                 elif line.find('STIS') == 0:
                     self.data['STIS'] = SpecData('STIS')
                     self.data['STIS'].read_stis(line, path=self.path)
