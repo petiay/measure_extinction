@@ -228,9 +228,9 @@ memebr function plot_ext.
 Normalization
 ^^^^^^^^^^^^^
 
-One common normalization is to divide by :math:`E(\lambda-V)`.  As long as
+One common normalization is to divide by :math:`E(B-V)`.  As long as
 both the data used for the reddened and comparison stars inlcude B and V
-measurements, :math:`E(\lambda-V)` has already been calculated.  The
+measurements, :math:`E(B-V)` has already been calculated.  The
 :class:`~measure_extinction.extdata.ExtData` member function trans_elv_elvebv
 performs this normalization while checking that the B band measurement
 exists.
