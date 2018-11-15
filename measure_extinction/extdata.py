@@ -457,7 +457,7 @@ class ExtData():
 
         # P92 emcee results
         if hasattr(self, 'p92_emcee_param_names'):
-            print(p92_emcee_param_names)
+            print(self.p92_emcee_param_names)
             exit()
 
         # other possible header keywords
