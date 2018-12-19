@@ -596,15 +596,22 @@ class StarData():
         key gives the type (e.g., IRS, IRS_slope)
     """
     def __init__(self, datfile, path='',
-                 photonly=False):
+                 photonly=False, use_corfac=True):
         """
         Parameters
         ----------
         datfile: string
             filename of the DAT file
 
-        path : string, optional
+        path: string, optional
             DAT file path
+
+        photonly: boolean
+            Only read in the photometry (no spectroscopy)
+
+        use_corfac: boolean
+            Modify the spectra based on precomputed correction factors
+            Currently only affects Spitzer/IRS data
         """
         self.file = datfile
         self.path = path
@@ -654,8 +661,11 @@ class StarData():
                     self.data['STIS'].read_stis(line, path=self.path)
                 elif line.find('IRS') == 0 and line.find('IRS15') < 0:
                     self.data['IRS'] = SpecData('IRS')
+                    irs_corfacs = self.corfac
+                    if not use_corfac:
+                        irs_corfacs = {}
                     self.data['IRS'].read_irs(line, path=self.path,
-                                              corfac=self.corfac)
+                                              corfac=irs_corfacs)
 
     def plot_obs(self, ax, pcolor=None,
                  norm_wave_range=None,
