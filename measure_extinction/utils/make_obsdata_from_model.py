@@ -115,17 +115,28 @@ def get_phot(mwave, mflux,
 
 
 def write_dat_file(filename, bandinfo, specinfo,
-                   header_info=["# obsdata created from model spectrum"]):
+                   header_info=["# obsdata created from model spectrum"],
+                   modelparams=None):
     """
     Write out a DAT file containing the photometry and pointers to
     spectroscopy files.
 
     Parameters
     ----------
+    filename: string
+        full file name of output DAT file
+
     bandinfo : BandData object
         contains the photometry data
 
     specinfo : dict of {type: filename}
+
+    header_info: string array
+        comments to add to the header
+
+    modelparams: dict of {type: value}
+        model parameters
+        e.g., {'Teff': 10000.0, 'logg': 4.0, 'Z': 1, 'vturb': 2.0}
     """
     dfile = open(filename, 'w')
 
@@ -140,13 +151,22 @@ def write_dat_file(filename, bandinfo, specinfo,
         for ckey in specinfo.keys():
             dfile.write("%s = %s\n" % (ckey, specinfo[ckey]))
 
+    if modelparams is not None:
+        for ckey in modelparams.keys():
+            if isinstance(modelparams[ckey], str):
+                dfile.write("%s = %s\n" % (ckey, modelparams[ckey]))
+            else:
+                dfile.write("%s = %f\n" % (ckey, modelparams[ckey]))
+
     dfile.close()
 
 
 def make_obsdata_from_model(model_filename,
                             model_type='tlusty',
+                            model_params=None,
                             output_filebase=None,
-                            output_path=None):
+                            output_path=None,
+                            show_plot=False):
     """
     Create the necessary data files (.dat and spectra) from a
     stellar model atmosphere model to use as the unreddened
@@ -154,11 +174,15 @@ def make_obsdata_from_model(model_filename,
 
     Parameters
     ----------
-    model_filename : string
+    model_filename: string
         name of the file with the stellar atmosphere model spectrum
 
-    model_type : string [default = 'tlusty']
+    model_type: string [default = 'tlusty']
         model type
+
+    model_params: dict of {type: value}
+        model parameters
+        e.g., {'Teff': 10000.0, 'logg': 4.0, 'Z': 1, 'vturb': 2.0}
 
     output_filebase: string
         base for the output files
@@ -166,6 +190,9 @@ def make_obsdata_from_model(model_filename,
 
     output_path: string
         path to use for output files
+
+    show_plot: boolean
+        show a plot of the original and rebinned spectra/photometry
     """
 
     if output_filebase is None:
@@ -187,13 +214,14 @@ def make_obsdata_from_model(model_filename,
     #   means that SFlux is read in as a string
     # solution is to remove the rows with the problem and replace
     #   the fortran 'D' with an 'E' and then convert to floats
-    indxs = [k for k in range(len(mspec)) if 'D' not in mspec['SFlux'][k]]
-    if len(indxs) > 0:
-        indxs = [k for k in range(len(mspec)) if 'D' in mspec['SFlux'][k]]
-        mspec = mspec[indxs]
-        new_strs = [cval.replace('D', 'E') for cval in mspec['SFlux'].data]
-        mspec['SFlux'] = new_strs
-        mspec['SFlux'] = mspec['SFlux'].astype(np.float)
+    if mspec['SFlux'].dtype != np.float:
+        indxs = [k for k in range(len(mspec)) if 'D' not in mspec['SFlux'][k]]
+        if len(indxs) > 0:
+            indxs = [k for k in range(len(mspec)) if 'D' in mspec['SFlux'][k]]
+            mspec = mspec[indxs]
+            new_strs = [cval.replace('D', 'E') for cval in mspec['SFlux'].data]
+            mspec['SFlux'] = new_strs
+            mspec['SFlux'] = mspec['SFlux'].astype(np.float)
 
     # set the units
     mspec['Freq'].unit = u.Hz
@@ -261,30 +289,43 @@ def make_obsdata_from_model(model_filename,
 
     # create the DAT file
     dat_filename = "%s/Models/%s.dat" % (output_path, output_filebase)
-    header_info = ["# obsdata created from tlusty model atmosphere",
+    header_info = ["# obsdata created from %s model atmosphere" % model_type,
                    "# %s" % (output_filebase),
-                   "# file created by make_obsdata_from_model.py"]
-    write_dat_file(dat_filename, bandinfo, specinfo, header_info=header_info)
+                   "# file created by make_obsdata_from_model.py",
+                   "model_type = %s" % model_type]
+    write_dat_file(dat_filename, bandinfo, specinfo,
+                   modelparams=model_params,
+                   header_info=header_info)
 
-    fig, ax = plt.subplots(figsize=(13, 10))
-    # indxs, = np.where(npts_r5000 > 0)
-    ax.plot(wave_r5000*1e-4, iflux_r5000, 'b-')
-    ax.plot(bandinfo.waves, bandinfo.fluxes, 'ro')
+    if show_plot:
+        fig, ax = plt.subplots(figsize=(13, 10))
+        # indxs, = np.where(npts_r5000 > 0)
+        ax.plot(wave_r5000*1e-4, iflux_r5000, 'b-')
+        ax.plot(bandinfo.waves, bandinfo.fluxes, 'ro')
 
-    indxs, = np.where(rb_stis_uv['NPTS'] > 0)
-    ax.plot(rb_stis_uv['WAVELENGTH'][indxs].to(u.micron),
-            rb_stis_uv['FLUX'][indxs], 'm-')
-    indxs, = np.where(rb_stis_opt['NPTS'] > 0)
-    ax.plot(rb_stis_opt['WAVELENGTH'][indxs].to(u.micron),
-            rb_stis_opt['FLUX'][indxs], 'g-')
-    ax.set_xscale('log')
-    ax.set_yscale('log')
-    plt.show()
+        indxs, = np.where(rb_stis_uv['NPTS'] > 0)
+        ax.plot(rb_stis_uv['WAVELENGTH'][indxs].to(u.micron),
+                rb_stis_uv['FLUX'][indxs], 'm-')
+        indxs, = np.where(rb_stis_opt['NPTS'] > 0)
+        ax.plot(rb_stis_opt['WAVELENGTH'][indxs].to(u.micron),
+                rb_stis_opt['FLUX'][indxs], 'g-')
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+        plt.show()
 
 
 if __name__ == "__main__":
-    mname = '/home/kgordon/Dust/Ext/Model_Standards_Data/BC15000g175v10.flux.gz'
+    mname = \
+        '/home/kgordon/Dust/Ext/Model_Standards_Data/BC15000g175v10.flux.gz'
+    model_params = {}
+    model_params['origin'] = 'bstar'
+    model_params['Teff'] = 15000.
+    model_params['logg'] = 1.75
+    model_params['Z'] = 1.0
+    model_params['vturb'] = 10.0
     make_obsdata_from_model(
         mname, model_type='tlusty',
         output_filebase='BC15000g175v10',
-        output_path='/home/kgordon/Python_git/extstar_data')
+        output_path='/home/kgordon/Python_git/extstar_data',
+        model_params=model_params,
+        show_plot=True)
