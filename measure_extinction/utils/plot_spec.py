@@ -10,9 +10,6 @@ import matplotlib as mpl
 from measure_extinction.stardata import StarData
 
 
-__all__ = ['plot_spec_parser']
-
-
 def plot_spec_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("starname", help="name of star")

@@ -273,6 +273,44 @@ class BandData():
             if (_mag != 0.0) & (_mag_unc != 0.0):
                 return (_mag, _mag_unc, 'mag')
 
+    def get_band_flux(self, band_name):
+        """
+        Compute the flux for the input band
+
+        Parameters
+        ----------
+        band_name : str
+            name of the band
+
+        Returns
+        -------
+        info: tuple
+           (flux, unc)
+        """
+        mag_vals = self.get_band_mag(band_name)
+        if mag_vals is not None:
+            # get the zero mag fluxes
+            poss_bands = self.get_poss_bands()
+            if mag_vals[2] == 'mag':
+                # flux +/- unc
+                flux1 = (poss_bands[band_name][0]
+                         * (10**(-0.4*(mag_vals[0] + mag_vals[1]))))
+                flux2 = (poss_bands[band_name][0]
+                         * (10**(-0.4*(mag_vals[0] - mag_vals[1]))))
+                return (0.5*(flux1 + flux2),
+                        0.5*(flux2 - flux1))
+            elif mag_vals[2] == 'mJy':
+                mfac = (1e-3 * Jy_to_cgs_const
+                        / np.square(poss_bands[band_name]))
+                return (mag_vals[0]*mfac,
+                        mag_vals[1]*mfac)
+            else:
+                warnings.warn("cannot get flux for %s" % band_name,
+                              UserWarning)
+        else:
+            warnings.warn("cannot get flux for %s" % band_name,
+                          UserWarning)
+
     def get_band_fluxes(self):
         """
         Compute the fluxes and uncertainties in each band
