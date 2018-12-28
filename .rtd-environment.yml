@@ -9,5 +9,6 @@ dependencies:
     - matplotlib
     - numpy
     - scipy
+    - sphinx-argparse
 #   - pip:
 #       - dependency_from_pip

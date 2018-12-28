@@ -578,8 +578,8 @@ class StarData():
     """
     Photometric and spectroscopic data for a star
 
-    Contains:
-
+    Attributes
+    ----------
     file : string
         DAT filename
 
