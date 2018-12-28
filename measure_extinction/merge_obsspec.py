@@ -22,7 +22,7 @@ def _wavegrid(resolution,
     wave_range : [float, float]
         min/max of grid
 
-    Outputs
+    Returns
     -------
     wave_info : tuple [waves, waves_bin_min, waves_bin_max]
         wavelength grid center, min, max wavelengths
@@ -62,7 +62,7 @@ def merge_stis_obsspec(obstables,
         output resolution of spectra
         input spectrum assumed to be at the appropriate resolution
 
-    Outputs
+    Returns
     -------
     output_table : astropy Table object
         merged spectra

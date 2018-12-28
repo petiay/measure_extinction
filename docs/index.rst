@@ -31,6 +31,7 @@ User Documentation
    Extinction Calculation <calc_extinction.rst>
    Observed Data Formats <data_formats.rst>
    Plotting <plotting.rst>
+   Stellar Models as Standards <model_standards.rst>
 
 Reporting Issues
 ================
@@ -79,3 +80,5 @@ Reference API
 .. automodapi:: measure_extinction.stardata
 
 .. automodapi:: measure_extinction.extdata
+
+.. automodapi:: measure_extinction.merge_obsspec

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
@@ -8,9 +10,10 @@ import matplotlib as mpl
 from measure_extinction.stardata import StarData
 
 
-if __name__ == "__main__":
+__all__ = ['plot_spec_parser']
 
-    # commandline parser
+
+def plot_spec_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("starname", help="name of star")
     parser.add_argument("--path", help="path to star files",
@@ -21,6 +24,13 @@ if __name__ == "__main__":
                         action="store_true")
     parser.add_argument("--pdf", help="save figure as a pdf file",
                         action="store_true")
+    return parser
+
+
+if __name__ == "__main__":
+
+    # commandline parser
+    parser = plot_spec_parser()
     args = parser.parse_args()
 
     # read in the observed data on the star
