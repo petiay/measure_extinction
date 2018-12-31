@@ -148,8 +148,8 @@ class ModelData(object):
         self.mets_width2 = (self.mets_max - self.mets_min)**2
         # self.mets_width2 *= 4.0
 
-    def get_stellar_sed(self,
-                        params):
+    def stellar_sed(self,
+                    params):
         """
         Compute the stellar SED given model parameters
 
@@ -161,7 +161,7 @@ class ModelData(object):
         Returns
         -------
         sed : dict
-            stellar SED with {'bands': band_sed, 'spec': spec_sed, ...}
+            SED with {'bands': band_sed, 'spec': spec_sed, ...}
         """
         # compute the distance between model params and grid points
         #    probably a better way using a kdtree
@@ -185,9 +185,9 @@ class ModelData(object):
 
         return sed
 
-    def get_dust_extinguished_sed(self,
-                                  params,
-                                  sed):
+    def dust_extinguished_sed(self,
+                              params,
+                              sed):
         """
         Dust extinguished sed given the extinction parameters
 
@@ -202,7 +202,7 @@ class ModelData(object):
         Returns
         -------
         extinguished sed : dict
-            stellar SED with {'bands': band_sed, 'spec': spec_sed, ...}
+            SED with {'bands': band_sed, 'spec': spec_sed, ...}
         """
         Rv = params[1]
 
@@ -242,3 +242,51 @@ class ModelData(object):
             ext_sed[cspec] = sed[cspec]*(10**(-0.4*axav*params[0]))
 
         return ext_sed
+
+    def hi_abs_sed(self,
+                   params,
+                   hi_velocities,
+                   sed):
+        """
+        HI abs sed given the HI columns
+
+        Parameters
+        ----------
+        params : float array
+            hi columns [log(HI_MW), log(HI_gal)]
+
+        hi_velocities : float array
+            hi velocities in km/sec [vel_MW, vel_gal]
+
+        sed : dict
+            fluxes for each spectral piece
+
+        Returns
+        -------
+        hi absorbed sed : dict
+            SED with {'bands': band_sed, 'spec': spec_sed, ...}
+        """
+        # wavelengths of HI lines
+        #     only use Ly-alpha right now - others useful later
+        h_lines = np.array([1215.0, 1025.0, 972.0, 949.0, 937.0, 930.0,
+                            926.0, 923.0, 920, 919.0, 918.])*1e-4
+        # width overwhich to compute the HI abs
+        h_width = 100.*1e-4
+
+        hi_sed = {}
+        for cspec in self.fluxes.keys():
+            hi_sed[cspec] = np.copy(sed[cspec])
+            indxs, = np.where(
+                np.absolute((self.waves[cspec] - h_lines[0]) <= h_width))
+            if len(indxs) > 0:
+                for i, cvel in enumerate(hi_velocities):
+                    # compute the Ly-alpha abs: from Bohlin et al. (197?)
+                    abs_wave = (1.0 + (cvel/3e5))*h_lines[0]
+                    phi = 4.26e-20/((1e4*(self.waves[cspec][indxs]
+                                          - abs_wave))**2 + 6.04e-10)
+
+                    nhi = 10**params[i]
+                    hi_sed[cspec][indxs] = (hi_sed[cspec][indxs]
+                                            * np.exp(-1.*nhi*phi))
+
+        return hi_sed

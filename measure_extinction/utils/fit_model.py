@@ -38,15 +38,20 @@ if __name__ == '__main__':
 
     # parameters
     # [logT, logg, logZ,
-    #  Av, Rv, C2, C3, C4, x0, gamma]
+    #  Av, Rv, C2, C3, C4, x0, gamma,
+    #  log(HI_MW), log(HI_gal)]
     params = [4.3, 4.0, 0.0,
-              1.0, 3.1, 0.679, 2.991, 0.319, 4.592, 0.922]
+              1.0, 3.1, 0.679, 2.991, 0.319, 4.592, 0.922,
+              19.0, 21.0]
 
     # intrinsic sed
-    modsed = modinfo.get_stellar_sed(params[0:3])
+    modsed = modinfo.stellar_sed(params[0:3])
 
-    # extinguished sed
-    ext_modsed = modinfo.get_dust_extinguished_sed(params[3:10], modsed)
+    # dust_extinguished sed
+    ext_modsed = modinfo.dust_extinguished_sed(params[3:10], modsed)
+
+    # hi_abs sed
+    hi_ext_modsed = modinfo.hi_abs_sed(params[10:12], [0.0, 200.], ext_modsed)
 
     # plot the SEDs
 
@@ -75,8 +80,11 @@ if __name__ == '__main__':
                 label=cspec)
         ax.plot(modinfo.waves[cspec], ext_modsed[cspec], ptype,
                 label=cspec)
+        ax.plot(modinfo.waves[cspec], hi_ext_modsed[cspec], ptype,
+                label=cspec)
 
     # finish configuring the plot
+    ax.set_ylim(8e4, 2e9)
     ax.set_yscale('log')
     ax.set_xscale('log')
     ax.set_xlabel('$\lambda$ [$\mu m$]', fontsize=1.3*fontsize)
