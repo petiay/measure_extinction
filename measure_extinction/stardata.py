@@ -21,33 +21,6 @@ __all__ = ["StarData", "BandData", "SpecData"]
 Jy_to_cgs_const = 1e-27*const.c.to('micron/s').value
 
 
-def read_line_val(line):
-    """
-    Parses a string and return the substring between the '=' and any ';'
-
-    Parameters
-    ----------
-    line : string
-        DAT file formated string
-
-    Returns
-    -------
-    substring : string
-        The value substring in a DAT file formated string
-
-    Example
-    -------
-    >>> print(read_line_val('V = 10.0 +/- 0.1  ; V mag'))
-    10.0 +/- 0.1
-    """
-    eqpos = line.find('=')
-    if eqpos >= 0:
-        colpos = line.find(';')
-        if colpos == 0:
-            colpos = len(line)
-        return line[eqpos+1:colpos]
-
-
 class BandData():
     """
     Photometric band data (used by StarData)
@@ -298,12 +271,14 @@ class BandData():
                 flux2 = (poss_bands[band_name][0]
                          * (10**(-0.4*(mag_vals[0] - mag_vals[1]))))
                 return (0.5*(flux1 + flux2),
-                        0.5*(flux2 - flux1))
+                        0.5*(flux2 - flux1),
+                        poss_bands[band_name][1])
             elif mag_vals[2] == 'mJy':
                 mfac = (1e-3 * Jy_to_cgs_const
-                        / np.square(poss_bands[band_name]))
+                        / np.square(poss_bands[band_name][0]))
                 return (mag_vals[0]*mfac,
-                        mag_vals[1]*mfac)
+                        mag_vals[1]*mfac,
+                        poss_bands[band_name][1])
             else:
                 warnings.warn("cannot get flux for %s" % band_name,
                               UserWarning)
@@ -627,6 +602,10 @@ class StarData():
     sptype : string
         spectral type of star
 
+    model_params : dict
+        has the stellar atmosphere model parameters
+        empty dict if observed data
+
     data : dict of key:BandData or SpecData
         key gives the type of data (e.g., BANDS, IUE, IRS)
 
@@ -654,6 +633,7 @@ class StarData():
         self.file = datfile
         self.path = path
         self.sptype = ''
+        self.model_params = {}
         self.data = {}
         self.corfac = {}
 
@@ -669,18 +649,23 @@ class StarData():
         self.data['BAND'].get_band_fluxes()
 
         # go through and get info before reading the spectra
-
+        poss_mod_params = ['model_type', 'Z', 'vturb',
+                           'logg', 'Teff', 'origin']
         for line in self.datfile_lines:
-            if line.find('sptype') == 0:
-                self.sptype = read_line_val(line)
-            elif line.find('corfac_irs_zerowave') == 0:
-                self.corfac['IRS_zerowave'] = float(read_line_val(line))
-            elif line.find('corfac_irs_slope') == 0:
-                self.corfac['IRS_slope'] = float(read_line_val(line))
-            elif line.find('corfac_irs_maxwave') == 0:
-                self.corfac['IRS_maxwave'] = float(read_line_val(line))
-            elif line.find('corfac_irs') == 0:
-                self.corfac['IRS'] = float(read_line_val(line))
+            cpair = self._parse_dfile_line(line)
+            if cpair is not None:
+                if cpair[0] == 'sptype':
+                    self.sptype = cpair[1]
+                elif cpair[0] in poss_mod_params:
+                    self.model_params[cpair[0]] = cpair[1]
+                elif cpair[0] == 'corfac_irs_zerowave':
+                    self.corfac['IRS_zerowave'] = float(cpair[1])
+                elif cpair[0] == 'corfac_irs_slope':
+                    self.corfac['IRS_slope'] = float(cpair[1])
+                elif cpair[0] == 'corfac_irs_maxwave':
+                    self.corfac['IRS_maxwave'] = float(cpair[1])
+                elif cpair[0] == 'corfac_irs':
+                    self.corfac['IRS'] = float(cpair[1])
 
         # read the spectra
         if not photonly:
@@ -704,6 +689,30 @@ class StarData():
                         irs_corfacs = {}
                     self.data['IRS'].read_irs(line, path=self.path,
                                               corfac=irs_corfacs)
+
+    @staticmethod
+    def _parse_dfile_line(line):
+        """
+        Parses a string and return key, value pair.
+        Pair separated by '=' and ends with ';'.
+
+        Parameters
+        ----------
+        line : string
+            DAT file formated string
+
+        Returns
+        -------
+        substring : string
+            The value substring in a DAT file formated string
+        """
+        if line[0] != '#':
+            eqpos = line.find('=')
+            if eqpos >= 0:
+                colpos = line.find(';')
+                if colpos == 0:
+                    colpos = len(line)
+                return (line[0:eqpos-1].strip(), line[eqpos+1:colpos].strip())
 
     def plot_obs(self, ax, pcolor=None,
                  norm_wave_range=None,
