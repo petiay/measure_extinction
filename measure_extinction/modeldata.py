@@ -62,7 +62,7 @@ class ModelData(object):
     def __init__(self, modelfiles,
                  path='./',
                  band_names=['U', 'B', 'V', 'J', 'H', 'K'],
-                 spectra_names=['STIS']):
+                 spectra_names=['BAND', 'STIS']):
 
         self.n_models = len(modelfiles)
         self.model_files = np.array(modelfiles)
@@ -79,7 +79,7 @@ class ModelData(object):
 
         # photometric and spectroscopic data
         self.n_spectra = len(spectra_names) + 1
-        self.spectra_names = ['BAND'] + spectra_names
+        self.spectra_names = spectra_names
         self.waves = {}
         self.fluxes = {}
         self.flux_uncs = {}
@@ -149,7 +149,8 @@ class ModelData(object):
         # self.mets_width2 *= 4.0
 
     def stellar_sed(self,
-                    params):
+                    params,
+                    velocity=None):
         """
         Compute the stellar SED given model parameters
 
@@ -157,6 +158,9 @@ class ModelData(object):
         ----------
         params : float array
             stellar atmosphere parameters [logT, logg, logZ]
+
+        velocity : float
+            stellar velocity in km/s
 
         Returns
         -------
@@ -182,12 +186,19 @@ class ModelData(object):
             # dot product does the multiplication and sum
             sed[cspec] = np.dot(weights,
                                 self.fluxes[cspec][gsindxs, :])
+            # shift spectrum if velocity given
+            if velocity is not None:
+                cwaves = self.waves[cspec]
+                sed[cspec] = np.interp(cwaves,
+                                       (1.0 + velocity/2.998e5)*cwaves,
+                                       sed[cspec])
 
         return sed
 
     def dust_extinguished_sed(self,
                               params,
-                              sed):
+                              sed,
+                              velocity=0.0):
         """
         Dust extinguished sed given the extinction parameters
 
@@ -198,6 +209,9 @@ class ModelData(object):
 
         sed : dict
             fluxes for each spectral piece
+
+        velocity : float, optional
+            velocity of dust
 
         Returns
         -------
@@ -234,7 +248,10 @@ class ModelData(object):
         # create the extinguished sed
         ext_sed = {}
         for cspec in self.fluxes.keys():
-            axav = _curve_F99_method(self.waves[cspec]*u.micron,
+            # get the dust extinguished SED (account for the
+            #  systemic velocity of the galaxy [opposite regular sense])
+            shifted_waves = (1.0 - velocity/2.998e5)*self.waves[cspec]
+            axav = _curve_F99_method(shifted_waves*u.micron,
                                      Rv, C1, params[2], params[3], params[4],
                                      params[5], params[6],
                                      optnir_axav_x, optnir_axebv_y/Rv,

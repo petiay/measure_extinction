@@ -2,10 +2,25 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import argparse
+import numpy as np
 
 from astropy.table import Table
 
 from measure_extinction.merge_obsspec import merge_stis_obsspec
+
+
+def read_stis_archive_format(filename):
+    """
+    Read the STIS archive format and make it a *normal* table
+    """
+    t1 = Table.read(filename)
+    ot = Table()
+    for ckey in t1.colnames:
+        if len(t1[ckey].shape) == 2:
+            ot[ckey] = t1[ckey].data[0, :]
+
+    return ot
+
 
 if __name__ == "__main__":
 
@@ -18,6 +33,10 @@ if __name__ == "__main__":
         "--path",
         help="path where merged spectra will be stored",
         default="/home/kgordon/Python_git/extstar_data/STIS_Data/")
+    parser.add_argument("--ralph",
+                        help="Ralph Bohlin reduced data")
+    parser.add_argument("--outname",
+                        help="Output filebase")
     parser.add_argument("--png", help="save figure as a png file",
                         action="store_true")
     parser.add_argument("--eps", help="save figure as an eps file",
@@ -26,16 +45,33 @@ if __name__ == "__main__":
                         action="store_true")
     args = parser.parse_args()
 
-    sfilename = "%s/Orig/%s/%s.mrg" % (args.path, args.waveregion,
+    if args.ralph:
+        sfilename = "%s/Orig/%s/%s.mrg" % (args.path, args.waveregion,
+                                           args.starname)
+        stable = Table.read(sfilename, format='ascii',
+                            data_start=23,
+                            names=['WAVELENGTH', 'COUNT-RATE', 'FLUX',
+                                   'STAT-ERROR', 'SYS-ERROR', 'NPTS',
+                                   'TIME', 'QUAL'])
+        stable = [stable]
+    else:
+        sfilename = "%s/Orig/%s/%s" % (args.path, args.waveregion,
                                        args.starname)
+        t1 = read_stis_archive_format(sfilename+'10_x1d.fits')
+        t2 = read_stis_archive_format(sfilename+'20_x1d.fits')
+        t1.rename_column('ERROR', 'STAT-ERROR')
+        t2.rename_column('ERROR', 'STAT-ERROR')
+        t1['NPTS'] = np.full((len(t1['FLUX'])), 1.0)
+        t2['NPTS'] = np.full((len(t2['FLUX'])), 1.0)
+        t1['NPTS'][t1['FLUX'] == 0.0] = 0.0
+        t2['NPTS'][t2['FLUX'] == 0.0] = 0.0
+        stable = [t1, t2]
 
-    stable = Table.read(sfilename, format='ascii',
-                        data_start=23,
-                        names=['WAVELENGTH', 'COUNT-RATE', 'FLUX',
-                               'STAT-ERROR', 'SYS-ERROR', 'NPTS',
-                               'TIME', 'QUAL'])
-
-    rb_stis_opt = merge_stis_obsspec([stable], waveregion=args.waveregion)
-    stis_opt_file = "%s_stis_%s.fits" % (args.starname, args.waveregion)
+    rb_stis_opt = merge_stis_obsspec(stable, waveregion=args.waveregion)
+    if args.outname:
+        outname = args.outname
+    else:
+        outname = args.starname
+    stis_opt_file = "%s_stis_%s.fits" % (outname, args.waveregion)
     rb_stis_opt.write("%s/%s" % (args.path, stis_opt_file),
                       overwrite=True)

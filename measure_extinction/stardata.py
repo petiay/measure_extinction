@@ -33,7 +33,7 @@ class BandData():
     waves : array of floats
         wavelengths
 
-    flux : array of floats
+    fluxes : array of floats
         fluxes
 
     uncs : array of floats
@@ -166,6 +166,24 @@ class BandData():
         # zip everything together into a dictonary to pass back
         return dict(zip(_poss_band_names,
                         zip(_poss_band_zeromag_fluxes, _poss_band_waves)))
+
+    def get_band_names(self):
+        """
+        Get the names of the bands in the data
+
+        Returns
+        -------
+        names : string array
+            names of the bands in the data
+        """
+        pbands = self.get_poss_bands()
+        gbands = []
+        for cband in pbands.keys():
+            mag = self.get_band_mag(cband)
+            if mag is not None:
+                gbands.append(cband)
+
+        return gbands
 
     def get_band_mag(self, band_name):
         """
@@ -449,8 +467,9 @@ class SpecData():
         self.wave_range = np.array([min(self.waves), max(self.waves)])
 
         # trim any data that is not finite
-        indxs, = np.where(np.isfinite(self.fluxes) is False)
+        indxs, = np.where(~np.isfinite(self.fluxes))
         if len(indxs) > 0:
+            self.fluxes[indxs] = 0.0
             self.npts[indxs] = 0
 
     def read_fuse(self, line, path='./'):

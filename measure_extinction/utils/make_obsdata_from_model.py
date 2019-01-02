@@ -41,14 +41,13 @@ def rebin_spectrum(wave, flux,
     """
     npts = int(np.log10(wave_range[1]/wave_range[0])
                / np.log10((1.0 + 2.0*resolution)/(2.0*resolution - 1.0)))
-    delta_wave_log = (np.log10(wave_range[1]) - np.log10(wave_range[0]))/npts
-    wave_log10 = np.arange(np.log10(wave_range[0]),
-                           np.log10(wave_range[1]) - delta_wave_log,
-                           delta_wave_log)
-    full_wave_min = 10**wave_log10
-    full_wave_max = 10**(wave_log10 + delta_wave_log)
 
-    full_wave = (full_wave_min + full_wave_max)/2.0
+    twave = np.logspace(np.log10(wave_range[0]), np.log10(wave_range[1]),
+                        num=npts+1, endpoint=True)
+    full_wave_min = twave[0:-1]
+    full_wave_max = twave[1:]
+    full_wave = 0.5*(full_wave_min + full_wave_max)
+
     full_flux = np.zeros((npts))
     full_npts = np.zeros((npts), dtype=int)
 
@@ -99,6 +98,9 @@ def get_phot(mwave, mflux,
     for k, cband in enumerate(band_names):
         bresp = ascii.read(band_resp_filenames[k],
                            names=['Wave', 'Resp'])
+        # check if the wavelength units are in microns instead of Angstroms
+        if max(bresp['Wave'].data) < 500:
+            bresp['Wave'] = bresp['Wave']*1e4
         iresp = np.interp(mwave, bresp['Wave'].data, bresp['Resp'].data)
         bflux = np.sum(iresp*mflux)/np.sum(iresp)
         bflux_unc = 0.0
@@ -282,10 +284,20 @@ def make_obsdata_from_model(model_filename,
     iflux_r5000 = np.interp(wave_r5000, wave_r5000[indxs], flux_r5000[indxs])
 
     # compute photometry
-    bands = ['U', 'B', 'V', 'R', 'I', 'J', 'H', 'K']
-    path = "%s/Band_RespCurves/" % output_path
-    bands_resp_fnames = ["%sJohn%s.dat" % (path, cband) for cband in bands]
-    bandinfo = get_phot(wave_r5000, iflux_r5000, bands, bands_resp_fnames)
+    band_path = "%s/Band_RespCurves/" % output_path
+    john_bands = ['U', 'B', 'V', 'R', 'I', 'J', 'H', 'K']
+    john_fnames = ["%sJohn%s.dat" % (band_path, cband)
+                   for cband in john_bands]
+    # hst_bands = ['']
+    # spitzer_bands = ['IRAC1', 'IRAC2', 'IRAC3', 'IRAC4', 'IRS15', 'MIPS24']
+    # spitzer_fnames = ["{}/{}.dat".format(band_path, cband)
+    #                   for cband in spitzer_bands]
+    # bands = john_bands + spitzer_bands
+    # band_fnames = john_fnames + spitzer_fnames
+    bands = john_bands
+    band_fnames = john_fnames
+
+    bandinfo = get_phot(wave_r5000, iflux_r5000, bands, band_fnames)
 
     # create the DAT file
     dat_filename = "%s/Models/%s.dat" % (output_path, output_filebase)
