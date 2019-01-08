@@ -3,9 +3,12 @@ from __future__ import (absolute_import, division, print_function,
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
+
 from astropy.io import ascii
 from astropy.table import Table, Column
 import astropy.units as u
+from astropy.convolution import Gaussian1DKernel, convolve
 
 from measure_extinction.stardata import BandData
 from measure_extinction.merge_obsspec import merge_stis_obsspec
@@ -63,6 +66,20 @@ def rebin_spectrum(wave, flux,
     indxs, = np.where(full_npts > 0)
     if len(indxs):
         full_flux[indxs] = full_flux[indxs]/full_npts[indxs]
+
+    # interpolate to fill in missing points in the rebinned spectrum
+    #  e.g., the model spectrum is not computed at a high enough resolution
+    #        at all the needed wavelengths
+    zindxs, = np.where(full_npts <= 0)
+    if len(zindxs):
+        ifunc = interp1d(full_wave[indxs], full_flux[indxs],
+                         kind='linear', bounds_error=False)
+        full_flux = ifunc(full_wave)
+        full_npts[zindxs] = 1
+        nanindxs, = np.where(~np.isfinite(full_flux))
+        if len(nanindxs):
+            full_flux[nanindxs] = 0.0
+            full_npts[nanindxs] = 0
 
     return (full_wave, full_flux, full_npts)
 
@@ -258,9 +275,29 @@ def make_obsdata_from_model(model_filename,
     specinfo = {}
 
     # create the ultraviolet HST/STIS mock observation
+    # first create the spectrum convolved to the STIS low resolution
+    # Create kernel
+    #  FWHM = 1.4 pixels (from STIS Handbook for section 13.6, G230L)
+    #  using 2 pixels as a comprimise for all STIS UV/optical L resolutions
+    g = Gaussian1DKernel(stddev=2.0/2.355)
+
+    # Convolve data
+    nflux = convolve(otable['FLUX'].data, g)
+    # print(otable['FLUX'].data)
+    # print(nflux)
+    # # Plot data before and after convolution
+    # x = otable['WAVELENGTH']
+    # fig, ax = plt.subplots()
+    # ax.plot(x, otable['FLUX'].data, 'k-', label='Before')
+    # ax.plot(x, nflux, 'b-', label='After', alpha=0.5, linewidth=2)
+    # ax.set_xscale('log')
+    # ax.set_yscale('log')
+    # ax.legend(loc='best')
+    # plt.show()
+
     stis_table = Table()
     stis_table['WAVELENGTH'] = otable['WAVELENGTH']
-    stis_table['FLUX'] = otable['FLUX']
+    stis_table['FLUX'] = nflux
     stis_table['NPTS'] = otable['NPTS']
     stis_table['STAT-ERROR'] = Column(np.full((len(stis_table)), 1.0))
     stis_table['SYS-ERROR'] = otable['SIGMA']

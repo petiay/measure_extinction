@@ -6,7 +6,7 @@ import glob
 import argparse
 
 import numpy as np
-import scipy.optimize as op
+# import scipy.optimize as op
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -17,6 +17,7 @@ from measure_extinction.stardata import StarData
 from measure_extinction.modeldata import ModelData
 
 
+#lnp_bignnum = -1e20
 lnp_bignnum = -np.inf
 
 
@@ -107,6 +108,8 @@ class FitInfo(object):
         # make sure the parameters are within the limits
         for k, cplimit in enumerate(self.parameter_limits):
             if (params[k] < cplimit[0]) | (params[k] > cplimit[1]):
+                # print('param limits excedded', k, params[k], cplimit)
+                # exit()
                 return lnp_bignnum
 
         # now use any priors
@@ -152,6 +155,9 @@ def fit_model_parser():
     parser.add_argument("--spteff", metavar=('logteff', 'logteff_unc'),
                         type=float, nargs=2,
                         help="Spectral type prior: log(Teff) sigma_log(Teff)")
+    parser.add_argument("--splogg", metavar=('logg', 'logg_unc'),
+                        type=float, nargs=2,
+                        help="Spectral type prior: log(g) sigma_log(g)")
     parser.add_argument("--velocity", type=float, default=0.0,
                         help="Stellar velocity")
     parser.add_argument("-f", "--fast", help="Use minimal step debug code",
@@ -217,10 +223,18 @@ if __name__ == '__main__':
     band_names = reddened_star.data['BAND'].get_band_names()
     spectra_names = reddened_star.data.keys()
 
+    # override for now
+    spectra_names = ['BAND', 'STIS_Opt']
+    print(spectra_names)
+
+    # override for now
+    band_names = ['U', 'B', 'V']
+    print(band_names)
+
     # get just the filenames
     print('reading in the model spectra')
     tlusty_models_fullpath = glob.glob(
-        '{}/Models/tlusty_*v2.dat'.format(args.path))
+        '{}/Models/tlusty_*v10.dat'.format(args.path))
     tlusty_models = [tfile[tfile.rfind('/')+1: len(tfile)]
                      for tfile in tlusty_models_fullpath]
 
@@ -253,6 +267,9 @@ if __name__ == '__main__':
     if args.spteff:
         ppriors['logT'] = args.spteff
         params[0] = args.spteff[0]
+    if args.splogg:
+        ppriors['logg'] = args.splogg
+        params[1] = args.splogg[0]
 
     # cropping info for weights
     #  bad regions are defined as those were we know the models do not work
@@ -287,15 +304,15 @@ if __name__ == '__main__':
                       stellar_velocity=args.velocity)
 
     # find a good starting point via standard minimization
-    print('finding minimum')
-
-    def nll(*args): return -fitinfo.lnprob(*args)
-
-    result = op.minimize(nll, params, method='Nelder-Mead',
-                         args=(reddened_star, modinfo, fitinfo))
-    fit_params = result['x']
-    print('starting point')
-    print(fit_params)
+    # print('finding minimum')
+    #
+    # def nll(*args): return -fitinfo.lnprob(*args)
+    #
+    # result = op.minimize(nll, params, method='Nelder-Mead',
+    #                      args=(reddened_star, modinfo, fitinfo))
+    # params = result['x']
+    # print('starting point')
+    # print(params)
 
     # now run emcee to explore the region around the min solution
     print('exploring with emcee')

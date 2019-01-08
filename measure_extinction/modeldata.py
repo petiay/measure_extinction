@@ -181,6 +181,10 @@ class ModelData(object):
         weights = (1.0/np.sqrt(dist2[gsindxs]))
         weights /= np.sum(weights)
 
+        # print(params)
+        # print(self.model_files[gsindxs])
+        # exit()
+
         sed = {}
         for cspec in self.fluxes.keys():
             # dot product does the multiplication and sum
