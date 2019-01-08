@@ -551,6 +551,25 @@ class SpecData():
         # convert wavelengths from Angstroms to microns (standardization)
         self.waves *= 1e-4
 
+    def read_spex(self, line, path='./'):
+        """
+        Read in SPeX spectra
+
+        Parameters
+        ----------
+        line : string
+            formated line from DAT file
+            example: 'SpeX = hd029647_spex.fits'
+
+        path : string, optional
+            location of the FITS files path
+
+        Returns
+        -------
+        Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
+        """
+        self.read_spectra(line, path)
+
     def read_irs(self, line, path='./', corfac=None):
         """
         Read in Spitzer/IRS spectra
@@ -701,6 +720,9 @@ class StarData():
                 elif line.find('STIS') == 0:
                     self.data['STIS'] = SpecData('STIS')
                     self.data['STIS'].read_stis(line, path=self.path)
+                elif line.find('SpeX') == 0:
+                    self.data['SpeX'] = SpecData('SpeX')
+                    self.data['SpeX'].read_spex(line, path=self.path)
                 elif line.find('IRS') == 0 and line.find('IRS15') < 0:
                     self.data['IRS'] = SpecData('IRS')
                     irs_corfacs = self.corfac
