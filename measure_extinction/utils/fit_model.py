@@ -224,8 +224,9 @@ if __name__ == '__main__':
     spectra_names = reddened_star.data.keys()
 
     # override for now
+    print('possible', spectra_names)
     spectra_names = ['BAND', 'STIS_Opt']
-    print(spectra_names)
+    print('only using', spectra_names)
 
     # override for now
     band_names = ['U', 'B', 'V']
