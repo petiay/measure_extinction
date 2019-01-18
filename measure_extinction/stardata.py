@@ -451,16 +451,16 @@ class SpecData():
         # tdata = datafile[1].data  # data are in the 1st extension
         tdata = Table.read(full_filename)
 
-        self.waves = tdata['WAVELENGTH'].data
-        self.fluxes = tdata['FLUX'].data
-        self.uncs = tdata['SIGMA'].data
-        self.npts = tdata['NPTS'].data
+        self.waves = tdata['WAVELENGTH']
+        self.fluxes = tdata['FLUX']
+        self.uncs = tdata['SIGMA']
+        self.npts = tdata['NPTS']
         self.n_waves = len(self.waves)
 
         # include the model if it exists
         #   currently only used for FUSE H2 model
         if 'MODEL' in tdata.colnames:
-            self.model = tdata['MODEL'].data
+            self.model = tdata['MODEL']
 
         # theader = datafile[1].header  # header
         # self.wave_range = np.array([theader['wmin'], theader['wmax']])
@@ -574,8 +574,6 @@ class SpecData():
         """
         Read in Spitzer/IRS spectra
 
-        Converts the fluxes from Jy to ergs/(cm^2 s A)
-
         Correct the IRS spectra if the appropriate corfacs are present
         in the DAT file.
         Does a multiplicative correction that can include a linear
@@ -601,9 +599,9 @@ class SpecData():
         self.read_spectra(line, path)
 
         # standardization
-        mfac = Jy_to_cgs_const/np.square(self.waves)
-        self.fluxes *= mfac
-        self.uncs *= mfac
+        # mfac = Jy_to_cgs_const/np.square(self.waves)
+        # self.fluxes *= mfac
+        # self.uncs *= mfac
 
         # correct the IRS spectra if corfacs defined
         if 'IRS' in corfac.keys():

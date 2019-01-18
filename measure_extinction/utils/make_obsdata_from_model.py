@@ -11,7 +11,8 @@ import astropy.units as u
 from astropy.convolution import Gaussian1DKernel, convolve
 
 from measure_extinction.stardata import BandData
-from measure_extinction.merge_obsspec import merge_stis_obsspec
+from measure_extinction.merge_obsspec import (merge_stis_obsspec,
+                                              merge_irs_obsspec)
 
 __all__ = ["make_obsdata_from_model"]
 
@@ -257,7 +258,7 @@ def make_obsdata_from_model(model_filename,
     wave_r5000, flux_r5000, npts_r5000 = rebin_spectrum(mwave.value,
                                                         mflux.value,
                                                         5000,
-                                                        [912., 40000.])
+                                                        [912., 500000.])
 
     # save the full spectrum to a binary FITS table
     otable = Table()
@@ -276,24 +277,14 @@ def make_obsdata_from_model(model_filename,
 
     # create the ultraviolet HST/STIS mock observation
     # first create the spectrum convolved to the STIS low resolution
-    # Create kernel
+    # Create kernel (***conovling the R~5000 spectrum,
+    #                fwhm adjustment needed***)
     #  FWHM = 1.4 pixels (from STIS Handbook for section 13.6, G230L)
     #  using 2 pixels as a comprimise for all STIS UV/optical L resolutions
     g = Gaussian1DKernel(stddev=2.0/2.355)
 
     # Convolve data
     nflux = convolve(otable['FLUX'].data, g)
-    # print(otable['FLUX'].data)
-    # print(nflux)
-    # # Plot data before and after convolution
-    # x = otable['WAVELENGTH']
-    # fig, ax = plt.subplots()
-    # ax.plot(x, otable['FLUX'].data, 'k-', label='Before')
-    # ax.plot(x, nflux, 'b-', label='After', alpha=0.5, linewidth=2)
-    # ax.set_xscale('log')
-    # ax.set_yscale('log')
-    # ax.legend(loc='best')
-    # plt.show()
 
     stis_table = Table()
     stis_table['WAVELENGTH'] = otable['WAVELENGTH']
@@ -316,9 +307,26 @@ def make_obsdata_from_model(model_filename,
                       overwrite=True)
     specinfo['STIS_Opt'] = stis_opt_file
 
-    # interpolate over points with zero flux
-    indxs, = np.where(npts_r5000 > 0)
-    iflux_r5000 = np.interp(wave_r5000, wave_r5000[indxs], flux_r5000[indxs])
+    # Spitzer IRS mock observation
+    # Resolution approximately 100
+    lrs_fwhm_pix = 5000./100.
+    g = Gaussian1DKernel(stddev=lrs_fwhm_pix/2.355)
+
+    # Convolve data
+    nflux = convolve(otable['FLUX'].data, g)
+
+    lrs_table = Table()
+    lrs_table['WAVELENGTH'] = otable['WAVELENGTH']
+    lrs_table['FLUX'] = nflux
+    lrs_table['NPTS'] = otable['NPTS']
+    lrs_table['ERROR'] = Column(np.full((len(lrs_table)), 1.0))
+
+    rb_lrs = merge_irs_obsspec([lrs_table])
+    rb_lrs['SIGMA'] = rb_lrs['FLUX']*0.0
+    lrs_file = "%s_irs.fits" % (output_filebase)
+    rb_lrs.write("%s/Models/%s" % (output_path, lrs_file),
+                 overwrite=True)
+    specinfo['IRS'] = lrs_file
 
     # compute photometry
     band_path = "%s/Band_RespCurves/" % output_path
@@ -334,7 +342,7 @@ def make_obsdata_from_model(model_filename,
     bands = john_bands
     band_fnames = john_fnames
 
-    bandinfo = get_phot(wave_r5000, iflux_r5000, bands, band_fnames)
+    bandinfo = get_phot(wave_r5000, flux_r5000, bands, band_fnames)
 
     # create the DAT file
     dat_filename = "%s/Models/%s.dat" % (output_path, output_filebase)
@@ -349,7 +357,7 @@ def make_obsdata_from_model(model_filename,
     if show_plot:
         fig, ax = plt.subplots(figsize=(13, 10))
         # indxs, = np.where(npts_r5000 > 0)
-        ax.plot(wave_r5000*1e-4, iflux_r5000, 'b-')
+        ax.plot(wave_r5000*1e-4, flux_r5000, 'b-')
         ax.plot(bandinfo.waves, bandinfo.fluxes, 'ro')
 
         indxs, = np.where(rb_stis_uv['NPTS'] > 0)
@@ -358,6 +366,9 @@ def make_obsdata_from_model(model_filename,
         indxs, = np.where(rb_stis_opt['NPTS'] > 0)
         ax.plot(rb_stis_opt['WAVELENGTH'][indxs].to(u.micron),
                 rb_stis_opt['FLUX'][indxs], 'g-')
+        indxs, = np.where(rb_lrs['NPTS'] > 0)
+        ax.plot(rb_lrs['WAVELENGTH'][indxs].to(u.micron),
+                rb_lrs['FLUX'][indxs], 'c-')
         ax.set_xscale('log')
         ax.set_yscale('log')
         plt.show()
@@ -365,16 +376,16 @@ def make_obsdata_from_model(model_filename,
 
 if __name__ == "__main__":
     mname = \
-        '/home/kgordon/Dust/Ext/Model_Standards_Data/BC15000g175v10.flux.gz'
+        '/home/kgordon/Dust/Ext/Model_Standards_Data/BC30000g300v10.flux.gz'
     model_params = {}
     model_params['origin'] = 'bstar'
-    model_params['Teff'] = 15000.
-    model_params['logg'] = 1.75
+    model_params['Teff'] = 30000.
+    model_params['logg'] = 3.0
     model_params['Z'] = 1.0
     model_params['vturb'] = 10.0
     make_obsdata_from_model(
         mname, model_type='tlusty',
-        output_filebase='BC15000g175v10',
+        output_filebase='BC30000g300v10',
         output_path='/home/kgordon/Python_git/extstar_data',
         model_params=model_params,
         show_plot=True)
