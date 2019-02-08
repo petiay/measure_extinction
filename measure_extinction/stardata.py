@@ -355,6 +355,8 @@ class BandData():
         # add the units
         self.waves = self.waves*u.micron
         self.wave_range = self.wave_range*u.micron
+        self.fluxes = self.fluxes*(u.erg/((u.cm**2)*u.s*u.angstrom))
+        self.uncs = self.uncs*(u.erg/((u.cm**2)*u.s*u.angstrom))
 
     def get_band_mags_from_fluxes(self):
         """
@@ -467,6 +469,16 @@ class SpecData():
         if 'MODEL' in tdata.colnames:
             self.model = tdata['MODEL'].quantity
 
+        # fix odd unit designations
+        if self.waves.unit == 'ANGSTROM':
+            self.waves = self.waves.value*u.angstrom
+        if self.waves.unit == 'MICRON':
+            self.waves = self.waves.value*u.micron
+        if self.fluxes.unit == 'ERG/CM2/S/A':
+            self.fluxes = self.fluxes.value*(u.erg/((u.cm**2)*u.s*u.angstrom))
+            self.uncs = self.uncs.value*(u.erg/((u.cm**2)*u.s*u.angstrom))
+
+        # compute the min/max wavelengths
         self.wave_range = np.array([min(self.waves.value),
                                     max(self.waves.value)])*self.waves.unit
 
@@ -549,6 +561,10 @@ class SpecData():
         """
         self.read_spectra(line, path)
 
+        # add units
+        self.fluxes = self.fluxes.value*(u.erg/((u.cm**2)*u.s*u.angstrom))
+        self.uncs = self.uncs.value*(u.erg/((u.cm**2)*u.s*u.angstrom))
+
     def read_spex(self, line, path='./'):
         """
         Read in SPeX spectra
@@ -567,6 +583,10 @@ class SpecData():
         Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
         """
         self.read_spectra(line, path)
+
+        # add units
+        self.fluxes = self.fluxes.value*(u.erg/((u.cm**2)*u.s*u.angstrom))
+        self.uncs = self.uncs.value*(u.erg/((u.cm**2)*u.s*u.angstrom))
 
     def read_irs(self, line, path='./', corfac=None):
         """
@@ -619,6 +639,10 @@ class SpecData():
             indxs, = np.where(self.waves.value > corfac['IRS_maxwave'])
             if len(indxs) > 0:
                 self.npts[indxs] = 0
+
+        # add units
+        self.fluxes = self.fluxes.value*(u.Jy)
+        self.uncs = self.uncs.value*(u.Jy)
 
 
 class StarData():
@@ -787,6 +811,8 @@ class StarData():
         fontsize : int
             fontsize for plot
         """
+        fluxunit = u.erg/((u.cm**2)*u.s*u.angstrom)
+
         # find the data to use for the normalization if requested
         if norm_wave_range is not None:
             normtype = None
@@ -811,12 +837,12 @@ class StarData():
                                      <= norm_wave_range[1])))
 
             if len(gindxs) > 0:
+                waves = self.data[normtype].waves[gindxs].value
                 if mlam4:
-                    ymult = np.power(self.data[normtype].waves[gindxs], 4.0)
+                    ymult = np.power(waves, 4.0)
                 else:
-                    ymult = np.full((len(self.data[normtype].waves[gindxs])),
-                                    1.0)
-                normval = np.average(self.data[normtype].fluxes[gindxs]*ymult)
+                    ymult = np.full((len(waves)), .0)
+                normval = np.average(waves*ymult)
             else:
                 raise ValueError("no good data in reqeusted norm range")
         else:
@@ -840,17 +866,22 @@ class StarData():
             else:
                 legval = None
 
+            yvals = self.data[curtype].fluxes[gindxs].to(
+                fluxunit, equivalencies=u.spectral_density(
+                    self.data[curtype].waves[gindxs])).value
+            yuncs = self.data[curtype].uncs[gindxs].to(
+                fluxunit, equivalencies=u.spectral_density(
+                    self.data[curtype].waves[gindxs])).value
             if len(gindxs) < 20:
                 # plot small number of points (usually BANDS data) as
                 # points with errorbars
-                ax.errorbar(self.data[curtype].waves[gindxs],
-                            ymult*self.data[curtype].fluxes[gindxs] + yoffset,
-                            yerr=ymult[gindxs]*self.data[curtype].uncs[gindxs],
+                ax.errorbar(self.data[curtype].waves[gindxs].value,
+                            ymult*yvals + yoffset,
+                            yerr=ymult[gindxs]*yuncs,
                             fmt='o', color=pcolor, label=legval)
             else:
-                ax.plot(self.data[curtype].waves[gindxs],
-                        (ymult[gindxs]
-                         * self.data[curtype].fluxes[gindxs] + yoffset),
+                ax.plot(self.data[curtype].waves[gindxs].value,
+                        (ymult[gindxs]*yvals + yoffset),
                         '-', color=pcolor, label=legval)
 
             if curtype == annotate_key:
