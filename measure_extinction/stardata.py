@@ -8,6 +8,7 @@ import numpy as np
 # from astropy.io import fits
 from astropy.table import Table
 from astropy import constants as const
+import astropy.units as u
 
 __all__ = ["StarData", "BandData", "SpecData"]
 
@@ -351,6 +352,10 @@ class BandData():
 
         self.wave_range = [min(self.waves), max(self.waves)]
 
+        # add the units
+        self.waves = self.waves*u.micron
+        self.wave_range = self.wave_range*u.micron
+
     def get_band_mags_from_fluxes(self):
         """
         Compute the magnitudes from fluxes in each band
@@ -451,26 +456,29 @@ class SpecData():
         # tdata = datafile[1].data  # data are in the 1st extension
         tdata = Table.read(full_filename)
 
-        self.waves = tdata['WAVELENGTH']
-        self.fluxes = tdata['FLUX']
-        self.uncs = tdata['SIGMA']
-        self.npts = tdata['NPTS']
+        self.waves = tdata['WAVELENGTH'].quantity
+        self.fluxes = tdata['FLUX'].quantity
+        self.uncs = tdata['SIGMA'].quantity
+        self.npts = tdata['NPTS'].quantity
         self.n_waves = len(self.waves)
 
         # include the model if it exists
         #   currently only used for FUSE H2 model
         if 'MODEL' in tdata.colnames:
-            self.model = tdata['MODEL']
+            self.model = tdata['MODEL'].quantity
 
-        # theader = datafile[1].header  # header
-        # self.wave_range = np.array([theader['wmin'], theader['wmax']])
-        self.wave_range = np.array([min(self.waves), max(self.waves)])
+        self.wave_range = np.array([min(self.waves.value),
+                                    max(self.waves.value)])*self.waves.unit
 
         # trim any data that is not finite
         indxs, = np.where(~np.isfinite(self.fluxes))
         if len(indxs) > 0:
             self.fluxes[indxs] = 0.0
             self.npts[indxs] = 0
+
+        # convert wavelengths to microns (standardization)
+        self.waves = self.waves.to(u.micron)
+        self.wave_range = self.wave_range.to(u.micron)
 
     def read_fuse(self, line, path='./'):
         """
@@ -492,9 +500,6 @@ class SpecData():
         Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
         """
         self.read_spectra(line, path)
-
-        # convert wavelengths from Angstroms to microns (standardization)
-        self.waves *= 1e-4
 
     def read_iue(self, line, path='./'):
         """
@@ -519,13 +524,9 @@ class SpecData():
         self.read_spectra(line, path)
 
         # trim the long wavelength data by setting the npts to zero
-        indxs, = np.where(self.waves > 3200.)
+        indxs, = np.where(self.waves > 3200.*u.angstrom)
         if len(indxs) > 0:
             self.npts[indxs] = 0
-
-        # convert wavelengths from Angstroms to microns (standardization)
-        self.waves *= 1e-4
-        self.wave_range *= 1e-4
 
     def read_stis(self, line, path='./'):
         """
@@ -547,9 +548,6 @@ class SpecData():
         Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
         """
         self.read_spectra(line, path)
-
-        # convert wavelengths from Angstroms to microns (standardization)
-        self.waves *= 1e-4
 
     def read_spex(self, line, path='./'):
         """
@@ -609,7 +607,7 @@ class SpecData():
                     and ('IRS_slope' in corfac.keys())):
                 mod_line = (corfac['IRS']
                             + (corfac['IRS_slope']
-                               * (self.waves - corfac['IRS_zerowave'])))
+                               * (self.waves.value - corfac['IRS_zerowave'])))
                 self.fluxes *= mod_line
                 self.uncs *= mod_line
             else:
@@ -618,7 +616,7 @@ class SpecData():
 
         # remove bad long wavelength IRS data if keyword set
         if 'IRS_maxwave' in corfac.keys():
-            indxs, = np.where(self.waves > corfac['IRS_maxwave'])
+            indxs, = np.where(self.waves.value > corfac['IRS_maxwave'])
             if len(indxs) > 0:
                 self.npts[indxs] = 0
 

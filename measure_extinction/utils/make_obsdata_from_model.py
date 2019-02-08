@@ -277,7 +277,7 @@ def make_obsdata_from_model(model_filename,
 
     # create the ultraviolet HST/STIS mock observation
     # first create the spectrum convolved to the STIS low resolution
-    # Create kernel (***conovling the R~5000 spectrum,
+    # Create kernel (***convolving the R~5000 spectrum,
     #                fwhm adjustment needed***)
     #  FWHM = 1.4 pixels (from STIS Handbook for section 13.6, G230L)
     #  using 2 pixels as a comprimise for all STIS UV/optical L resolutions

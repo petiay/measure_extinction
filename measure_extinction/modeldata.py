@@ -130,6 +130,9 @@ class ModelData(object):
                     self.flux_uncs[cspec][k, :] = \
                         moddata.data[cspec].uncs
 
+        # add units
+        self.waves['BAND'] = self.waves['BAND']*u.micron
+
         # provide the width in model space for each parameter
         #   used in calculating the nearest neighbors
         self.n_nearest = 11
@@ -255,7 +258,7 @@ class ModelData(object):
             # get the dust extinguished SED (account for the
             #  systemic velocity of the galaxy [opposite regular sense])
             shifted_waves = (1.0 - velocity/2.998e5)*self.waves[cspec]
-            axav = _curve_F99_method(shifted_waves*u.micron,
+            axav = _curve_F99_method(shifted_waves,
                                      Rv, C1, params[2], params[3], params[4],
                                      params[5], params[6],
                                      optnir_axav_x, optnir_axebv_y/Rv,
@@ -290,9 +293,9 @@ class ModelData(object):
         # wavelengths of HI lines
         #     only use Ly-alpha right now - others useful later
         h_lines = np.array([1215.0, 1025.0, 972.0, 949.0, 937.0, 930.0,
-                            926.0, 923.0, 920, 919.0, 918.])*1e-4
+                            926.0, 923.0, 920, 919.0, 918.])*u.angstrom
         # width overwhich to compute the HI abs
-        h_width = 100.*1e-4
+        h_width = 100.*u.angstrom
 
         hi_sed = {}
         for cspec in self.fluxes.keys():
@@ -302,9 +305,11 @@ class ModelData(object):
             if len(indxs) > 0:
                 for i, cvel in enumerate(hi_velocities):
                     # compute the Ly-alpha abs: from Bohlin et al. (197?)
-                    abs_wave = (1.0 + (cvel/3e5))*h_lines[0]
-                    phi = 4.26e-20/((1e4*(self.waves[cspec][indxs]
-                                          - abs_wave))**2 + 6.04e-10)
+                    abs_wave = (1.0 + (cvel/3e5))*h_lines[0].to(u.micron).value
+                    phi = (4.26e-20
+                           / ((1e4
+                               * (self.waves[cspec][indxs].to(u.micron).value
+                                  - abs_wave))**2 + 6.04e-10))
 
                     nhi = 10**params[i]
                     hi_sed[cspec][indxs] = (hi_sed[cspec][indxs]

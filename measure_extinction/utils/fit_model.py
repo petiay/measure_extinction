@@ -11,13 +11,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
+import astropy.units as u
+
 import emcee
 
 from measure_extinction.stardata import StarData
 from measure_extinction.modeldata import ModelData
 
 
-#lnp_bignnum = -1e20
+# lnp_bignnum = -1e20
 lnp_bignnum = -np.inf
 
 
@@ -225,7 +227,7 @@ if __name__ == '__main__':
 
     # override for now
     print('possible', spectra_names)
-    spectra_names = ['BAND', 'STIS_Opt']
+    # spectra_names = ['BAND', 'STIS_Opt']
     print('only using', spectra_names)
 
     # override for now
@@ -285,7 +287,7 @@ if __name__ == '__main__':
                   [7.45, 7.55],
                   [7.65, 7.75],
                   [7.9, 7.95],
-                  [8.05, 8.1]]
+                  [8.05, 8.1]]/u.micron
     weights = {}
     for cspec in spectra_names:
         # should probably be based on the observed uncs
@@ -368,11 +370,11 @@ if __name__ == '__main__':
                                         val[1],
                                         val[2],
                                         pnames_extra[k]))
-        f.write('{} {} {} {} # {}'.format(params_best[k],
-                                          val[0],
-                                          val[1],
-                                          val[2],
-                                          pnames_extra[k]))
+        f.write('{} {} {} {} # {}\n'.format(params_best[k],
+                                            val[0],
+                                            val[1],
+                                            val[2],
+                                            pnames_extra[k]))
 
     # create the p50 parameters with symmetric error bars
     # params_50p = np.zeros(len(params_per))
