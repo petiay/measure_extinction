@@ -3,7 +3,7 @@ import astropy.units as u
 
 from dust_extinction.shapes import _curve_F99_method
 
-from measure_extinction.stardata import StarData
+from measure_extinction.stardata import (StarData, BandData, SpecData)
 
 
 class ModelData(object):
@@ -316,3 +316,36 @@ class ModelData(object):
                                             * np.exp(-1.*nhi*phi))
 
         return hi_sed
+
+    def SED_to_StarData(self,
+                        sed):
+        """
+        Convert the model created SED into a StarData object.
+        Needed to plug into generating an ExtData object.
+
+        Parameters
+        ----------
+        sed : object
+            SED of each component
+        """
+        sd = StarData(None)
+
+        for cspec in sed.keys():
+            if cspec is 'BAND':
+                # populate the BAND info
+                sd.data['BAND'] = BandData('BAND')
+                for k, cband in enumerate(self.band_names):
+                    sd.data['BAND'].band_fluxes[cband] = (sed['BAND'][k], 0.0)
+                sd.data['BAND'].get_band_mags_from_fluxes()
+            else:
+                # populate the spectral info
+                sd.data[cspec] = SpecData(cspec)
+                sd.data[cspec].waves = self.waves[cspec]
+                sd.n_waves = len(sd.data[cspec].waves)
+                sd.data[cspec].fluxes = (sed[cspec]
+                                         * (u.erg/((u.cm**2)*u.s*u.angstrom)))
+                sd.data[cspec].uncs = 0.0*sd.data[cspec].fluxes
+                sd.data[cspec].npts = np.full((sd.data[cspec].n_waves), 1.0)
+                print(sd.data[cspec].fluxes)
+
+        return sd

@@ -6,7 +6,7 @@ import glob
 import argparse
 
 import numpy as np
-# import scipy.optimize as op
+import scipy.optimize as op
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -16,6 +16,7 @@ import astropy.units as u
 import emcee
 
 from measure_extinction.stardata import StarData
+from measure_extinction.extdata import ExtData
 from measure_extinction.modeldata import ModelData
 
 
@@ -166,6 +167,8 @@ def fit_model_parser():
                         action="store_true")
     parser.add_argument("--path", help="path to star/model files",
                         default='./')
+    parser.add_argument("--emcee", help="run EMCEE MCMC fitting",
+                        action="store_true")
     return parser
 
 
@@ -231,13 +234,14 @@ if __name__ == '__main__':
     print('only using', spectra_names)
 
     # override for now
-    band_names = ['U', 'B', 'V']
+    # band_names = ['U', 'B', 'V']
     print(band_names)
 
     # get just the filenames
     print('reading in the model spectra')
     tlusty_models_fullpath = glob.glob(
         '{}/Models/tlusty_*v10.dat'.format(args.path))
+    tlusty_models_fullpath = tlusty_models_fullpath[0:10]
     tlusty_models = [tfile[tfile.rfind('/')+1: len(tfile)]
                      for tfile in tlusty_models_fullpath]
 
@@ -309,72 +313,86 @@ if __name__ == '__main__':
     # find a good starting point via standard minimization
     # print('finding minimum')
     #
-    # def nll(*args): return -fitinfo.lnprob(*args)
-    #
-    # result = op.minimize(nll, params, method='Nelder-Mead',
-    #                      args=(reddened_star, modinfo, fitinfo))
-    # params = result['x']
-    # print('starting point')
-    # print(params)
+    def nll(*args): return -fitinfo.lnprob(*args)
+
+    result = op.minimize(nll, params, method='Nelder-Mead',
+                         args=(reddened_star, modinfo, fitinfo))
+    params = result['x']
+    fit_params = params
+    params_best = params
+    pnames_extra = pnames
 
     # now run emcee to explore the region around the min solution
-    print('exploring with emcee')
-    p0 = params
-    ndim = len(p0)
-    if args.fast:
-        nwalkers = 2*ndim
-        nsteps = 50
-        burn = 50
-    else:
-        nwalkers = 100
-        nsteps = 500
-        burn = 500
+    if args.emcee:
+        print('starting point')
+        print(params)
 
-    # setting up the walkers to start "near" the inital guess
-    p = [p0*(1+0.01*np.random.normal(0, 1., ndim)) for k in range(nwalkers)]
+        print('exploring with emcee')
+        p0 = params
+        ndim = len(p0)
+        if args.fast:
+            nwalkers = 2*ndim
+            nsteps = 50
+            burn = 50
+        else:
+            nwalkers = 100
+            nsteps = 500
+            burn = 500
 
-    # setup the sampler
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, fitinfo.lnprob,
-                                    args=(reddened_star, modinfo, fitinfo))
+        # setting up the walkers to start "near" the inital guess
+        p = [p0*(1+0.01*np.random.normal(0, 1., ndim))
+             for k in range(nwalkers)]
 
-    # burn in the walkers
-    pos, prob, state = sampler.run_mcmc(p, burn)
+        # setup the sampler
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, fitinfo.lnprob,
+                                        args=(reddened_star, modinfo, fitinfo))
 
-    # rest the sampler
-    sampler.reset()
+        # burn in the walkers
+        pos, prob, state = sampler.run_mcmc(p, burn)
 
-    # do the full sampling
-    pos, prob, state = sampler.run_mcmc(pos, nsteps, rstate0=state)
+        # rest the sampler
+        sampler.reset()
 
-    # create the samples variable for later use
-    samples = sampler.chain.reshape((-1, ndim))
+        # do the full sampling
+        pos, prob, state = sampler.run_mcmc(pos, nsteps, rstate0=state)
 
-    # get the best fit values
-    pnames_extra = pnames + ['E(B-V)', 'N(HI)/A(V)', 'N(HI)/E(B-V)']
-    params_best = get_best_fit_params(sampler)
-    fit_params = params_best
-    print('best params')
-    print(params_best)
+        # create the samples variable for later use
+        samples = sampler.chain.reshape((-1, ndim))
 
-    # get the 16, 50, and 84 percentiles
-    params_per = get_percentile_params(samples)
-    print("percentile params")
+        # get the best fit values
+        params_best = get_best_fit_params(sampler)
+        fit_params = params_best
+        print('best params')
+        print(params_best)
 
-    # save the best fit and p50 +/- uncs values to a file
-    # save as a single row table to provide a uniform format
-    f = open(args.starname + '_fit_params.dat', 'w')
-    f.write("# best fit, p50, +unc, -unc\n")
-    for k, val in enumerate(params_per):
-        print('{} {} {} {} # {}'.format(params_best[k],
-                                        val[0],
-                                        val[1],
-                                        val[2],
-                                        pnames_extra[k]))
-        f.write('{} {} {} {} # {}\n'.format(params_best[k],
+        # get the 16, 50, and 84 percentiles
+        params_per = get_percentile_params(samples)
+        print("percentile params")
+
+        # save the best fit and p50 +/- uncs values to a file
+        # save as a single row table to provide a uniform format
+        f = open(args.starname + '_fit_params.dat', 'w')
+        f.write("# best fit, p50, +unc, -unc\n")
+        for k, val in enumerate(params_per):
+            print('{} {} {} {} # {}'.format(params_best[k],
                                             val[0],
                                             val[1],
                                             val[2],
                                             pnames_extra[k]))
+            f.write('{} {} {} {} # {}\n'.format(params_best[k],
+                                                val[0],
+                                                val[1],
+                                                val[2],
+                                                pnames_extra[k]))
+
+    else:
+        f = open(args.starname + '_fit_params.dat', 'w')
+        f.write("# best fit\n")
+        print(params_best)
+        print(pnames_extra)
+        for k, val in enumerate(params_best):
+            print('{} # {}'.format(val, pnames_extra[k]))
+            f.write('{} # {}\n'.format(val, pnames_extra[k]))
 
     # create the p50 parameters with symmetric error bars
     # params_50p = np.zeros(len(params_per))
@@ -395,6 +413,14 @@ if __name__ == '__main__':
     # hi_abs sed
     hi_ext_modsed = modinfo.hi_abs_sed(fit_params[10:12], [args.velocity, 0.0],
                                        ext_modsed)
+
+    # create a StarData object for the best fit SED
+    modsed_stardata = modinfo.SED_to_StarData(hi_ext_modsed)
+
+    # create an extincion curve and save it
+    extdata = ExtData()
+    extdata.calc_elv(reddened_star, modsed_stardata)
+    extdata.save_ext_data("test.fits")
 
     # plot the SEDs
     norm_model = np.average(hi_ext_modsed['BAND'])

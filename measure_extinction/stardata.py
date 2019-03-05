@@ -694,6 +694,16 @@ class StarData():
         self.model_params = {}
         self.data = {}
         self.corfac = {}
+        self.photonly = photonly
+        self.use_corfac = use_corfac
+
+        if self.file is not None:
+            self.read()
+
+    def read(self):
+        """
+        Populate the object from a DAT file + spectral files
+        """
 
         # open and read all the lines in the file
         f = open(self.path + self.file, 'r')
@@ -726,7 +736,7 @@ class StarData():
                     self.corfac['IRS'] = float(cpair[1])
 
         # read the spectra
-        if not photonly:
+        if not self.photonly:
             for line in self.datfile_lines:
                 if line.find('IUE') == 0:
                     self.data['IUE'] = SpecData('IUE')
@@ -746,7 +756,7 @@ class StarData():
                 elif line.find('IRS') == 0 and line.find('IRS15') < 0:
                     self.data['IRS'] = SpecData('IRS')
                     irs_corfacs = self.corfac
-                    if not use_corfac:
+                    if not self.use_corfac:
                         irs_corfacs = {}
                     self.data['IRS'].read_irs(line, path=self.path,
                                               corfac=irs_corfacs)

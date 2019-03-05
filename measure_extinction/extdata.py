@@ -5,6 +5,7 @@ import warnings
 
 import numpy as np
 from astropy.io import fits
+import astropy.units as u
 
 __all__ = ["ExtData", "AverageExtData"]
 
@@ -242,7 +243,7 @@ class ExtData():
                 & (src in red.data.keys())):
             # check that the wavelenth grids are identical
             delt_wave = red.data[src].waves - comp.data[src].waves
-            if np.sum(np.absolute(delt_wave)) > 0.01:
+            if np.sum(np.absolute(delt_wave)) > 0.01*u.micron:
                 warnings.warn("wavelength grids not equal for %s" % src,
                               UserWarning)
             else:
