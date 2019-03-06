@@ -241,7 +241,7 @@ if __name__ == '__main__':
     print('reading in the model spectra')
     tlusty_models_fullpath = glob.glob(
         '{}/Models/tlusty_*v10.dat'.format(args.path))
-    tlusty_models_fullpath = tlusty_models_fullpath[0:10]
+    # tlusty_models_fullpath = tlusty_models_fullpath[0:10]
     tlusty_models = [tfile[tfile.rfind('/')+1: len(tfile)]
                      for tfile in tlusty_models_fullpath]
 
@@ -394,6 +394,8 @@ if __name__ == '__main__':
             print('{} # {}'.format(val, pnames_extra[k]))
             f.write('{} # {}\n'.format(val, pnames_extra[k]))
 
+    f.close()
+
     # create the p50 parameters with symmetric error bars
     # params_50p = np.zeros(len(params_per))
     # params_50p_uncs = np.zeros(len(params_per))
@@ -415,7 +417,7 @@ if __name__ == '__main__':
                                        ext_modsed)
 
     # create a StarData object for the best fit SED
-    modsed_stardata = modinfo.SED_to_StarData(hi_ext_modsed)
+    modsed_stardata = modinfo.SED_to_StarData(modsed)
 
     # create an extincion curve and save it
     extdata = ExtData()

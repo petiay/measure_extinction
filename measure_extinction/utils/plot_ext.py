@@ -5,7 +5,7 @@ import argparse
 import matplotlib.pyplot as plt
 import matplotlib
 
-from extdata import ExtData
+from measure_extinction.extdata import ExtData
 
 
 if __name__ == "__main__":
@@ -58,10 +58,10 @@ if __name__ == "__main__":
     # plot or save to a file
     save_str = '_ext'
     if args.png:
-        fig.savefig(args.starname.replace('.dat', save_str+'.png'))
+        fig.savefig(args.extfile.replace('.fits', save_str+'.png'))
     elif args.eps:
-        fig.savefig(args.starname.replace('.dat', save_str+'.eps'))
+        fig.savefig(args.extfile.replace('.fits', save_str+'.eps'))
     elif args.pdf:
-        fig.savefig(args.starname.replace('.dat', save_str+'.pdf'))
+        fig.savefig(args.extfile.replace('.fits', save_str+'.pdf'))
     else:
         plt.show()

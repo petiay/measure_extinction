@@ -341,7 +341,7 @@ class ModelData(object):
                 # populate the spectral info
                 sd.data[cspec] = SpecData(cspec)
                 sd.data[cspec].waves = self.waves[cspec]
-                sd.n_waves = len(sd.data[cspec].waves)
+                sd.data[cspec].n_waves = len(sd.data[cspec].waves)
                 sd.data[cspec].fluxes = (sed[cspec]
                                          * (u.erg/((u.cm**2)*u.s*u.angstrom)))
                 sd.data[cspec].uncs = 0.0*sd.data[cspec].fluxes

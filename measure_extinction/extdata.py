@@ -259,10 +259,12 @@ class ExtData():
                 self.npts[src] = np.zeros(n_waves)
 
                 # only compute the extinction for good, positive fluxes
+                print(comp.data[src].npts)
+                print(comp.data[src].fluxes)
                 indxs, = np.where((red.data[src].npts > 0)
                                   & (comp.data[src].npts > 0)
-                                  & (red.data[src].fluxes > 0)
-                                  & (comp.data[src].fluxes > 0))
+                                  & (red.data[src].fluxes.value > 0)
+                                  & (comp.data[src].fluxes.value > 0))
                 self.exts[src][indxs] = \
                     (-2.5*np.log10(red.data[src].fluxes[indxs]
                      / comp.data[src].fluxes[indxs])
