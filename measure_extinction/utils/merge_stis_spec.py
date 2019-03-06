@@ -33,7 +33,7 @@ if __name__ == "__main__":
         "--path",
         help="path where merged spectra will be stored",
         default="/home/kgordon/Python_git/extstar_data/STIS_Data/")
-    parser.add_argument("--ralph",
+    parser.add_argument("--ralph", action="store_true",
                         help="Ralph Bohlin reduced data")
     parser.add_argument("--outname",
                         help="Output filebase")

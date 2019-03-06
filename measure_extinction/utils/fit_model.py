@@ -360,6 +360,7 @@ if __name__ == '__main__':
         samples = sampler.chain.reshape((-1, ndim))
 
         # get the best fit values
+        pnames_extra = pnames + ['E(B-V)', 'N(HI)/A(V)', 'N(HI)/E(B-V)']
         params_best = get_best_fit_params(sampler)
         fit_params = params_best
         print('best params')
@@ -422,7 +423,7 @@ if __name__ == '__main__':
     # create an extincion curve and save it
     extdata = ExtData()
     extdata.calc_elv(reddened_star, modsed_stardata)
-    extdata.save_ext_data("test.fits")
+    extdata.save_ext_data(args.starname + '_ext.fits')
 
     # plot the SEDs
     norm_model = np.average(hi_ext_modsed['BAND'])
