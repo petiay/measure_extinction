@@ -169,6 +169,8 @@ def fit_model_parser():
                         default='./')
     parser.add_argument("--emcee", help="run EMCEE MCMC fitting",
                         action="store_true")
+    parser.add_argument("--png", help="save the plot as a png file",
+                        action="store_true")
     return parser
 
 
@@ -423,7 +425,10 @@ if __name__ == '__main__':
     # create an extincion curve and save it
     extdata = ExtData()
     extdata.calc_elv(reddened_star, modsed_stardata)
-    extdata.save_ext_data(args.starname + '_ext.fits')
+    col_info = {'av': fit_params[3],
+                'rv': fit_params[4]}
+    extdata.save_ext_data(args.starname + '_ext.fits',
+                          column_info=col_info)
 
     # plot the SEDs
     norm_model = np.average(hi_ext_modsed['BAND'])
@@ -450,8 +455,8 @@ if __name__ == '__main__':
         else:
             ptype = '-'
 
-        ax.plot(reddened_star.data[cspec].waves,
-                weights[cspec], 'k-')
+        # ax.plot(reddened_star.data[cspec].waves,
+        #        weights[cspec], 'k-')
 
         ax.plot(reddened_star.data[cspec].waves,
                 reddened_star.data[cspec].fluxes/norm_data,
@@ -474,9 +479,12 @@ if __name__ == '__main__':
     ax.tick_params('both', length=10, width=2, which='major')
     ax.tick_params('both', length=5, width=1, which='minor')
 
-    ax.legend()
+    # ax.legend()
 
     # use the whitespace better
     fig.tight_layout()
 
-    plt.show()
+    if args.png:
+        fig.savefig(args.starname + '_mod_obs_spec.png')
+    else:
+        plt.show()
