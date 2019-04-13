@@ -9,6 +9,7 @@ from astropy.io import ascii
 from astropy.table import Table, Column
 import astropy.units as u
 from astropy.convolution import Gaussian1DKernel, convolve
+from synphot import SpectralElement
 
 from measure_extinction.stardata import BandData
 from measure_extinction.merge_obsspec import (merge_stis_obsspec,
@@ -123,6 +124,18 @@ def get_phot(mwave, mflux,
         bflux = np.sum(iresp*mflux)/np.sum(iresp)
         bflux_unc = 0.0
         bdata.band_fluxes[cband] = (bflux, bflux_unc)
+
+        if cband == 'B':
+            a = SpectralElement.from_file(band_resp_filenames[k])
+            b = SpectralElement.from_filter('johnson_b')
+            fig, ax = plt.subplots(figsize=(13, 10))
+            ax.plot(b.waveset, b(b.waveset), 'b')
+            ax.plot(mwave, iresp, 'r')
+            ax.plot(a.waveset, b(a.waveset), 'g--')
+            ax.set_xlim(3000., 6000.)
+
+            plt.show()
+            exit()
 
     # calculate the band magnitudes from the fluxes
     bdata.get_band_mags_from_fluxes()
