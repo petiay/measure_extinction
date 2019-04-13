@@ -1,4 +1,5 @@
-Johnson K' band response function (from Mike Bessel Feb 1998)
+# Johnson K' band response function (from Mike Bessel Feb 1998)
+# wavelength  throughput
 18400.0 0.000
 18600.0 0.002
 18800.0 0.020

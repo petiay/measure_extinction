@@ -1,6 +1,8 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import pkg_resources
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
@@ -10,6 +12,7 @@ from astropy.table import Table, Column
 import astropy.units as u
 from astropy.convolution import Gaussian1DKernel, convolve
 from synphot import SpectralElement
+import stsynphot as STS
 
 from measure_extinction.stardata import BandData
 from measure_extinction.merge_obsspec import (merge_stis_obsspec,
@@ -113,35 +116,37 @@ def get_phot(mwave, mflux,
     # get a band data object
     bdata = BandData('BAND')
 
+    # path for non-HST band response curves
+    data_path = pkg_resources.resource_filename(
+        'measure_extinction', 'data/Band_RespCurves/')
+
     # compute the fluxes in each band
     for k, cband in enumerate(band_names):
-        bresp = ascii.read(band_resp_filenames[k],
-                           names=['Wave', 'Resp'])
+        if 'HST' in cband:
+            bp_info = cband.split('_')
+            bp = STS.band('%s,%s,%s' % (bp_info[1], bp_info[2], bp_info[3]))
+            ncband = '%s_%s' % (bp_info[1], bp_info[3])
+        else:
+            bp = SpectralElement.from_file('%s%s' % (data_path,
+                                                     band_resp_filenames[k]))
+            ncband = cband
+
         # check if the wavelength units are in microns instead of Angstroms
-        if max(bresp['Wave'].data) < 500:
-            bresp['Wave'] = bresp['Wave']*1e4
-        iresp = np.interp(mwave, bresp['Wave'].data, bresp['Resp'].data)
+        #   may not work
+        if max(bp.waveset) < 500*u.Angstrom:
+            print('filter wavelengths not in angstroms')
+            exit()
+            # a.waveset *= 1e4
+        iresp = bp(mwave)
         bflux = np.sum(iresp*mflux)/np.sum(iresp)
         bflux_unc = 0.0
-        bdata.band_fluxes[cband] = (bflux, bflux_unc)
-
-        if cband == 'B':
-            a = SpectralElement.from_file(band_resp_filenames[k])
-            b = SpectralElement.from_filter('johnson_b')
-            fig, ax = plt.subplots(figsize=(13, 10))
-            ax.plot(b.waveset, b(b.waveset), 'b')
-            ax.plot(mwave, iresp, 'r')
-            ax.plot(a.waveset, b(a.waveset), 'g--')
-            ax.set_xlim(3000., 6000.)
-
-            plt.show()
-            exit()
+        bdata.band_fluxes[ncband] = (bflux, bflux_unc)
 
     # calculate the band magnitudes from the fluxes
     bdata.get_band_mags_from_fluxes()
 
     # get the band fluxes from the magnitudes
-    #   partially redundant, but populations variables useful later
+    #   partially redundant, but populates variables useful later
     bdata.get_band_fluxes()
 
     return bdata
@@ -340,18 +345,22 @@ def make_obsdata_from_model(model_filename,
     specinfo['IRS'] = lrs_file
 
     # compute photometry
-    band_path = "%s/Band_RespCurves/" % output_path
+    # band_path = "%s/Band_RespCurves/" % output_path
     john_bands = ['U', 'B', 'V', 'R', 'I', 'J', 'H', 'K']
-    john_fnames = ["%sJohn%s.dat" % (band_path, cband)
+    john_fnames = ["John%s.dat" % (cband)
                    for cband in john_bands]
-    # hst_bands = ['']
+    hst_bands = ['HST_WFC3_UVIS1_F275W', 'HST_WFC3_UVIS1_F336W',
+                 'HST_WFC3_UVIS1_F475W', 'HST_WFC3_UVIS1_F814W',
+                 'HST_WFC3_IR_F110W', 'HST_WFC3_IR_F160W',
+                 'HST_ACS_WFC1_F475W', 'HST_ACS_WFC1_F814W']
+    hst_fnames = ['']
     # spitzer_bands = ['IRAC1', 'IRAC2', 'IRAC3', 'IRAC4', 'IRS15', 'MIPS24']
     # spitzer_fnames = ["{}/{}.dat".format(band_path, cband)
     #                   for cband in spitzer_bands]
-    # bands = john_bands + spitzer_bands
-    # band_fnames = john_fnames + spitzer_fnames
-    bands = john_bands
-    band_fnames = john_fnames
+    bands = john_bands + hst_bands
+    band_fnames = john_fnames + hst_fnames
+    # bands = john_bands
+    # band_fnames = john_fnames
 
     bandinfo = get_phot(wave_r5000, flux_r5000, bands, band_fnames)
 

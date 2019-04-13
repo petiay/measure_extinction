@@ -1,4 +1,5 @@
-Johnson R band response function
+# Johnson R band response function
+# wavelength  throughput
 5500.0 0.00
 5600.0 0.23
 5700.0 0.74

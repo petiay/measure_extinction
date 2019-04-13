@@ -1,4 +1,5 @@
-Johnson V band response function
+# Johnson V band response function
+# wavelength  throughput
 4700.0 0.000
 4800.0 0.030
 4900.0 0.163
