@@ -5,6 +5,8 @@ from dust_extinction.shapes import _curve_F99_method
 
 from measure_extinction.stardata import (StarData, BandData, SpecData)
 
+__all__ = ["ModelData"]
+
 
 class ModelData(object):
     """
