@@ -39,6 +39,7 @@ env:
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
         - CONDA_DEPENDENCIES='scipy future sphinx-argparse'
+        - CONDA_DEPENDENCIES_DOC='scipy future sphinx-argparse dust_extinction'
         #- CONDA_ALL_DEPENDENCIES='Cython scipy'
 
         # Conda packages for affiliated packages are hosted in channel
@@ -78,6 +79,7 @@ matrix:
         # may run for a long time
         - os: linux
           env: SETUP_CMD='build_docs -w'
+               CONDA_DEPENDENCIES=$CONDA_DEPENDENCIES_DOC
 
         # Now try Astropy dev and LTS vesions with the latest 3.x.
         #- os: linux
