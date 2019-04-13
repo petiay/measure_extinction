@@ -132,10 +132,9 @@ class BandData():
                                                  0.03055, 1.941e-3,
                                                  3.831e-4])*1e-11
 
-        # when ACS or WFC3 bands added, will need to add WFPC2_ to the
-        # start of the band names to distinguish
-        _wfpc2_band_names = ['F170W', 'F255W', 'F336W', 'F439W',
-                             'F555W', 'F814W']
+        # WFPC2 bands
+        _wfpc2_band_names = ['WFPC2_F170W', 'WFPC2_F255W', 'WFPC2_F336W',
+                             'WFPC2_F439W', 'WFPC2_F555W', 'WFPC2_F814W']
         _wfpc2_band_waves = np.array([0.170, 0.255, 0.336, 0.439,
                                       0.555, 0.814])
         _wfpc2_photflam = np.array([1.551e-15, 5.736e-16, 5.613e-17, 2.945e-17,
@@ -152,17 +151,57 @@ class BandData():
             _wfpc2_band_zeromag_fluxes[i] = (_wfpc2_photflam[i]
                                              * (10**(0.4*_wfpc2_vegamag[i])))
 
+        # WFC3 bands
+        _wfc3_band_names = ['WFC3_F275W', 'WFC3_F336W', 'WFC3_F475W',
+                            'WFC3_F814W', 'WFC3_F110W', 'WFC3_F160W']
+        _wfc3_band_waves = np.array([0.2373, 0.3355, 0.4772,
+                                     0.8053, 1.1534, 1.5369])
+        _wfc3_photflam = np.array([3.186e-18, 1.267e-18, 2.458e-19,
+                                   1.477e-19, 1.53e-20, 1.93e-20])
+        _wfc3_vegamag = np.array([22.331, 23.513, 25.809,
+                                  24.712, 26.063, 24.695])
+        _n_wfc3_bands = len(_wfc3_vegamag)
+        _wfc3_band_zeromag_fluxes = np.zeros(_n_wfc3_bands)
+
+        # zeromag Vega flux not given in standard WFPC2 documenation
+        # instead the flux and Vega magnitudes are given for 1 DN/sec
+        # the following code coverts these numbers to zeromag Vega fluxes
+        for i in range(_n_wfc3_bands):
+            _wfc3_band_zeromag_fluxes[i] = (_wfc3_photflam[i]
+                                            * (10**(0.4*_wfc3_vegamag[i])))
+
+        # ACS bands
+        _acs_band_names = ['ACS_F475W', 'ACS_F814W']
+        _acs_band_waves = np.array([0.4746, 0.8045])
+        _acs_photflam = np.array([1.827e-19, 7.045e-20])
+        _acs_vegamag = np.array([26.149, 25.517])
+        _n_acs_bands = len(_acs_vegamag)
+        _acs_band_zeromag_fluxes = np.zeros(_n_acs_bands)
+
+        # zeromag Vega flux not given in standard WFPC2 documenation
+        # instead the flux and Vega magnitudes are given for 1 DN/sec
+        # the following code coverts these numbers to zeromag Vega fluxes
+        for i in range(_n_acs_bands):
+            _acs_band_zeromag_fluxes[i] = (_acs_photflam[i]
+                                           * (10**(0.4*_acs_vegamag[i])))
+
         # combine all the possible
         _poss_band_names = np.concatenate([_johnson_band_names,
                                            _spitzer_band_names,
-                                           _wfpc2_band_names])
+                                           _wfpc2_band_names,
+                                           _wfc3_band_names,
+                                           _acs_band_names])
         _poss_band_waves = np.concatenate([_johnson_band_waves,
                                            _spitzer_band_waves,
-                                           _wfpc2_band_waves])
+                                           _wfpc2_band_waves,
+                                           _wfc3_band_waves,
+                                           _acs_band_waves])
         _poss_band_zeromag_fluxes = np.concatenate(
                                             [_johnson_band_zeromag_fluxes,
                                              _spitzer_band_zeromag_fluxes,
-                                             _wfpc2_band_zeromag_fluxes])
+                                             _wfpc2_band_zeromag_fluxes,
+                                             _wfc3_band_zeromag_fluxes,
+                                             _acs_band_zeromag_fluxes])
 
         # zip everything together into a dictonary to pass back
         return dict(zip(_poss_band_names,

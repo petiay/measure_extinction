@@ -277,11 +277,9 @@ def make_obsdata_from_model(model_filename,
 
     # create the ultraviolet HST/STIS mock observation
     # first create the spectrum convolved to the STIS low resolution
-    # Create kernel (***convolving the R~5000 spectrum,
-    #                fwhm adjustment needed***)
-    #  FWHM = 1.4 pixels (from STIS Handbook for section 13.6, G230L)
-    #  using 2 pixels as a comprimise for all STIS UV/optical L resolutions
-    g = Gaussian1DKernel(stddev=2.0/2.355)
+    # Resolution approximately 1000
+    stis_fwhm_pix = 5000./1000.
+    g = Gaussian1DKernel(stddev=stis_fwhm_pix/2.355)
 
     # Convolve data
     nflux = convolve(otable['FLUX'].data, g)
