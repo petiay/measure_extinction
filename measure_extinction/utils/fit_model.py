@@ -453,7 +453,7 @@ if __name__ == '__main__':
     # plot the bands and all spectra for this star
     for cspec in modinfo.fluxes.keys():
         if cspec == 'BAND':
-            ptype = 'ko'
+            ptype = 'o'
         else:
             ptype = '-'
 
@@ -462,14 +462,17 @@ if __name__ == '__main__':
 
         ax.plot(reddened_star.data[cspec].waves,
                 reddened_star.data[cspec].fluxes/norm_data,
-                ptype+'-', label='data')
+                'k'+ptype, label='data')
+
+        print(reddened_star.data[cspec].waves)
+        print(modinfo.waves[cspec])
 
         ax.plot(modinfo.waves[cspec], modsed[cspec]/norm_model,
-                ptype, label=cspec)
+                'b'+ptype, label=cspec)
         ax.plot(modinfo.waves[cspec], ext_modsed[cspec]/norm_model,
-                ptype, label=cspec)
+                'r'+ptype, label=cspec)
         ax.plot(modinfo.waves[cspec], hi_ext_modsed[cspec]/norm_model,
-                ptype, label=cspec)
+                'g'+ptype, label=cspec)
 
     # finish configuring the plot
     ax.set_ylim(8e4/norm_model, 2e9/norm_model)

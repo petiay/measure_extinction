@@ -4,6 +4,8 @@ from __future__ import (absolute_import, division, print_function,
 import math
 import warnings
 
+from collections import OrderedDict
+
 import numpy as np
 # from astropy.io import fits
 from astropy.table import Table
@@ -67,15 +69,17 @@ class BandData():
         """
         self.type = type
         self.n_bands = 0
-        self.bands = {}
-        self.band_units = {}
-        self.band_waves = {}
-        self.band_fluxes = {}
+        self.bands = OrderedDict()
+        self.band_units = OrderedDict()
+        self.band_waves = OrderedDict()
+        self.band_fluxes = OrderedDict()
 
     def read_bands(self, lines):
         """
         Read the photometric band data from a DAT file
-        and upate class variables
+        and upate class variables.
+        Bands are filled in wavelength order to make life
+        easier in subsequent calcuations (interpolations!)
 
         Parameters
         ----------
@@ -204,8 +208,11 @@ class BandData():
                                              _acs_band_zeromag_fluxes])
 
         # zip everything together into a dictonary to pass back
-        return dict(zip(_poss_band_names,
-                        zip(_poss_band_zeromag_fluxes, _poss_band_waves)))
+        #   and make sure ti is in wavelength order
+        windxs = np.argsort(_poss_band_waves)
+        return OrderedDict(zip(_poss_band_names[windxs],
+                           zip(_poss_band_zeromag_fluxes[windxs],
+                               _poss_band_waves[windxs])))
 
     def get_band_names(self):
         """
