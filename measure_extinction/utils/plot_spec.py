@@ -3,11 +3,13 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+# import pkg_resources
 import argparse
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 from measure_extinction.stardata import StarData
+from measure_extinction.utils.helpers import get_full_starfile
 
 
 def plot_spec_parser():
@@ -31,8 +33,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # read in the observed data on the star
-    starobs = StarData('%s.dat' % args.starname,
-                       path=args.path)
+    fstarname, file_path = get_full_starfile(args.starname)
+    starobs = StarData(fstarname, path=file_path)
 
     # plotting setup for easier to read plots
     fontsize = 18

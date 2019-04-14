@@ -352,7 +352,8 @@ def make_obsdata_from_model(model_filename,
     hst_bands = ['HST_WFC3_UVIS1_F275W', 'HST_WFC3_UVIS1_F336W',
                  'HST_WFC3_UVIS1_F475W', 'HST_WFC3_UVIS1_F814W',
                  'HST_WFC3_IR_F110W', 'HST_WFC3_IR_F160W',
-                 'HST_ACS_WFC1_F475W', 'HST_ACS_WFC1_F814W']
+                 'HST_ACS_WFC1_F475W', 'HST_ACS_WFC1_F814W',
+                 'HST_WFPC2_4_F170W']
     hst_fnames = ['']
     # spitzer_bands = ['IRAC1', 'IRAC2', 'IRAC3', 'IRAC4', 'IRS15', 'MIPS24']
     # spitzer_fnames = ["{}/{}.dat".format(band_path, cband)

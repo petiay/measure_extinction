@@ -18,6 +18,7 @@ import emcee
 from measure_extinction.stardata import StarData
 from measure_extinction.extdata import ExtData
 from measure_extinction.modeldata import ModelData
+from measure_extinction.utils.helpers import get_full_starfile
 
 
 # lnp_bignnum = -1e20
@@ -222,11 +223,12 @@ if __name__ == '__main__':
     # commandline parser
     parser = fit_model_parser()
     args = parser.parse_args()
-    args.path = '/home/kgordon/Python_git/extstar_data/'
+
+    # get the full starfilename and path
+    fstarname, file_path = get_full_starfile(args.starname)
 
     # get the observed reddened star data
-    reddened_star = StarData('DAT_files/{}.dat'.format(args.starname),
-                             path=args.path)
+    reddened_star = StarData(fstarname, path=file_path)
     band_names = reddened_star.data['BAND'].get_band_names()
     spectra_names = reddened_star.data.keys()
 
@@ -242,14 +244,14 @@ if __name__ == '__main__':
     # get just the filenames
     print('reading in the model spectra')
     tlusty_models_fullpath = glob.glob(
-        '{}/Models/tlusty_*v10.dat'.format(args.path))
+        '{}/Models/tlusty_*v10.dat'.format(file_path))
     # tlusty_models_fullpath = tlusty_models_fullpath[0:10]
     tlusty_models = [tfile[tfile.rfind('/')+1: len(tfile)]
                      for tfile in tlusty_models_fullpath]
 
     # get the models with just the reddened star band data and spectra
     modinfo = ModelData(tlusty_models,
-                        path='{}/Models/'.format(args.path),
+                        path='{}/Models/'.format(file_path),
                         band_names=band_names,
                         spectra_names=spectra_names)
 
