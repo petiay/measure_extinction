@@ -308,7 +308,7 @@ if __name__ == '__main__':
                                           x <= cexreg[1])] = 0.0
 
     # make the photometric bands have higher weight
-    weights['BAND'] *= 100.
+    weights['BAND'] *= 1000.
 
     fitinfo = FitInfo(pnames, plimits, weights,
                       parameter_priors=ppriors,
