@@ -5,6 +5,7 @@ import warnings
 
 import numpy as np
 from astropy.io import fits
+import astropy.units as u
 
 __all__ = ["ExtData", "AverageExtData"]
 
@@ -242,7 +243,7 @@ class ExtData():
                 & (src in red.data.keys())):
             # check that the wavelenth grids are identical
             delt_wave = red.data[src].waves - comp.data[src].waves
-            if np.sum(np.absolute(delt_wave)) > 0.01:
+            if np.sum(np.absolute(delt_wave)) > 0.01*u.micron:
                 warnings.warn("wavelength grids not equal for %s" % src,
                               UserWarning)
             else:
@@ -258,10 +259,12 @@ class ExtData():
                 self.npts[src] = np.zeros(n_waves)
 
                 # only compute the extinction for good, positive fluxes
+                print(comp.data[src].npts)
+                print(comp.data[src].fluxes)
                 indxs, = np.where((red.data[src].npts > 0)
                                   & (comp.data[src].npts > 0)
-                                  & (red.data[src].fluxes > 0)
-                                  & (comp.data[src].fluxes > 0))
+                                  & (red.data[src].fluxes.value > 0)
+                                  & (comp.data[src].fluxes.value > 0))
                 self.exts[src][indxs] = \
                     (-2.5*np.log10(red.data[src].fluxes[indxs]
                      / comp.data[src].fluxes[indxs])
@@ -426,6 +429,7 @@ class ExtData():
         return (x, y, unc)
 
     def save_ext_data(self, ext_filename,
+                      column_info=None,
                       p92_best_params=None):
         """
         Save the extinction curve to a FITS file
@@ -435,17 +439,36 @@ class ExtData():
         filename : string
             Full filename to a save extinction curve
 
+        column_info : dict
+            dictionary with information about the dust column
+            for example: {'ebv': 0.1, 'rv': 4.2, 'av': 0.42}
+
         p92_best_params : tuple of 2 float vectors
            Best fit parameter names and values for the P92 fit
         """
         # generate the primary header
         pheader = fits.Header()
-        hname = ['EXTTYPE', 'R_FILE', 'C_FILE', 'EBV', 'EBV_UNC']
+        hname = ['EXTTYPE', 'R_FILE', 'C_FILE']
         hcomment = ['Type of ext curve (options: elv, elvebv, alav)',
                     'Data File of Reddened Star',
-                    'Data File of Comparison Star',
-                    'E(B-V)', 'E(B-V) uncertainty']
-        hval = [self.type, self.red_file, self.comp_file, -1.0, -1.0]
+                    'Data File of Comparison Star']
+        hval = [self.type, self.red_file, self.comp_file]
+
+        ext_col_info = {'ebv': ('EBV', 'E(B-V)'),
+                        'ebvunc': ('EBV_UNC', 'E(B-V) uncertainty'),
+                        'av': ('AV', 'A(V)'),
+                        'avunc': ('AV_UNC', 'A(V) uncertainty'),
+                        'rv': ('RV', 'R(V)'),
+                        'rvunc': ('RV_UNC', 'R(V) uncertainty')}
+        if column_info is not None:
+            for ckey in column_info.keys():
+                if ckey in ext_col_info.keys():
+                    keyname, desc = ext_col_info[ckey]
+                    hname.append(keyname)
+                    hcomment.append(desc)
+                    hval.append(column_info[ckey])
+                else:
+                    print(ckey + ' not supported for saving extcurves')
 
         # P92 best fit parameters
         if p92_best_params is not None:

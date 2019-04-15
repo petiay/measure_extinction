@@ -4,9 +4,6 @@ Measure Extinction
 .. image:: http://readthedocs.org/projects/measure-extinction/badge/?version=latest
    :target: http://measure-extinction.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
-	 
-.. image:: https://badge.fury.io/py/measure-extinction.svg
-   :target: https://badge.fury.io/py/measure-extinction
 
 .. image:: https://travis-ci.org/karllark/measure_extinction.svg?branch=master
    :target: https://travis-ci.org/karllark/measure_extinction
@@ -15,11 +12,11 @@ Measure Extinction
 .. image:: https://coveralls.io/repos/github/karllark/measure_extinction/badge.svg?branch=master
    :target: https://coveralls.io/github/karllark/measure_extinction?branch=master
    :alt: Test Coverage Status
-	    
+
 .. image:: http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat
     :target: http://www.astropy.org
     :alt: Powered by Astropy Badge
-    
+
 This package provides code to measure astronomical interstellar dust
 extinction curves using the pair method.  The pair method uses the observations
 of a dust extinguished star and observations of an unextinguished star with the
