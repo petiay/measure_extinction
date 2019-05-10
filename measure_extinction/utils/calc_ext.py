@@ -5,8 +5,8 @@ import argparse
 import matplotlib.pyplot as plt
 import matplotlib
 
-from stardata import StarData
-from extdata import ExtData
+from measure_extinction.stardata import StarData
+from measure_extinction.extdata import ExtData
 
 
 if __name__ == "__main__":

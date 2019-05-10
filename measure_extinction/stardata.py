@@ -831,13 +831,17 @@ class StarData():
                     colpos = len(line)
                 return (line[0:eqpos-1].strip(), line[eqpos+1:colpos].strip())
 
-    def plot_obs(self, ax, pcolor=None,
-                 norm_wave_range=None,
-                 mlam4=False,
-                 yoffset=0.0,
-                 annotate_key=None,
-                 legend_key=None,
-                 fontsize=None):
+    def plot(self, ax, pcolor=None,
+             norm_wave_range=None,
+             mlam4=False,
+             yoffset=0.0,
+             annotate_key=None,
+             annotate_wave_range=None,
+             annotate_text=None,
+             annotate_rotation=0.0,
+             annotate_yoffset=0.0,
+             legend_key=None,
+             fontsize=None):
         """
         Plot all the data for a star (bands and spectra)
 
@@ -893,12 +897,16 @@ class StarData():
                                      <= norm_wave_range[1])))
 
             if len(gindxs) > 0:
-                waves = self.data[normtype].waves[gindxs].value
+                waves = self.data[normtype].waves[gindxs]
+                fluxes = self.data[normtype].fluxes[gindxs].to(
+                    fluxunit,
+                    equivalencies=u.spectral_density(waves)).value
+
                 if mlam4:
-                    ymult = np.power(waves, 4.0)
+                    ymult = np.power(waves.value, 4.0)
                 else:
-                    ymult = np.full((len(waves)), .0)
-                normval = np.average(waves*ymult)
+                    ymult = np.full((len(waves.value)), 1.0)
+                normval = np.average(fluxes*ymult)
             else:
                 raise ValueError("no good data in reqeusted norm range")
         else:
@@ -909,9 +917,9 @@ class StarData():
             gindxs, = np.where(self.data[curtype].npts > 0)
 
             if mlam4:
-                ymult = np.power(self.data[curtype].waves, 4.0)
+                ymult = np.power(self.data[curtype].waves.value, 4.0)
             else:
-                ymult = np.full((len(self.data[curtype].waves)), 1.0)
+                ymult = np.full((len(self.data[curtype].waves.value)), 1.0)
             # multiply by the overall normalization
             ymult /= normval
 
@@ -928,33 +936,34 @@ class StarData():
             yuncs = self.data[curtype].uncs[gindxs].to(
                 fluxunit, equivalencies=u.spectral_density(
                     self.data[curtype].waves[gindxs])).value
+            yplotvals = ymult[gindxs]*yvals + yoffset
             if len(gindxs) < 20:
                 # plot small number of points (usually BANDS data) as
                 # points with errorbars
                 ax.errorbar(self.data[curtype].waves[gindxs].value,
-                            ymult*yvals + yoffset,
-                            yerr=ymult[gindxs]*yuncs,
+                            yplotvals,
+                            yerr=ymult*yuncs,
                             fmt='o', color=pcolor, label=legval)
             else:
                 ax.plot(self.data[curtype].waves[gindxs].value,
-                        (ymult[gindxs]*yvals + yoffset),
+                        yplotvals,
                         '-', color=pcolor, label=legval)
 
             if curtype == annotate_key:
-                max_gwave = max(self.data[annotate_key].waves[gindxs])
-                ann_wave_range = np.array([max_gwave-5.0, max_gwave-1.0])
-                ann_indxs = np.where((self.data[annotate_key].waves
-                                      >= ann_wave_range[0]) &
-                                     (self.data[annotate_key].waves
-                                      <= ann_wave_range[1]) &
-                                     (self.data[annotate_key].npts > 0))
-                ann_val = np.median(self.data[annotate_key].fluxes[ann_indxs]
-                                    * ymult[ann_indxs])
-                ann_val += yoffset
-                ax.annotate('%s / %s' % (self.file, self.sptype),
-                            xy=(max_gwave, ann_val),
-                            xytext=(max_gwave+5., ann_val),
-                            verticalalignment="center",
-                            arrowprops=dict(facecolor=pcolor,
-                                            shrink=0.1),
-                            fontsize=0.85 * fontsize, rotation=-0.)
+                # annotate the spectra
+                # ann_wave_range = np.array([max_gwave-5.0, max_gwave-1.0])
+                waves = self.data[curtype].waves[gindxs]
+                ann_indxs = np.where((waves >= annotate_wave_range[0]) &
+                                     (waves <= annotate_wave_range[1]))
+                ann_val = np.median(yplotvals[ann_indxs])
+                ann_val += annotate_yoffset,
+                ann_xval = 0.5*np.sum(annotate_wave_range.value)
+                ax.text(ann_xval, ann_val, annotate_text,
+                        horizontalalignment='right',
+                        rotation=annotate_rotation)
+#                ax.annotate(annotate_text,
+#                            xy=(ann_xvals[0], ann_val),
+#                            xytext=(ann_xvals[1], ann_val),
+#                            verticalalignment="center",
+#                            arrowprops=dict(facecolor=pcolor, shrink=0.1),
+#                            fontsize=0.85*fontsize, rotation=-0.)

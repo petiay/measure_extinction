@@ -51,7 +51,8 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(figsize=(13, 10))
 
     # plot the bands and all spectra for this star
-    starobs.plot_obs(ax)
+    import astropy.units as u
+    starobs.plot(ax, mlam4=True, norm_wave_range=[10., 20.]*u.micron)
 
     # finish configuring the plot
     ax.set_yscale('log')

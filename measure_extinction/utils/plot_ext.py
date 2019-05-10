@@ -52,7 +52,8 @@ if __name__ == "__main__":
     extdata.plot_ext(ax, alav=args.alav)
 
     # fix the x,y plot limits
-    ax.set_xlim(ax.get_xlim())
+    # ax.set_xlim(ax.get_xlim())
+    ax.set_xlim(0.1, 2.5)
     ax.set_ylim(ax.get_ylim())
 
     # finish configuring the plot
@@ -67,6 +68,7 @@ if __name__ == "__main__":
                   fontsize=1.3*fontsize)
     ax.tick_params('both', length=10, width=2, which='major')
     ax.tick_params('both', length=5, width=1, which='minor')
+    ax.set_title(args.extfile)
 
     # plot extinctionm models if asked
     if args.extmodels:
@@ -74,9 +76,11 @@ if __name__ == "__main__":
         Rvs = [2.0, 3.1, 4.0, 5.0]
         for cRv in Rvs:
             t = CCM89(Rv=cRv)
-            ax.plot(x, t(x), 'k--', linewidth=2)
+            ax.plot(x, t(x), 'k--', linewidth=2,
+                    label='R(V) = {:4.2f}'.format(cRv))
 
     # use the whitespace better
+    ax.legend()
     fig.tight_layout()
 
     # plot or save to a file
