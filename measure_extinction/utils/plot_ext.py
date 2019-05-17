@@ -4,6 +4,7 @@ from __future__ import (absolute_import, division, print_function,
 import argparse
 import matplotlib.pyplot as plt
 import matplotlib
+from scipy.optimize import curve_fit
 
 import numpy as np
 import astropy.units as u
@@ -11,6 +12,15 @@ import astropy.units as u
 from measure_extinction.extdata import ExtData
 
 from dust_extinction.parameter_averages import CCM89
+
+
+def irpowerlaw(x, a, alpha, c):
+    return a*(x**(-1.*alpha) - c)
+
+
+def irpowerlaw_18(x, a, c):
+    return a*(x**(-1.8) - c)
+
 
 if __name__ == "__main__":
 
@@ -72,7 +82,7 @@ if __name__ == "__main__":
     ax.tick_params('both', length=5, width=1, which='minor')
     ax.set_title(args.extfile)
 
-    # plot extinctionm models if asked
+    # plot extinctionm models
     if args.extmodels:
         x = np.arange(0.12, 3.0, 0.01)*u.micron
         Rvs = [2.0, 3.1, 4.0, 5.0]
@@ -81,8 +91,28 @@ if __name__ == "__main__":
             ax.plot(x, t(x), 'k--', linewidth=2,
                     label='R(V) = {:4.2f}'.format(cRv))
 
+    # plot NIR power law model
+    if args.powerlaw:
+        ftype = 'BAND'
+        gbool = np.all([(extdata.npts[ftype] > 0),
+                        (extdata.waves[ftype] > 1.0),
+                        (extdata.waves[ftype] < 5.0)], axis=0)
+        xdata = extdata.waves[ftype][gbool]
+        ydata = extdata.exts[ftype][gbool]
+        func = irpowerlaw_18
+        popt, pcov = curve_fit(func, xdata, ydata)
+        # ax.plot(xdata, func(xdata, *popt), '-',
+        #        label='fit: a=%5.3f, b=%5.3f, c=%5.3f' % tuple(popt))
+        ax.plot(xdata, func(xdata, *popt), '-',
+                label='fit: a=%5.3f, c=%5.3f' % tuple(popt))
+
+        mod_x = np.arange(1.0, 40., 0.1)
+        mod_y = func(mod_x, *popt)
+        # ax.plot(mod_x, mod_y, '--', label='A(V) = %5.2f' % (popt[0]*popt[2]))
+        ax.plot(mod_x, mod_y, '--', label='A(V) = %5.2f' % (popt[0]*popt[1]))
+
     # use the whitespace better
-    # ax.legend()
+    ax.legend()
     fig.tight_layout()
 
     # plot or save to a file
