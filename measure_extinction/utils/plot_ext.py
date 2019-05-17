@@ -23,6 +23,8 @@ if __name__ == "__main__":
                         action="store_true")
     parser.add_argument("--extmodels", help="plot extinction curve models",
                         action="store_true")
+    parser.add_argument("--powerlaw", help="plot NIR powerlaw model",
+                        action="store_true")
     parser.add_argument("--png", help="save figure as a png file",
                         action="store_true")
     parser.add_argument("--eps", help="save figure as an eps file",
@@ -53,7 +55,7 @@ if __name__ == "__main__":
 
     # fix the x,y plot limits
     # ax.set_xlim(ax.get_xlim())
-    ax.set_xlim(0.1, 2.5)
+    # ax.set_xlim(0.1, 2.5)
     ax.set_ylim(ax.get_ylim())
 
     # finish configuring the plot
@@ -80,7 +82,7 @@ if __name__ == "__main__":
                     label='R(V) = {:4.2f}'.format(cRv))
 
     # use the whitespace better
-    ax.legend()
+    # ax.legend()
     fig.tight_layout()
 
     # plot or save to a file

@@ -680,14 +680,14 @@ class ExtData():
                 # plot small number of points (usually BANDS data) as
                 # points with errorbars
                 ax.errorbar(x, y, yerr=yu,
-                            fmt='o', color=color, alpha=alpha, label=legval)
+                            fmt='o', color=color, alpha=alpha)
             else:
                 if rebin_fac is not None:
                     x = _rebin(x, rebin_fac)
                     y = _rebin(y, rebin_fac)
 
                 ax.plot(x, y,
-                        '-', color=color, alpha=alpha, label=legval)
+                        '-', color=color, alpha=alpha)
 
             if curtype == annotate_key:
                 max_gwave = max(self.waves[annotate_key][gindxs])
