@@ -1,5 +1,4 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import math
 import warnings
@@ -7,6 +6,7 @@ import warnings
 from collections import OrderedDict
 
 import numpy as np
+
 # from astropy.io import fits
 from astropy.table import Table
 from astropy import constants as const
@@ -21,10 +21,10 @@ __all__ = ["StarData", "BandData", "SpecData"]
 #   1 um = 1e4 A
 #   Hz/um = c[micron/s]/(lambda[micron])^2
 # const = 1e-26*1e7*1e-4*1e-4 = 1e-27
-Jy_to_cgs_const = 1e-27*const.c.to('micron/s').value
+Jy_to_cgs_const = 1e-27 * const.c.to("micron/s").value
 
 
-class BandData():
+class BandData:
     """
     Photometric band data (used by StarData)
 
@@ -60,6 +60,7 @@ class BandData():
     band_fluxes : dict of band_name:floats
         band fluxes in ergs/(cm^2 s A)
     """
+
     def __init__(self, type):
         """
         Parameters
@@ -91,22 +92,23 @@ class BandData():
         Updates self.bands, self.band_units, and self.n_bands
         """
         for line in lines:
-            eqpos = line.find('=')
-            pmpos = line.find('+/-')
-            if (eqpos >= 0) & (pmpos >= 0) & (line[0] != '#'):
+            eqpos = line.find("=")
+            pmpos = line.find("+/-")
+            if (eqpos >= 0) & (pmpos >= 0) & (line[0] != "#"):
                 # check for reference or unit
-                colpos = (max((line.find(';'), line.find('#'),
-                          line.find('mJy'))))
+                colpos = max((line.find(";"), line.find("#"), line.find("mJy")))
                 if colpos == -1:
                     colpos = len(line)
                 band_name = line[0:eqpos].strip()
-                self.bands[band_name] = (float(line[eqpos+1:pmpos]),
-                                         float(line[pmpos+3:colpos]))
+                self.bands[band_name] = (
+                    float(line[eqpos + 1 : pmpos]),
+                    float(line[pmpos + 3 : colpos]),
+                )
                 # units
-                if line.find('mJy') >= 0:
-                    self.band_units[band_name] = 'mJy'
+                if line.find("mJy") >= 0:
+                    self.band_units[band_name] = "mJy"
                 else:
-                    self.band_units[band_name] = 'mag'
+                    self.band_units[band_name] = "mag"
 
         self.n_bands = len(self.bands)
 
@@ -120,31 +122,37 @@ class BandData():
         band_info : dict of band_name: value
             value is tuple of ( zeromag_flux, wavelength [micron] )
         """
-        _johnson_band_names = ['U', 'B', 'V', 'R', 'I',
-                               'J', 'H', 'K', 'L', 'M']
-        _johnson_band_waves = np.array([0.366, 0.438, 0.545, 0.641, 0.798,
-                                        1.22, 1.63, 2.19, 3.45, 4.75])
-        _johnson_band_zeromag_fluxes = np.array([417.5, 632.0, 363.1,
-                                                 217.7, 112.6, 31.47,
-                                                 11.38, 3.961, 0.699,
-                                                 0.204])*1e-11
+        _johnson_band_names = ["U", "B", "V", "R", "I", "J", "H", "K", "L", "M"]
+        _johnson_band_waves = np.array(
+            [0.366, 0.438, 0.545, 0.641, 0.798, 1.22, 1.63, 2.19, 3.45, 4.75]
+        )
+        _johnson_band_zeromag_fluxes = (
+            np.array(
+                [417.5, 632.0, 363.1, 217.7, 112.6, 31.47, 11.38, 3.961, 0.699, 0.204]
+            )
+            * 1e-11
+        )
 
-        _spitzer_band_names = ['IRAC1', 'IRAC2', 'IRAC3', 'IRAC4',
-                               'IRS15', 'MIPS24']
+        _spitzer_band_names = ["IRAC1", "IRAC2", "IRAC3", "IRAC4", "IRS15", "MIPS24"]
         _spitzer_band_waves = np.array([3.52, 4.45, 5.66, 7.67, 15.4, 23.36])
-        _spitzer_band_zeromag_fluxes = np.array([0.6605, 0.2668, 0.1069,
-                                                 0.03055, 1.941e-3,
-                                                 3.831e-4])*1e-11
+        _spitzer_band_zeromag_fluxes = (
+            np.array([0.6605, 0.2668, 0.1069, 0.03055, 1.941e-3, 3.831e-4]) * 1e-11
+        )
 
         # WFPC2 bands
-        _wfpc2_band_names = ['WFPC2_F170W', 'WFPC2_F255W', 'WFPC2_F336W',
-                             'WFPC2_F439W', 'WFPC2_F555W', 'WFPC2_F814W']
-        _wfpc2_band_waves = np.array([0.170, 0.255, 0.336, 0.439,
-                                      0.555, 0.814])
-        _wfpc2_photflam = np.array([1.551e-15, 5.736e-16, 5.613e-17, 2.945e-17,
-                                    3.483e-18, 2.508e-18])
-        _wfpc2_vegamag = np.array([16.335, 17.019, 19.429, 20.884,
-                                  22.545, 21.639])
+        _wfpc2_band_names = [
+            "WFPC2_F170W",
+            "WFPC2_F255W",
+            "WFPC2_F336W",
+            "WFPC2_F439W",
+            "WFPC2_F555W",
+            "WFPC2_F814W",
+        ]
+        _wfpc2_band_waves = np.array([0.170, 0.255, 0.336, 0.439, 0.555, 0.814])
+        _wfpc2_photflam = np.array(
+            [1.551e-15, 5.736e-16, 5.613e-17, 2.945e-17, 3.483e-18, 2.508e-18]
+        )
+        _wfpc2_vegamag = np.array([16.335, 17.019, 19.429, 20.884, 22.545, 21.639])
         _n_wfpc2_bands = len(_wfpc2_vegamag)
         _wfpc2_band_zeromag_fluxes = np.zeros(_n_wfpc2_bands)
 
@@ -152,18 +160,24 @@ class BandData():
         # instead the flux and Vega magnitudes are given for 1 DN/sec
         # the following code coverts these numbers to zeromag Vega fluxes
         for i in range(_n_wfpc2_bands):
-            _wfpc2_band_zeromag_fluxes[i] = (_wfpc2_photflam[i]
-                                             * (10**(0.4*_wfpc2_vegamag[i])))
+            _wfpc2_band_zeromag_fluxes[i] = _wfpc2_photflam[i] * (
+                10 ** (0.4 * _wfpc2_vegamag[i])
+            )
 
         # WFC3 bands
-        _wfc3_band_names = ['WFC3_F275W', 'WFC3_F336W', 'WFC3_F475W',
-                            'WFC3_F814W', 'WFC3_F110W', 'WFC3_F160W']
-        _wfc3_band_waves = np.array([0.2373, 0.3355, 0.4772,
-                                     0.8053, 1.1534, 1.5369])
-        _wfc3_photflam = np.array([3.186e-18, 1.267e-18, 2.458e-19,
-                                   1.477e-19, 1.53e-20, 1.93e-20])
-        _wfc3_vegamag = np.array([22.331, 23.513, 25.809,
-                                  24.712, 26.063, 24.695])
+        _wfc3_band_names = [
+            "WFC3_F275W",
+            "WFC3_F336W",
+            "WFC3_F475W",
+            "WFC3_F814W",
+            "WFC3_F110W",
+            "WFC3_F160W",
+        ]
+        _wfc3_band_waves = np.array([0.2373, 0.3355, 0.4772, 0.8053, 1.1534, 1.5369])
+        _wfc3_photflam = np.array(
+            [3.186e-18, 1.267e-18, 2.458e-19, 1.477e-19, 1.53e-20, 1.93e-20]
+        )
+        _wfc3_vegamag = np.array([22.331, 23.513, 25.809, 24.712, 26.063, 24.695])
         _n_wfc3_bands = len(_wfc3_vegamag)
         _wfc3_band_zeromag_fluxes = np.zeros(_n_wfc3_bands)
 
@@ -171,11 +185,12 @@ class BandData():
         # instead the flux and Vega magnitudes are given for 1 DN/sec
         # the following code coverts these numbers to zeromag Vega fluxes
         for i in range(_n_wfc3_bands):
-            _wfc3_band_zeromag_fluxes[i] = (_wfc3_photflam[i]
-                                            * (10**(0.4*_wfc3_vegamag[i])))
+            _wfc3_band_zeromag_fluxes[i] = _wfc3_photflam[i] * (
+                10 ** (0.4 * _wfc3_vegamag[i])
+            )
 
         # ACS bands
-        _acs_band_names = ['ACS_F475W', 'ACS_F814W']
+        _acs_band_names = ["ACS_F475W", "ACS_F814W"]
         _acs_band_waves = np.array([0.4746, 0.8045])
         _acs_photflam = np.array([1.827e-19, 7.045e-20])
         _acs_vegamag = np.array([26.149, 25.517])
@@ -186,33 +201,48 @@ class BandData():
         # instead the flux and Vega magnitudes are given for 1 DN/sec
         # the following code coverts these numbers to zeromag Vega fluxes
         for i in range(_n_acs_bands):
-            _acs_band_zeromag_fluxes[i] = (_acs_photflam[i]
-                                           * (10**(0.4*_acs_vegamag[i])))
+            _acs_band_zeromag_fluxes[i] = _acs_photflam[i] * (
+                10 ** (0.4 * _acs_vegamag[i])
+            )
 
         # combine all the possible
-        _poss_band_names = np.concatenate([_johnson_band_names,
-                                           _spitzer_band_names,
-                                           _wfpc2_band_names,
-                                           _wfc3_band_names,
-                                           _acs_band_names])
-        _poss_band_waves = np.concatenate([_johnson_band_waves,
-                                           _spitzer_band_waves,
-                                           _wfpc2_band_waves,
-                                           _wfc3_band_waves,
-                                           _acs_band_waves])
+        _poss_band_names = np.concatenate(
+            [
+                _johnson_band_names,
+                _spitzer_band_names,
+                _wfpc2_band_names,
+                _wfc3_band_names,
+                _acs_band_names,
+            ]
+        )
+        _poss_band_waves = np.concatenate(
+            [
+                _johnson_band_waves,
+                _spitzer_band_waves,
+                _wfpc2_band_waves,
+                _wfc3_band_waves,
+                _acs_band_waves,
+            ]
+        )
         _poss_band_zeromag_fluxes = np.concatenate(
-                                            [_johnson_band_zeromag_fluxes,
-                                             _spitzer_band_zeromag_fluxes,
-                                             _wfpc2_band_zeromag_fluxes,
-                                             _wfc3_band_zeromag_fluxes,
-                                             _acs_band_zeromag_fluxes])
+            [
+                _johnson_band_zeromag_fluxes,
+                _spitzer_band_zeromag_fluxes,
+                _wfpc2_band_zeromag_fluxes,
+                _wfc3_band_zeromag_fluxes,
+                _acs_band_zeromag_fluxes,
+            ]
+        )
 
         # zip everything together into a dictonary to pass back
         #   and make sure ti is in wavelength order
         windxs = np.argsort(_poss_band_waves)
-        return OrderedDict(zip(_poss_band_names[windxs],
-                           zip(_poss_band_zeromag_fluxes[windxs],
-                               _poss_band_waves[windxs])))
+        return OrderedDict(
+            zip(
+                _poss_band_names[windxs],
+                zip(_poss_band_zeromag_fluxes[windxs], _poss_band_waves[windxs]),
+            )
+        )
 
     def get_band_names(self):
         """
@@ -249,67 +279,91 @@ class BandData():
         """
         band_data = self.bands.get(band_name)
         if band_data is not None:
-            if self.band_units[band_name] == 'mJy':
+            if self.band_units[band_name] == "mJy":
                 # case of the IRAC/MIPS photometry
                 # need to convert to Vega magnitudes
                 pbands = self.get_poss_bands()
                 band_zflux_wave = pbands[band_name]
 
                 flux_p_unc = self.bands[band_name]
-                flux = ((1e-3 * Jy_to_cgs_const / band_zflux_wave[1]**2)
-                        * flux_p_unc[0])
-                mag_unc = -2.5*np.log10((flux_p_unc[0] - flux_p_unc[1])
-                                        / (flux_p_unc[0] + flux_p_unc[1]))
-                mag = -2.5*np.log10(flux/band_zflux_wave[0])
+                flux = (1e-3 * Jy_to_cgs_const / band_zflux_wave[1] ** 2) * flux_p_unc[
+                    0
+                ]
+                mag_unc = -2.5 * np.log10(
+                    (flux_p_unc[0] - flux_p_unc[1]) / (flux_p_unc[0] + flux_p_unc[1])
+                )
+                mag = -2.5 * np.log10(flux / band_zflux_wave[0])
 
-                return (mag, mag_unc, 'mag')
+                return (mag, mag_unc, "mag")
             else:
                 return self.bands[band_name] + (self.band_units[band_name],)
         else:
             _mag = 0.0
-            _mag_unc = 0.
-            if band_name == 'U':
-                if ((self.bands.get('V') is not None)
-                        & (self.bands.get('(B-V)') is not None)
-                        & (self.bands.get('(U-B)') is not None)):
-                    _mag = self.bands['V'][0] + self.bands['(B-V)'][0] \
-                           + self.bands['(U-B)'][0]
-                    _mag_unc = math.sqrt(self.bands['V'][1]**2
-                                         + self.bands['(B-V)'][1]**2
-                                         + self.bands['(U-B)'][1]**2)
-                elif ((self.bands.get('V') is not None)
-                        & (self.bands.get('(U-V)') is not None)):
-                    _mag = self.bands['V'][0] + self.bands['(U-V)'][0]
-                    _mag_unc = math.sqrt(self.bands['V'][1]**2
-                                         + self.bands['(U-V)'][1]**2)
-            elif band_name == 'B':
-                if ((self.bands.get('V') is not None)
-                        & (self.bands.get('(B-V)') is not None)):
-                    _mag = self.bands['V'][0] + self.bands['(B-V)'][0]
-                    _mag_unc = math.sqrt(self.bands['V'][1]**2
-                                         + self.bands['(B-V)'][1]**2)
-            elif band_name == 'R':
-                if ((self.bands.get('V') is not None)
-                        & (self.bands.get('(V-R)') is not None)):
-                    _mag = self.bands['V'][0] - self.bands['(V-R)'][0]
-                    _mag_unc = math.sqrt(self.bands['V'][1]**2
-                                         + self.bands['(V-R)'][1]**2)
-            elif band_name == 'I':
-                if ((self.bands.get('V') is not None)
-                        & (self.bands.get('(V-I)') is not None)):
-                    _mag = self.bands['V'][0] - self.bands['(V-I)'][0]
-                    _mag_unc = math.sqrt(self.bands['V'][1]**2
-                                         + self.bands['(V-I)'][1]**2)
-                elif ((self.bands.get('V') is not None)
-                        & (self.bands.get('(V-R)') is not None)
-                        & (self.bands.get('(R-I)') is not None)):
-                    _mag = (self.bands['V'][0] - self.bands['(V-R)'][0]
-                            - self.bands['(R-I)'][0])
-                    _mag_unc = math.sqrt(self.bands['V'][1]**2
-                                         + self.bands['(V-R)'][1]**2
-                                         + self.bands['(R-I)'][1]**2)
+            _mag_unc = 0.0
+            if band_name == "U":
+                if (
+                    (self.bands.get("V") is not None)
+                    & (self.bands.get("(B-V)") is not None)
+                    & (self.bands.get("(U-B)") is not None)
+                ):
+                    _mag = (
+                        self.bands["V"][0]
+                        + self.bands["(B-V)"][0]
+                        + self.bands["(U-B)"][0]
+                    )
+                    _mag_unc = math.sqrt(
+                        self.bands["V"][1] ** 2
+                        + self.bands["(B-V)"][1] ** 2
+                        + self.bands["(U-B)"][1] ** 2
+                    )
+                elif (self.bands.get("V") is not None) & (
+                    self.bands.get("(U-V)") is not None
+                ):
+                    _mag = self.bands["V"][0] + self.bands["(U-V)"][0]
+                    _mag_unc = math.sqrt(
+                        self.bands["V"][1] ** 2 + self.bands["(U-V)"][1] ** 2
+                    )
+            elif band_name == "B":
+                if (self.bands.get("V") is not None) & (
+                    self.bands.get("(B-V)") is not None
+                ):
+                    _mag = self.bands["V"][0] + self.bands["(B-V)"][0]
+                    _mag_unc = math.sqrt(
+                        self.bands["V"][1] ** 2 + self.bands["(B-V)"][1] ** 2
+                    )
+            elif band_name == "R":
+                if (self.bands.get("V") is not None) & (
+                    self.bands.get("(V-R)") is not None
+                ):
+                    _mag = self.bands["V"][0] - self.bands["(V-R)"][0]
+                    _mag_unc = math.sqrt(
+                        self.bands["V"][1] ** 2 + self.bands["(V-R)"][1] ** 2
+                    )
+            elif band_name == "I":
+                if (self.bands.get("V") is not None) & (
+                    self.bands.get("(V-I)") is not None
+                ):
+                    _mag = self.bands["V"][0] - self.bands["(V-I)"][0]
+                    _mag_unc = math.sqrt(
+                        self.bands["V"][1] ** 2 + self.bands["(V-I)"][1] ** 2
+                    )
+                elif (
+                    (self.bands.get("V") is not None)
+                    & (self.bands.get("(V-R)") is not None)
+                    & (self.bands.get("(R-I)") is not None)
+                ):
+                    _mag = (
+                        self.bands["V"][0]
+                        - self.bands["(V-R)"][0]
+                        - self.bands["(R-I)"][0]
+                    )
+                    _mag_unc = math.sqrt(
+                        self.bands["V"][1] ** 2
+                        + self.bands["(V-R)"][1] ** 2
+                        + self.bands["(R-I)"][1] ** 2
+                    )
             if (_mag != 0.0) & (_mag_unc != 0.0):
-                return (_mag, _mag_unc, 'mag')
+                return (_mag, _mag_unc, "mag")
 
     def get_band_flux(self, band_name):
         """
@@ -329,27 +383,30 @@ class BandData():
         if mag_vals is not None:
             # get the zero mag fluxes
             poss_bands = self.get_poss_bands()
-            if mag_vals[2] == 'mag':
+            if mag_vals[2] == "mag":
                 # flux +/- unc
-                flux1 = (poss_bands[band_name][0]
-                         * (10**(-0.4*(mag_vals[0] + mag_vals[1]))))
-                flux2 = (poss_bands[band_name][0]
-                         * (10**(-0.4*(mag_vals[0] - mag_vals[1]))))
-                return (0.5*(flux1 + flux2),
-                        0.5*(flux2 - flux1),
-                        poss_bands[band_name][1])
-            elif mag_vals[2] == 'mJy':
-                mfac = (1e-3 * Jy_to_cgs_const
-                        / np.square(poss_bands[band_name][0]))
-                return (mag_vals[0]*mfac,
-                        mag_vals[1]*mfac,
-                        poss_bands[band_name][1])
+                flux1 = poss_bands[band_name][0] * (
+                    10 ** (-0.4 * (mag_vals[0] + mag_vals[1]))
+                )
+                flux2 = poss_bands[band_name][0] * (
+                    10 ** (-0.4 * (mag_vals[0] - mag_vals[1]))
+                )
+                return (
+                    0.5 * (flux1 + flux2),
+                    0.5 * (flux2 - flux1),
+                    poss_bands[band_name][1],
+                )
+            elif mag_vals[2] == "mJy":
+                mfac = 1e-3 * Jy_to_cgs_const / np.square(poss_bands[band_name][0])
+                return (
+                    mag_vals[0] * mfac,
+                    mag_vals[1] * mfac,
+                    poss_bands[band_name][1],
+                )
             else:
-                warnings.warn("cannot get flux for %s" % band_name,
-                              UserWarning)
+                warnings.warn("cannot get flux for %s" % band_name, UserWarning)
         else:
-            warnings.warn("cannot get flux for %s" % band_name,
-                          UserWarning)
+            warnings.warn("cannot get flux for %s" % band_name, UserWarning)
 
     def get_band_fluxes(self):
         """
@@ -365,23 +422,29 @@ class BandData():
         for pband_name in poss_bands.keys():
             _mag_vals = self.get_band_mag(pband_name)
             if _mag_vals is not None:
-                if _mag_vals[2] == 'mag':
-                    _flux1 = (poss_bands[pband_name][0]
-                              * (10**(-0.4*(_mag_vals[0] + _mag_vals[1]))))
-                    _flux2 = (poss_bands[pband_name][0]
-                              * (10**(-0.4*(_mag_vals[0] - _mag_vals[1]))))
-                    self.band_fluxes[pband_name] = (0.5*(_flux1 + _flux2),
-                                                    0.5*(_flux2 - _flux1))
+                if _mag_vals[2] == "mag":
+                    _flux1 = poss_bands[pband_name][0] * (
+                        10 ** (-0.4 * (_mag_vals[0] + _mag_vals[1]))
+                    )
+                    _flux2 = poss_bands[pband_name][0] * (
+                        10 ** (-0.4 * (_mag_vals[0] - _mag_vals[1]))
+                    )
+                    self.band_fluxes[pband_name] = (
+                        0.5 * (_flux1 + _flux2),
+                        0.5 * (_flux2 - _flux1),
+                    )
                     self.band_waves[pband_name] = poss_bands[pband_name][1]
-                elif _mag_vals[2] == 'mJy':
+                elif _mag_vals[2] == "mJy":
                     self.band_waves[pband_name] = poss_bands[pband_name][1]
-                    mfac = (1e-3 * Jy_to_cgs_const
-                            / np.square(self.band_waves[pband_name]))
-                    self.band_fluxes[pband_name] = (_mag_vals[0]*mfac,
-                                                    _mag_vals[1]*mfac)
+                    mfac = (
+                        1e-3 * Jy_to_cgs_const / np.square(self.band_waves[pband_name])
+                    )
+                    self.band_fluxes[pband_name] = (
+                        _mag_vals[0] * mfac,
+                        _mag_vals[1] * mfac,
+                    )
                 else:
-                    warnings.warn("cannot get flux for %s" % pband_name,
-                                  UserWarning)
+                    warnings.warn("cannot get flux for %s" % pband_name, UserWarning)
         # also store the band data in flat numpy vectors for
         #   computational speed in fitting routines
         # mimics the format of the spectral data
@@ -399,10 +462,10 @@ class BandData():
         self.wave_range = [min(self.waves), max(self.waves)]
 
         # add the units
-        self.waves = self.waves*u.micron
-        self.wave_range = self.wave_range*u.micron
-        self.fluxes = self.fluxes*(u.erg/((u.cm**2)*u.s*u.angstrom))
-        self.uncs = self.uncs*(u.erg/((u.cm**2)*u.s*u.angstrom))
+        self.waves = self.waves * u.micron
+        self.wave_range = self.wave_range * u.micron
+        self.fluxes = self.fluxes * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
+        self.uncs = self.uncs * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
 
     def get_band_mags_from_fluxes(self):
         """
@@ -417,19 +480,19 @@ class BandData():
 
         for cband in self.band_fluxes.keys():
             if cband in poss_bands.keys():
-                self.bands[cband] = (-2.5*np.log10(self.band_fluxes[cband][0]
-                                                   / poss_bands[cband][0]),
-                                     0.0)
+                self.bands[cband] = (
+                    -2.5 * np.log10(self.band_fluxes[cband][0] / poss_bands[cband][0]),
+                    0.0,
+                )
                 self.band_waves[cband] = poss_bands[cband][1]
-                self.band_units[cband] = 'mag'
+                self.band_units[cband] = "mag"
             else:
-                warnings.warn("cannot get mag for %s" % cband,
-                              UserWarning)
+                warnings.warn("cannot get mag for %s" % cband, UserWarning)
 
         self.n_bands = len(self.bands)
 
 
-class SpecData():
+class SpecData:
     """
     Spectroscopic data (used by StarData)
 
@@ -453,6 +516,7 @@ class SpecData():
     wmin, wmax : floats
         wavelength min and max
     """
+
     # -----------------------------------------------------------
     def __init__(self, type):
         """
@@ -464,7 +528,7 @@ class SpecData():
         self.type = type
         self.n_waves = 0
 
-    def read_spectra(self, line, path='./'):
+    def read_spectra(self, line, path="./"):
         """
         Read spectra from a FITS file
 
@@ -493,8 +557,8 @@ class SpecData():
         -------
         Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
         """
-        eqpos = line.find('=')
-        self.file = line[eqpos+2:].rstrip()
+        eqpos = line.find("=")
+        self.file = line[eqpos + 2 :].rstrip()
 
         # check if file exists
         full_filename = path + self.file
@@ -504,29 +568,30 @@ class SpecData():
         # tdata = datafile[1].data  # data are in the 1st extension
         tdata = Table.read(full_filename)
 
-        self.waves = tdata['WAVELENGTH'].quantity
-        self.fluxes = tdata['FLUX'].quantity
-        self.uncs = tdata['SIGMA'].quantity
-        self.npts = tdata['NPTS'].quantity
+        self.waves = tdata["WAVELENGTH"].quantity
+        self.fluxes = tdata["FLUX"].quantity
+        self.uncs = tdata["SIGMA"].quantity
+        self.npts = tdata["NPTS"].quantity
         self.n_waves = len(self.waves)
 
         # include the model if it exists
         #   currently only used for FUSE H2 model
-        if 'MODEL' in tdata.colnames:
-            self.model = tdata['MODEL'].quantity
+        if "MODEL" in tdata.colnames:
+            self.model = tdata["MODEL"].quantity
 
         # fix odd unit designations
-        if self.waves.unit == 'ANGSTROM':
-            self.waves = self.waves.value*u.angstrom
-        if self.waves.unit == 'MICRON':
-            self.waves = self.waves.value*u.micron
-        if self.fluxes.unit == 'ERG/CM2/S/A':
-            self.fluxes = self.fluxes.value*(u.erg/((u.cm**2)*u.s*u.angstrom))
-            self.uncs = self.uncs.value*(u.erg/((u.cm**2)*u.s*u.angstrom))
+        if self.waves.unit == "ANGSTROM":
+            self.waves = self.waves.value * u.angstrom
+        if self.waves.unit == "MICRON":
+            self.waves = self.waves.value * u.micron
+        if self.fluxes.unit == "ERG/CM2/S/A":
+            self.fluxes = self.fluxes.value * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
+            self.uncs = self.uncs.value * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
 
         # compute the min/max wavelengths
-        self.wave_range = np.array([min(self.waves.value),
-                                    max(self.waves.value)])*self.waves.unit
+        self.wave_range = (
+            np.array([min(self.waves.value), max(self.waves.value)]) * self.waves.unit
+        )
 
         # trim any data that is not finite
         indxs, = np.where(~np.isfinite(self.fluxes))
@@ -538,7 +603,7 @@ class SpecData():
         self.waves = self.waves.to(u.micron)
         self.wave_range = self.wave_range.to(u.micron)
 
-    def read_fuse(self, line, path='./'):
+    def read_fuse(self, line, path="./"):
         """
         Read in FUSE spectra
 
@@ -559,7 +624,7 @@ class SpecData():
         """
         self.read_spectra(line, path)
 
-    def read_iue(self, line, path='./'):
+    def read_iue(self, line, path="./"):
         """
         Read in IUE spectra
 
@@ -582,11 +647,11 @@ class SpecData():
         self.read_spectra(line, path)
 
         # trim the long wavelength data by setting the npts to zero
-        indxs, = np.where(self.waves > 3200.*u.angstrom)
+        indxs, = np.where(self.waves > 3200.0 * u.angstrom)
         if len(indxs) > 0:
             self.npts[indxs] = 0
 
-    def read_stis(self, line, path='./'):
+    def read_stis(self, line, path="./"):
         """
         Read in STIS spectra
 
@@ -608,10 +673,10 @@ class SpecData():
         self.read_spectra(line, path)
 
         # add units
-        self.fluxes = self.fluxes.value*(u.erg/((u.cm**2)*u.s*u.angstrom))
-        self.uncs = self.uncs.value*(u.erg/((u.cm**2)*u.s*u.angstrom))
+        self.fluxes = self.fluxes.value * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
+        self.uncs = self.uncs.value * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
 
-    def read_spex(self, line, path='./'):
+    def read_spex(self, line, path="./"):
         """
         Read in SPeX spectra
 
@@ -631,10 +696,10 @@ class SpecData():
         self.read_spectra(line, path)
 
         # add units
-        self.fluxes = self.fluxes.value*(u.erg/((u.cm**2)*u.s*u.angstrom))
-        self.uncs = self.uncs.value*(u.erg/((u.cm**2)*u.s*u.angstrom))
+        self.fluxes = self.fluxes.value * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
+        self.uncs = self.uncs.value * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
 
-    def read_irs(self, line, path='./', corfac=None):
+    def read_irs(self, line, path="./", corfac=None):
         """
         Read in Spitzer/IRS spectra
 
@@ -668,30 +733,29 @@ class SpecData():
         # self.uncs *= mfac
 
         # correct the IRS spectra if corfacs defined
-        if 'IRS' in corfac.keys():
-            if (('IRS_zerowave' in corfac.keys())
-                    and ('IRS_slope' in corfac.keys())):
-                mod_line = (corfac['IRS']
-                            + (corfac['IRS_slope']
-                               * (self.waves.value - corfac['IRS_zerowave'])))
+        if "IRS" in corfac.keys():
+            if ("IRS_zerowave" in corfac.keys()) and ("IRS_slope" in corfac.keys()):
+                mod_line = corfac["IRS"] + (
+                    corfac["IRS_slope"] * (self.waves.value - corfac["IRS_zerowave"])
+                )
                 self.fluxes *= mod_line
                 self.uncs *= mod_line
             else:
-                self.fluxes *= corfac['IRS']
-                self.uncs *= corfac['IRS']
+                self.fluxes *= corfac["IRS"]
+                self.uncs *= corfac["IRS"]
 
         # remove bad long wavelength IRS data if keyword set
-        if 'IRS_maxwave' in corfac.keys():
-            indxs, = np.where(self.waves.value > corfac['IRS_maxwave'])
+        if "IRS_maxwave" in corfac.keys():
+            indxs, = np.where(self.waves.value > corfac["IRS_maxwave"])
             if len(indxs) > 0:
                 self.npts[indxs] = 0
 
         # add units
-        self.fluxes = self.fluxes.value*(u.Jy)
-        self.uncs = self.uncs.value*(u.Jy)
+        self.fluxes = self.fluxes.value * (u.Jy)
+        self.uncs = self.uncs.value * (u.Jy)
 
 
-class StarData():
+class StarData:
     """
     Photometric and spectroscopic data for a star
 
@@ -716,8 +780,8 @@ class StarData():
     corfac : dict of key:correction factors
         key gives the type (e.g., IRS, IRS_slope)
     """
-    def __init__(self, datfile, path='',
-                 photonly=False, use_corfac=True):
+
+    def __init__(self, datfile, path="", photonly=False, use_corfac=True):
         """
         Parameters
         ----------
@@ -736,7 +800,7 @@ class StarData():
         """
         self.file = datfile
         self.path = path
-        self.sptype = ''
+        self.sptype = ""
         self.model_params = {}
         self.data = {}
         self.corfac = {}
@@ -752,60 +816,58 @@ class StarData():
         """
 
         # open and read all the lines in the file
-        f = open(self.path + self.file, 'r')
+        f = open(self.path + self.file, "r")
         self.datfile_lines = list(f)
 
         # get the photometric band data
-        self.data['BAND'] = BandData('BAND')
-        self.data['BAND'].read_bands(self.datfile_lines)
+        self.data["BAND"] = BandData("BAND")
+        self.data["BAND"].read_bands(self.datfile_lines)
 
         # covert the photoemtric band data to fluxes in all possible bands
-        self.data['BAND'].get_band_fluxes()
+        self.data["BAND"].get_band_fluxes()
 
         # go through and get info before reading the spectra
-        poss_mod_params = ['model_type', 'Z', 'vturb',
-                           'logg', 'Teff', 'origin']
+        poss_mod_params = ["model_type", "Z", "vturb", "logg", "Teff", "origin"]
         for line in self.datfile_lines:
             cpair = self._parse_dfile_line(line)
             if cpair is not None:
-                if cpair[0] == 'sptype':
+                if cpair[0] == "sptype":
                     self.sptype = cpair[1]
                 elif cpair[0] in poss_mod_params:
                     self.model_params[cpair[0]] = cpair[1]
-                elif cpair[0] == 'corfac_irs_zerowave':
-                    self.corfac['IRS_zerowave'] = float(cpair[1])
-                elif cpair[0] == 'corfac_irs_slope':
-                    self.corfac['IRS_slope'] = float(cpair[1])
-                elif cpair[0] == 'corfac_irs_maxwave':
-                    self.corfac['IRS_maxwave'] = float(cpair[1])
-                elif cpair[0] == 'corfac_irs':
-                    self.corfac['IRS'] = float(cpair[1])
+                elif cpair[0] == "corfac_irs_zerowave":
+                    self.corfac["IRS_zerowave"] = float(cpair[1])
+                elif cpair[0] == "corfac_irs_slope":
+                    self.corfac["IRS_slope"] = float(cpair[1])
+                elif cpair[0] == "corfac_irs_maxwave":
+                    self.corfac["IRS_maxwave"] = float(cpair[1])
+                elif cpair[0] == "corfac_irs":
+                    self.corfac["IRS"] = float(cpair[1])
 
         # read the spectra
         if not self.photonly:
             for line in self.datfile_lines:
-                if line.find('IUE') == 0:
-                    self.data['IUE'] = SpecData('IUE')
-                    self.data['IUE'].read_iue(line, path=self.path)
-                elif line.find('FUSE') == 0:
-                    self.data['FUSE'] = SpecData('FUSE')
-                    self.data['FUSE'].read_fuse(line, path=self.path)
-                elif line.find('STIS_Opt') == 0:
-                    self.data['STIS_Opt'] = SpecData('STIS_Opt')
-                    self.data['STIS_Opt'].read_stis(line, path=self.path)
-                elif line.find('STIS') == 0:
-                    self.data['STIS'] = SpecData('STIS')
-                    self.data['STIS'].read_stis(line, path=self.path)
-                elif line.find('SpeX') == 0:
-                    self.data['SpeX'] = SpecData('SpeX')
-                    self.data['SpeX'].read_spex(line, path=self.path)
-                elif line.find('IRS') == 0 and line.find('IRS15') < 0:
-                    self.data['IRS'] = SpecData('IRS')
+                if line.find("IUE") == 0:
+                    self.data["IUE"] = SpecData("IUE")
+                    self.data["IUE"].read_iue(line, path=self.path)
+                elif line.find("FUSE") == 0:
+                    self.data["FUSE"] = SpecData("FUSE")
+                    self.data["FUSE"].read_fuse(line, path=self.path)
+                elif line.find("STIS_Opt") == 0:
+                    self.data["STIS_Opt"] = SpecData("STIS_Opt")
+                    self.data["STIS_Opt"].read_stis(line, path=self.path)
+                elif line.find("STIS") == 0:
+                    self.data["STIS"] = SpecData("STIS")
+                    self.data["STIS"].read_stis(line, path=self.path)
+                elif line.find("SpeX") == 0:
+                    self.data["SpeX"] = SpecData("SpeX")
+                    self.data["SpeX"].read_spex(line, path=self.path)
+                elif line.find("IRS") == 0 and line.find("IRS15") < 0:
+                    self.data["IRS"] = SpecData("IRS")
                     irs_corfacs = self.corfac
                     if not self.use_corfac:
                         irs_corfacs = {}
-                    self.data['IRS'].read_irs(line, path=self.path,
-                                              corfac=irs_corfacs)
+                    self.data["IRS"].read_irs(line, path=self.path, corfac=irs_corfacs)
 
     @staticmethod
     def _parse_dfile_line(line):
@@ -823,25 +885,29 @@ class StarData():
         substring : string
             The value substring in a DAT file formated string
         """
-        if line[0] != '#':
-            eqpos = line.find('=')
+        if line[0] != "#":
+            eqpos = line.find("=")
             if eqpos >= 0:
-                colpos = line.find(';')
+                colpos = line.find(";")
                 if colpos == 0:
                     colpos = len(line)
-                return (line[0:eqpos-1].strip(), line[eqpos+1:colpos].strip())
+                return (line[0 : eqpos - 1].strip(), line[eqpos + 1 : colpos].strip())
 
-    def plot(self, ax, pcolor=None,
-             norm_wave_range=None,
-             mlam4=False,
-             yoffset=0.0,
-             annotate_key=None,
-             annotate_wave_range=None,
-             annotate_text=None,
-             annotate_rotation=0.0,
-             annotate_yoffset=0.0,
-             legend_key=None,
-             fontsize=None):
+    def plot(
+        self,
+        ax,
+        pcolor=None,
+        norm_wave_range=None,
+        mlam4=False,
+        yoffset=0.0,
+        annotate_key=None,
+        annotate_wave_range=None,
+        annotate_text=None,
+        annotate_rotation=0.0,
+        annotate_yoffset=0.0,
+        legend_key=None,
+        fontsize=None,
+    ):
         """
         Plot all the data for a star (bands and spectra)
 
@@ -871,15 +937,15 @@ class StarData():
         fontsize : int
             fontsize for plot
         """
-        fluxunit = u.erg/((u.cm**2)*u.s*u.angstrom)
+        fluxunit = u.erg / ((u.cm ** 2) * u.s * u.angstrom)
 
         # find the data to use for the normalization if requested
         if norm_wave_range is not None:
             normtype = None
             for curtype in self.data.keys():
-                if ((norm_wave_range[0] >= self.data[curtype].wave_range[0])
-                        & ((norm_wave_range[1]
-                            <= self.data[curtype].wave_range[1]))):
+                if (norm_wave_range[0] >= self.data[curtype].wave_range[0]) & (
+                    (norm_wave_range[1] <= self.data[curtype].wave_range[1])
+                ):
                     # prioritize spectra over photometric bands
                     if normtype is not None:
                         if normtype == "BAND":
@@ -890,23 +956,28 @@ class StarData():
                 return
                 # raise ValueError("requested normalization range not valid")
 
-            gindxs, = np.where((self.data[normtype].npts > 0)
-                               & ((self.data[normtype].waves
-                                   >= norm_wave_range[0])
-                                  & (self.data[normtype].waves
-                                     <= norm_wave_range[1])))
+            gindxs, = np.where(
+                (self.data[normtype].npts > 0)
+                & (
+                    (self.data[normtype].waves >= norm_wave_range[0])
+                    & (self.data[normtype].waves <= norm_wave_range[1])
+                )
+            )
 
             if len(gindxs) > 0:
                 waves = self.data[normtype].waves[gindxs]
-                fluxes = self.data[normtype].fluxes[gindxs].to(
-                    fluxunit,
-                    equivalencies=u.spectral_density(waves)).value
+                fluxes = (
+                    self.data[normtype]
+                    .fluxes[gindxs]
+                    .to(fluxunit, equivalencies=u.spectral_density(waves))
+                    .value
+                )
 
                 if mlam4:
                     ymult = np.power(waves.value, 4.0)
                 else:
                     ymult = np.full((len(waves.value)), 1.0)
-                normval = np.average(fluxes*ymult)
+                normval = np.average(fluxes * ymult)
             else:
                 raise ValueError("no good data in reqeusted norm range")
         else:
@@ -924,46 +995,66 @@ class StarData():
             ymult /= normval
 
             if curtype == legend_key:
-                red_name = self.file.replace('.dat', '')
-                red_name = red_name.replace('DAT_files/', '')
-                legval = '%s / %s' % (red_name, self.sptype)
+                red_name = self.file.replace(".dat", "")
+                red_name = red_name.replace("DAT_files/", "")
+                legval = "%s / %s" % (red_name, self.sptype)
             else:
                 legval = None
 
-            yvals = self.data[curtype].fluxes[gindxs].to(
-                fluxunit, equivalencies=u.spectral_density(
-                    self.data[curtype].waves[gindxs])).value
-            yuncs = self.data[curtype].uncs[gindxs].to(
-                fluxunit, equivalencies=u.spectral_density(
-                    self.data[curtype].waves[gindxs])).value
-            yplotvals = ymult[gindxs]*yvals + yoffset
+            yvals = (
+                self.data[curtype]
+                .fluxes[gindxs]
+                .to(
+                    fluxunit,
+                    equivalencies=u.spectral_density(self.data[curtype].waves[gindxs]),
+                )
+                .value
+            )
+            yuncs = (
+                self.data[curtype]
+                .uncs[gindxs]
+                .to(
+                    fluxunit,
+                    equivalencies=u.spectral_density(self.data[curtype].waves[gindxs]),
+                )
+                .value
+            )
+            yplotvals = ymult[gindxs] * yvals + yoffset
             if len(gindxs) < 20:
                 # plot small number of points (usually BANDS data) as
                 # points with errorbars
-                ax.errorbar(self.data[curtype].waves[gindxs].value,
-                            yplotvals,
-                            yerr=ymult*yuncs,
-                            fmt='o', color=pcolor, label=legval)
+                ax.errorbar(
+                    self.data[curtype].waves[gindxs].value,
+                    yplotvals,
+                    yerr=ymult * yuncs,
+                    fmt="o",
+                    color=pcolor,
+                    label=legval,
+                )
             else:
-                ax.plot(self.data[curtype].waves[gindxs].value,
-                        yplotvals,
-                        '-', color=pcolor, label=legval)
+                ax.plot(
+                    self.data[curtype].waves[gindxs].value,
+                    yplotvals,
+                    "-",
+                    color=pcolor,
+                    label=legval,
+                )
 
             if curtype == annotate_key:
                 # annotate the spectra
                 # ann_wave_range = np.array([max_gwave-5.0, max_gwave-1.0])
                 waves = self.data[curtype].waves[gindxs]
-                ann_indxs = np.where((waves >= annotate_wave_range[0]) &
-                                     (waves <= annotate_wave_range[1]))
+                ann_indxs = np.where(
+                    (waves >= annotate_wave_range[0])
+                    & (waves <= annotate_wave_range[1])
+                )
                 ann_val = np.median(yplotvals[ann_indxs])
-                ann_val += annotate_yoffset,
-                ann_xval = 0.5*np.sum(annotate_wave_range.value)
-                ax.text(ann_xval, ann_val, annotate_text,
-                        horizontalalignment='right',
-                        rotation=annotate_rotation)
-#                ax.annotate(annotate_text,
-#                            xy=(ann_xvals[0], ann_val),
-#                            xytext=(ann_xvals[1], ann_val),
-#                            verticalalignment="center",
-#                            arrowprops=dict(facecolor=pcolor, shrink=0.1),
-#                            fontsize=0.85*fontsize, rotation=-0.)
+                ann_val += (annotate_yoffset,)
+                ann_xval = 0.5 * np.sum(annotate_wave_range.value)
+                ax.text(
+                    ann_xval,
+                    ann_val,
+                    annotate_text,
+                    horizontalalignment="right",
+                    rotation=annotate_rotation,
+                )
