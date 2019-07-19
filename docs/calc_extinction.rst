@@ -144,8 +144,8 @@ and clearly shows the 2175 A absorption feature.
    fig, ax = plt.subplots()
 
    # plot the bands and all spectra for both stars
-   redstar.plot_obs(ax, pcolor='r')
-   compstar.plot_obs(ax, pcolor='b')
+   redstar.plot(ax, pcolor='r')
+   compstar.plot(ax, pcolor='b')
 
    # finish configuring the plot
    ax.set_title('HD 283809 (reddened) & HD 64802 (comparion)')

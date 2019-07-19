@@ -256,7 +256,6 @@ class ExtData:
                 self.waves[src] = red.data[src].waves
                 print(src)
                 print(self.waves[src])
-                exit()
                 n_waves = len(self.waves[src])
                 self.exts[src] = np.zeros(n_waves)
                 self.uncs[src] = np.zeros(n_waves)
