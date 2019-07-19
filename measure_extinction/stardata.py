@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import math
 import warnings
 
@@ -564,8 +562,6 @@ class SpecData:
         full_filename = path + self.file
 
         # open and read the spectrum
-        # datafile = fits.open(full_filename)
-        # tdata = datafile[1].data  # data are in the 1st extension
         tdata = Table.read(full_filename)
 
         self.waves = tdata["WAVELENGTH"].quantity
@@ -818,6 +814,7 @@ class StarData:
         # open and read all the lines in the file
         f = open(self.path + self.file, "r")
         self.datfile_lines = list(f)
+        f.close()
 
         # get the photometric band data
         self.data["BAND"] = BandData("BAND")
