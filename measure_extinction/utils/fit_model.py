@@ -235,10 +235,12 @@ if __name__ == '__main__':
     # override for now
     print('possible', spectra_names)
     # spectra_names = ['BAND', 'STIS_Opt']
+    # spectra_names = ['BAND', 'STIS_Opt']
     print('only using', spectra_names)
 
     # override for now
     # band_names = ['U', 'B', 'V']
+    # band_names = ['U', 'B', 'V', 'J', 'H', 'K']
     print(band_names)
 
     # get just the filenames
