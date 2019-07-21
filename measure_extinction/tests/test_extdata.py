@@ -48,10 +48,12 @@ def test_get_fitdata():
 
     # ext = ExtData(filename=data_path + "hd283809_hd064802_ext.fits")
 
-    x, y, unc = ext.get_fitdata(["BAND", "IUE"])
+    wave, y, unc = ext.get_fitdata(
+        ["BAND", "IUE"], remove_uvwind_region=True, remove_lya_region=True
+    )
 
     # fitting routines often cannot handle units, make sure none are present
     for cursrc in ext.waves.keys():
-        assert isinstance(x, u.Quantity)
+        assert isinstance(wave, u.Quantity)
         assert not isinstance(y, u.Quantity)
         assert not isinstance(unc, u.Quantity)

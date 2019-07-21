@@ -398,8 +398,8 @@ class ExtData:
 
         Returns
         -------
-        (x, y, y_unc) : tuple of arrays
-            x is wavelength in microns
+        (wave, y, y_unc) : tuple of arrays
+            wave is wavelength in microns
             y is extinction (no units)
             unce is unc on y (no units)
         """
@@ -416,30 +416,31 @@ class ExtData:
         #                print(cursrc)
         #                print(1.0 / self.waves[cursrc])
         #        exit()
-        x = np.concatenate(xdata) * u.micron
+        wave = np.concatenate(xdata) * u.micron
         y = np.concatenate(ydata)
         unc = np.concatenate(uncdata)
         npts = np.concatenate(nptsdata)
 
         # remove uv wind line regions
+        x = wave.to(1.0 / u.micron, equivalencies=u.spectral())
         if remove_uvwind_region:
-            npts[np.logical_and(6.4 <= x, x < 6.6)] = 0
-            npts[np.logical_and(7.1 <= x, x < 7.3)] = 0
+            npts[np.logical_and(6.4 / u.micron <= x, x < 6.6 / u.micron)] = 0
+            npts[np.logical_and(7.1 / u.micron <= x, x < 7.3 / u.micron)] = 0
 
         # remove Lya line region
         if remove_lya_region:
-            npts[np.logical_and(8.0 <= x, x < 8.475)] = 0
+            npts[np.logical_and(8.0 / u.micron <= x, x < 8.475 / u.micron)] = 0
 
         # sort the data
         # at the same time, remove points with no data
         gindxs, = np.where(npts > 0)
         sindxs = np.argsort(x[gindxs])
         gindxs = gindxs[sindxs]
-        x = x[gindxs]
+        wave = wave[gindxs]
         y = y[gindxs]
         unc = unc[gindxs]
 
-        return (x, y, unc)
+        return (wave, y, unc)
 
     def save(self, ext_filename, column_info=None, p92_best_params=None):
         """
@@ -632,7 +633,7 @@ class ExtData:
         else:
             return "%s (not found)" % exttype
 
-    def plot_ext(
+    def plot(
         self,
         ax,
         color=None,
@@ -678,7 +679,7 @@ class ExtData:
         """
         for curtype in self.waves.keys():
             gindxs, = np.where(self.npts[curtype] > 0)
-            x = self.waves[curtype][gindxs]
+            x = self.waves[curtype][gindxs].to(u.micron).value
             y = self.exts[curtype][gindxs]
             yu = self.uncs[curtype][gindxs]
             if alav:
