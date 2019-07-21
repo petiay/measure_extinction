@@ -112,7 +112,7 @@ package along with the STIS (HD 283809) and IUE (HD 64802) spectra.
 For details of the format of these files, see :ref:`data_formats`.
 Using these files, the spectra of both stars can be plotted by reading in the
 observed data using the :class:`~measure_extinction.stardata.StarData` object
-and then calling its member function plot_obs.
+and then calling its member function plot.
 
 .. code-block:: python
 
@@ -120,7 +120,7 @@ and then calling its member function plot_obs.
    starobs = StarData(dat_filename)
 
    fig, ax = plt.subplots()
-   starobs.plot_obs(ax)
+   starobs.plot(ax)
 
 The spectra for both stars are plotted using those data files.  Which star
 is reddened is clear as it has a non-stellar slope for a early type star
@@ -185,7 +185,7 @@ memebr function plot_ext.
    extdata.calc_elv(redstar, compstar)
 
    fig, ax = plt.subplots()
-   extdata.plot_ext(ax)
+   extdata.plot(ax)
 
 .. plot::
 
@@ -210,7 +210,7 @@ memebr function plot_ext.
    fig, ax = plt.subplots()
 
    # plot the bands and all spectra for this star
-   extdata.plot_ext(ax)
+   extdata.plot(ax)
 
    # finish configuring the plot
    ax.set_title('HD 283809/HD 64802 extinction')
@@ -267,7 +267,7 @@ exists.
    fig, ax = plt.subplots()
 
    # plot the bands and all spectra for this star
-   extdata.plot_ext(ax)
+   extdata.plot(ax)
 
    # finish configuring the plot
    ax.set_title('HD 283809/HD 64802 extinction')
@@ -349,8 +349,8 @@ by setting the parameter `akav` in this member function.
    fig, ax = plt.subplots()
 
    # plot the bands and all spectra for this star
-   extdata.plot_ext(ax, color='b')
-   extdata2.plot_ext(ax, color='g')
+   extdata.plot(ax, color='b')
+   extdata2.plot(ax, color='g')
 
    # finish configuring the plot
    ax.set_title('HD 283809/HD 64802 extinction')

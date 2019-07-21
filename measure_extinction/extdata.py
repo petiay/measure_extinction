@@ -331,10 +331,10 @@ class ExtData:
             warnings.warn("attempt to normalize a non-elv curve with ebv", UserWarning)
         else:
             # determine the index for the B band
-            dwaves = np.absolute(self.waves["BAND"] - 0.438)
+            dwaves = np.absolute(self.waves["BAND"] - 0.438 * u.micron)
             sindxs = np.argsort(dwaves)
             bindx = sindxs[0]
-            if dwaves[bindx] > 0.02:
+            if dwaves[bindx] > 0.02 * u.micron:
                 warnings.warn("no B band mesurement in E(l-V)", UserWarning)
             else:
                 # normalize each portion of the extinction curve
@@ -364,10 +364,10 @@ class ExtData:
             warnings.warn("attempt to normalize a non-elv curve with av", UserWarning)
         else:
             # determine the index for the B band
-            dwaves = np.absolute(self.waves["BAND"] - 2.19)
+            dwaves = np.absolute(self.waves["BAND"] - 2.19 * u.micron)
             sindxs = np.argsort(dwaves)
             kindx = sindxs[0]
-            if dwaves[kindx] > 0.02:
+            if dwaves[kindx] > 0.02 * u.micron:
                 warnings.warn("no K band mesurement in E(l-V)", UserWarning)
             else:
                 # normalize each portion of the extinction curve
