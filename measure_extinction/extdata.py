@@ -552,7 +552,7 @@ class ExtData:
         for curname in _poss_datasources:
             curext = "%sEXT" % curname
             if curext in extnames:
-                self.waves[curname] = hdulist[curext].data["WAVELENGTH"]
+                self.waves[curname] = hdulist[curext].data["WAVELENGTH"] * u.micron
                 self.exts[curname] = hdulist[curext].data["EXT"]
                 if "UNC" in hdulist[curext].data.columns.names:
                     self.uncs[curname] = hdulist[curext].data["UNC"]
