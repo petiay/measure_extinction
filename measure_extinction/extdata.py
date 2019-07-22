@@ -137,8 +137,6 @@ class ExtData:
         tuples are measurement, uncertainty
 
     waves : dict of key:wavelengths
-
-    x : dict of key:wavenumbers
         key is BANDS, IUE, IRS, etc.
 
     ext : dict of key:E(lambda-v) measurements
@@ -169,7 +167,7 @@ class ExtData:
         self.npts = {}
 
         if filename is not None:
-            self.read_ext_data(filename)
+            self.read(filename)
 
     def calc_elv_bands(self, red, comp):
         """
@@ -218,7 +216,7 @@ class ExtData:
                 npts.append(1)
 
         if len(waves) > 0:
-            self.waves["BAND"] = np.array(waves)
+            self.waves["BAND"] = np.array(waves) * u.micron
             self.exts["BAND"] = np.array(exts)
             self.uncs["BAND"] = np.array(uncs)
             self.npts["BAND"] = np.array(npts)
@@ -254,8 +252,8 @@ class ExtData:
 
                 # setup the needed variables
                 self.waves[src] = red.data[src].waves
-                print(src)
-                print(self.waves[src])
+                # print(src)
+                # print(self.waves[src])
                 n_waves = len(self.waves[src])
                 self.exts[src] = np.zeros(n_waves)
                 self.uncs[src] = np.zeros(n_waves)
@@ -333,10 +331,10 @@ class ExtData:
             warnings.warn("attempt to normalize a non-elv curve with ebv", UserWarning)
         else:
             # determine the index for the B band
-            dwaves = np.absolute(self.waves["BAND"] - 0.438)
+            dwaves = np.absolute(self.waves["BAND"] - 0.438 * u.micron)
             sindxs = np.argsort(dwaves)
             bindx = sindxs[0]
-            if dwaves[bindx] > 0.02:
+            if dwaves[bindx] > 0.02 * u.micron:
                 warnings.warn("no B band mesurement in E(l-V)", UserWarning)
             else:
                 # normalize each portion of the extinction curve
@@ -366,10 +364,10 @@ class ExtData:
             warnings.warn("attempt to normalize a non-elv curve with av", UserWarning)
         else:
             # determine the index for the B band
-            dwaves = np.absolute(self.waves["BAND"] - 2.19)
+            dwaves = np.absolute(self.waves["BAND"] - 2.19 * u.micron)
             sindxs = np.argsort(dwaves)
             kindx = sindxs[0]
-            if dwaves[kindx] > 0.02:
+            if dwaves[kindx] > 0.02 * u.micron:
                 warnings.warn("no K band mesurement in E(l-V)", UserWarning)
             else:
                 # normalize each portion of the extinction curve
@@ -400,8 +398,10 @@ class ExtData:
 
         Returns
         -------
-        (x, y, y_unc) : tuple of arrays
-            x, y, and uncertainties for y
+        (wave, y, y_unc) : tuple of arrays
+            wave is wavelength in microns
+            y is extinction (no units)
+            unce is unc on y (no units)
         """
         xdata = []
         ydata = []
@@ -409,39 +409,40 @@ class ExtData:
         nptsdata = []
         for cursrc in req_datasources:
             if cursrc in self.waves.keys():
-                xdata.append(1.0 / self.waves[cursrc])
+                xdata.append(self.waves[cursrc].to(u.micron).value)
                 ydata.append(self.exts[cursrc])
                 uncdata.append(self.uncs[cursrc])
                 nptsdata.append(self.npts[cursrc])
-                print(cursrc)
-                print(1.0 / self.waves[cursrc])
-        exit()
-        x = np.concatenate(xdata)
+        #                print(cursrc)
+        #                print(1.0 / self.waves[cursrc])
+        #        exit()
+        wave = np.concatenate(xdata) * u.micron
         y = np.concatenate(ydata)
         unc = np.concatenate(uncdata)
         npts = np.concatenate(nptsdata)
 
         # remove uv wind line regions
+        x = wave.to(1.0 / u.micron, equivalencies=u.spectral())
         if remove_uvwind_region:
-            npts[np.logical_and(6.4 <= x, x < 6.6)] = 0
-            npts[np.logical_and(7.1 <= x, x < 7.3)] = 0
+            npts[np.logical_and(6.4 / u.micron <= x, x < 6.6 / u.micron)] = 0
+            npts[np.logical_and(7.1 / u.micron <= x, x < 7.3 / u.micron)] = 0
 
         # remove Lya line region
         if remove_lya_region:
-            npts[np.logical_and(8.0 <= x, x < 8.475)] = 0
+            npts[np.logical_and(8.0 / u.micron <= x, x < 8.475 / u.micron)] = 0
 
         # sort the data
         # at the same time, remove points with no data
         gindxs, = np.where(npts > 0)
         sindxs = np.argsort(x[gindxs])
         gindxs = gindxs[sindxs]
-        x = x[gindxs]
+        wave = wave[gindxs]
         y = y[gindxs]
         unc = unc[gindxs]
 
-        return (x, y, unc)
+        return (wave, y, unc)
 
-    def save_ext_data(self, ext_filename, column_info=None, p92_best_params=None):
+    def save(self, ext_filename, column_info=None, p92_best_params=None):
         """
         Save the extinction curve to a FITS file
 
@@ -531,7 +532,7 @@ class ExtData:
 
         hdulist.writeto(ext_filename, overwrite=True)
 
-    def read_ext_data(self, ext_filename):
+    def read(self, ext_filename):
         """
         Read in a saved extinction curve from a FITS file
 
@@ -632,7 +633,7 @@ class ExtData:
         else:
             return "%s (not found)" % exttype
 
-    def plot_ext(
+    def plot(
         self,
         ax,
         color=None,
@@ -678,7 +679,7 @@ class ExtData:
         """
         for curtype in self.waves.keys():
             gindxs, = np.where(self.npts[curtype] > 0)
-            x = self.waves[curtype][gindxs]
+            x = self.waves[curtype][gindxs].to(u.micron).value
             y = self.exts[curtype][gindxs]
             yu = self.uncs[curtype][gindxs]
             if alav:
@@ -714,7 +715,7 @@ class ExtData:
                 )
                 ann_val = np.median(self.exts[annotate_key][ann_indxs])
                 ax.annotate(
-                    self.red_file,
+                    legval,
                     xy=(max_gwave, ann_val),
                     xytext=(max_gwave + 5.0, ann_val),
                     verticalalignment="center",
