@@ -48,12 +48,15 @@ class FitInfo(object):
     stellar_velocitiy : float, optional
         velocity of star (also assumed to be gal HI velocity)
     """
-    def __init__(self,
-                 parameter_names,
-                 parameter_limits,
-                 weights,
-                 parameter_priors=None,
-                 stellar_velocity=0.0):
+
+    def __init__(
+        self,
+        parameter_names,
+        parameter_limits,
+        weights,
+        parameter_priors=None,
+        stellar_velocity=0.0,
+    ):
 
         self.parameter_names = parameter_names
         self.parameter_limits = parameter_limits
@@ -78,25 +81,28 @@ class FitInfo(object):
             all the information about the model spectra
         """
         # intrinsic sed
-        modsed = modeldata.stellar_sed(
-            params[0:3], velocity=self.velocities[0])
+        modsed = modeldata.stellar_sed(params[0:3], velocity=self.velocities[0])
 
         # dust_extinguished sed
         ext_modsed = modeldata.dust_extinguished_sed(
-            params[3:10], modsed, velocity=self.velocities[0])
+            params[3:10], modsed, velocity=self.velocities[0]
+        )
 
         # hi_abs sed
-        hi_ext_modsed = modeldata.hi_abs_sed(
-            params[10:12], self.velocities, ext_modsed)
+        hi_ext_modsed = modeldata.hi_abs_sed(params[10:12], self.velocities, ext_modsed)
 
-        norm_model = np.average(hi_ext_modsed['BAND'])
-        norm_data = np.average(obsdata.data['BAND'].fluxes)
+        norm_model = np.average(hi_ext_modsed["BAND"])
+        norm_data = np.average(obsdata.data["BAND"].fluxes)
 
         lnl = 0.0
         for cspec in hi_ext_modsed.keys():
-            lnl += -0.5*np.sum(np.square(
-                obsdata.data[cspec].fluxes/norm_data
-                - hi_ext_modsed[cspec]/norm_model)*self.weights[cspec])
+            lnl += -0.5 * np.sum(
+                np.square(
+                    obsdata.data[cspec].fluxes / norm_data
+                    - hi_ext_modsed[cspec] / norm_model
+                )
+                * self.weights[cspec]
+            )
 
         return lnl
 
@@ -121,8 +127,16 @@ class FitInfo(object):
         if fitinfo.parameter_priors is not None:
             for ptype in fitinfo.parameter_priors.keys():
                 pk = fitinfo.parameter_names.index(ptype)
-                lnp += -0.5*(((params[pk] - fitinfo.parameter_priors[ptype][0])
-                              / fitinfo.parameter_priors[ptype][1]))**2
+                lnp += (
+                    -0.5
+                    * (
+                        (
+                            (params[pk] - fitinfo.parameter_priors[ptype][0])
+                            / fitinfo.parameter_priors[ptype][1]
+                        )
+                    )
+                    ** 2
+                )
 
         return lnp
 
@@ -154,24 +168,30 @@ class FitInfo(object):
 
 def fit_model_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("starname",
-                        help="Name of star")
-    parser.add_argument("--spteff", metavar=('logteff', 'logteff_unc'),
-                        type=float, nargs=2,
-                        help="Spectral type prior: log(Teff) sigma_log(Teff)")
-    parser.add_argument("--splogg", metavar=('logg', 'logg_unc'),
-                        type=float, nargs=2,
-                        help="Spectral type prior: log(g) sigma_log(g)")
-    parser.add_argument("--velocity", type=float, default=0.0,
-                        help="Stellar velocity")
-    parser.add_argument("-f", "--fast", help="Use minimal step debug code",
-                        action="store_true")
-    parser.add_argument("--path", help="path to star/model files",
-                        default='./')
-    parser.add_argument("--emcee", help="run EMCEE MCMC fitting",
-                        action="store_true")
-    parser.add_argument("--png", help="save the plot as a png file",
-                        action="store_true")
+    parser.add_argument("starname", help="Name of star")
+    parser.add_argument(
+        "--spteff",
+        metavar=("logteff", "logteff_unc"),
+        type=float,
+        nargs=2,
+        help="Spectral type prior: log(Teff) sigma_log(Teff)",
+    )
+    parser.add_argument(
+        "--splogg",
+        metavar=("logg", "logg_unc"),
+        type=float,
+        nargs=2,
+        help="Spectral type prior: log(g) sigma_log(g)",
+    )
+    parser.add_argument("--velocity", type=float, default=0.0, help="Stellar velocity")
+    parser.add_argument(
+        "-f", "--fast", help="Use minimal step debug code", action="store_true"
+    )
+    parser.add_argument("--path", help="path to star/model files", default="./")
+    parser.add_argument("--emcee", help="run EMCEE MCMC fitting", action="store_true")
+    parser.add_argument(
+        "--png", help="save the plot as a png file", action="store_true"
+    )
     return parser
 
 
@@ -189,11 +209,11 @@ def get_best_fit_params(sampler):
             fit_params_best = sampler.chain[k, indxs[0], :]
 
     ndim = len(fit_params_best)
-    params_best = np.zeros((ndim+3))
+    params_best = np.zeros((ndim + 3))
     params_best[0:ndim] = fit_params_best
-    params_best[ndim] = params_best[3]/params_best[4]
-    params_best[ndim+1] = (10**params_best[10])/params_best[3]
-    params_best[ndim+2] = (10**params_best[10])/params_best[ndim]
+    params_best[ndim] = params_best[3] / params_best[4]
+    params_best[ndim + 1] = (10 ** params_best[10]) / params_best[3]
+    params_best[ndim + 2] = (10 ** params_best[10]) / params_best[ndim]
 
     return params_best
 
@@ -205,21 +225,22 @@ def get_percentile_params(samples):
 
     # add in E(B-V) and N(HI)/A(V) and N(HI)/E(B-V)
     samples_shape = samples.shape
-    new_samples_shape = (samples_shape[0], samples_shape[1]+3)
+    new_samples_shape = (samples_shape[0], samples_shape[1] + 3)
     new_samples = np.zeros(new_samples_shape)
     new_samples[:, 0:ndim] = samples
-    new_samples[:, ndim] = samples[:, 3]/samples[:, 4]
-    new_samples[:, ndim+1] = (10**samples[:, 10])/samples[:, 3]
-    new_samples[:, ndim+2] = (10**samples[:, 10])/new_samples[:, ndim]
+    new_samples[:, ndim] = samples[:, 3] / samples[:, 4]
+    new_samples[:, ndim + 1] = (10 ** samples[:, 10]) / samples[:, 3]
+    new_samples[:, ndim + 2] = (10 ** samples[:, 10]) / new_samples[:, ndim]
 
-    per_params = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]),
-                     zip(*np.percentile(new_samples, [16, 50, 84],
-                                        axis=0)))
+    per_params = map(
+        lambda v: (v[1], v[2] - v[1], v[1] - v[0]),
+        zip(*np.percentile(new_samples, [16, 50, 84], axis=0)),
+    )
 
     return per_params
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # commandline parser
     parser = fit_model_parser()
     args = parser.parse_args()
@@ -229,14 +250,14 @@ if __name__ == '__main__':
 
     # get the observed reddened star data
     reddened_star = StarData(fstarname, path=file_path)
-    band_names = reddened_star.data['BAND'].get_band_names()
+    band_names = reddened_star.data["BAND"].get_band_names()
     spectra_names = reddened_star.data.keys()
 
     # override for now
-    print('possible', spectra_names)
+    print("possible", spectra_names)
     # spectra_names = ['BAND', 'STIS_Opt']
     # spectra_names = ['BAND', 'STIS_Opt']
-    print('only using', spectra_names)
+    print("only using", spectra_names)
 
     # override for now
     # band_names = ['U', 'B', 'V']
@@ -244,100 +265,120 @@ if __name__ == '__main__':
     print(band_names)
 
     # get just the filenames
-    print('reading in the model spectra')
-    tlusty_models_fullpath = glob.glob(
-        '{}/Models/tlusty_*v10.dat'.format(file_path))
+    print("reading in the model spectra")
+    tlusty_models_fullpath = glob.glob("{}/Models/tlusty_*v10.dat".format(file_path))
     # tlusty_models_fullpath = tlusty_models_fullpath[0:10]
-    tlusty_models = [tfile[tfile.rfind('/')+1: len(tfile)]
-                     for tfile in tlusty_models_fullpath]
+    tlusty_models = [
+        tfile[tfile.rfind("/") + 1 : len(tfile)] for tfile in tlusty_models_fullpath
+    ]
 
     # get the models with just the reddened star band data and spectra
-    modinfo = ModelData(tlusty_models,
-                        path='{}/Models/'.format(file_path),
-                        band_names=band_names,
-                        spectra_names=spectra_names)
+    modinfo = ModelData(
+        tlusty_models,
+        path="{}/Models/".format(file_path),
+        band_names=band_names,
+        spectra_names=spectra_names,
+    )
 
     # parameters
-    pnames = ['logT', 'logg', 'logZ',
-              'Av', 'Rv', 'C2', 'C3', 'C4', 'x0', 'gamma',
-              'HI_gal', 'HI_mw']
-    params = [4.4, 4.0, 0.2,
-              1.0, 3.1, 0.679, 2.991, 0.319, 4.592, 0.922,
-              21.0, 19.0]
-    plimits = [[modinfo.temps_min, modinfo.temps_max],
-               [modinfo.gravs_min, modinfo.gravs_max],
-               [modinfo.mets_min, modinfo.mets_max],
-               [0.0, 4.0],
-               [2.0, 6.0],
-               [-0.5, 1.5],
-               [0.0, 6.0],
-               [-0.2, 2.0],
-               [4.55, 4.65],
-               [0., 2.5],
-               [17., 24.],
-               [17., 22.]]
+    pnames = [
+        "logT",
+        "logg",
+        "logZ",
+        "Av",
+        "Rv",
+        "C2",
+        "C3",
+        "C4",
+        "x0",
+        "gamma",
+        "HI_gal",
+        "HI_mw",
+    ]
+    params = [4.4, 4.0, 0.2, 1.0, 3.1, 0.679, 2.991, 0.319, 4.592, 0.922, 21.0, 19.0]
+    plimits = [
+        [modinfo.temps_min, modinfo.temps_max],
+        [modinfo.gravs_min, modinfo.gravs_max],
+        [modinfo.mets_min, modinfo.mets_max],
+        [0.0, 4.0],
+        [2.0, 6.0],
+        [-0.5, 1.5],
+        [0.0, 6.0],
+        [-0.2, 2.0],
+        [4.55, 4.65],
+        [0.0, 2.5],
+        [17.0, 24.0],
+        [17.0, 22.0],
+    ]
     ppriors = {}
     if args.spteff:
-        ppriors['logT'] = args.spteff
+        ppriors["logT"] = args.spteff
         params[0] = args.spteff[0]
     if args.splogg:
-        ppriors['logg'] = args.splogg
+        ppriors["logg"] = args.splogg
         params[1] = args.splogg[0]
 
     # cropping info for weights
     #  bad regions are defined as those were we know the models do not work
     #  or the data is bad
-    ex_regions = [[8.23-0.1, 8.23+0.1],  # geocoronal line
-                  [8.7, 10.0],  # bad data from STIS
-                  [3.55, 3.6],
-                  [3.80, 3.90],
-                  [4.15, 4.3],
-                  [6.4, 6.6],
-                  [7.1, 7.3],
-                  [7.45, 7.55],
-                  [7.65, 7.75],
-                  [7.9, 7.95],
-                  [8.05, 8.1]]/u.micron
+    ex_regions = [
+        [8.23 - 0.1, 8.23 + 0.1],  # geocoronal line
+        [8.7, 10.0],  # bad data from STIS
+        [3.55, 3.6],
+        [3.80, 3.90],
+        [4.15, 4.3],
+        [6.4, 6.6],
+        [7.1, 7.3],
+        [7.45, 7.55],
+        [7.65, 7.75],
+        [7.9, 7.95],
+        [8.05, 8.1],
+    ] / u.micron
     weights = {}
     for cspec in spectra_names:
         # should probably be based on the observed uncs
         weights[cspec] = np.full(len(reddened_star.data[cspec].fluxes), 1.0)
         weights[cspec][reddened_star.data[cspec].npts <= 0] = 0.0
 
-        x = 1.0/reddened_star.data[cspec].waves
+        x = 1.0 / reddened_star.data[cspec].waves
         for cexreg in ex_regions:
-            weights[cspec][np.logical_and(x >= cexreg[0],
-                                          x <= cexreg[1])] = 0.0
+            weights[cspec][np.logical_and(x >= cexreg[0], x <= cexreg[1])] = 0.0
 
     # make the photometric bands have higher weight
-    weights['BAND'] *= 1000.
+    weights["BAND"] *= 1000.0
 
-    fitinfo = FitInfo(pnames, plimits, weights,
-                      parameter_priors=ppriors,
-                      stellar_velocity=args.velocity)
+    fitinfo = FitInfo(
+        pnames,
+        plimits,
+        weights,
+        parameter_priors=ppriors,
+        stellar_velocity=args.velocity,
+    )
 
     # find a good starting point via standard minimization
     # print('finding minimum')
     #
-    def nll(*args): return -fitinfo.lnprob(*args)
+    def nll(*args):
+        return -fitinfo.lnprob(*args)
 
-    result = op.minimize(nll, params, method='Nelder-Mead',
-                         args=(reddened_star, modinfo, fitinfo))
-    params = result['x']
+    result = op.minimize(
+        nll, params, method="Nelder-Mead", args=(reddened_star, modinfo, fitinfo)
+    )
+    params = result["x"]
     fit_params = params
     params_best = params
     pnames_extra = pnames
 
     # now run emcee to explore the region around the min solution
     if args.emcee:
-        print('starting point')
+        print("starting point")
         print(params)
 
-        print('exploring with emcee')
+        print("exploring with emcee")
         p0 = params
         ndim = len(p0)
         if args.fast:
-            nwalkers = 2*ndim
+            nwalkers = 2 * ndim
             nsteps = 50
             burn = 50
         else:
@@ -346,12 +387,12 @@ if __name__ == '__main__':
             burn = 500
 
         # setting up the walkers to start "near" the inital guess
-        p = [p0*(1+0.01*np.random.normal(0, 1., ndim))
-             for k in range(nwalkers)]
+        p = [p0 * (1 + 0.01 * np.random.normal(0, 1.0, ndim)) for k in range(nwalkers)]
 
         # setup the sampler
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, fitinfo.lnprob,
-                                        args=(reddened_star, modinfo, fitinfo))
+        sampler = emcee.EnsembleSampler(
+            nwalkers, ndim, fitinfo.lnprob, args=(reddened_star, modinfo, fitinfo)
+        )
 
         # burn in the walkers
         pos, prob, state = sampler.run_mcmc(p, burn)
@@ -366,10 +407,10 @@ if __name__ == '__main__':
         samples = sampler.chain.reshape((-1, ndim))
 
         # get the best fit values
-        pnames_extra = pnames + ['E(B-V)', 'N(HI)/A(V)', 'N(HI)/E(B-V)']
+        pnames_extra = pnames + ["E(B-V)", "N(HI)/A(V)", "N(HI)/E(B-V)"]
         params_best = get_best_fit_params(sampler)
         fit_params = params_best
-        print('best params')
+        print("best params")
         print(params_best)
 
         # get the 16, 50, and 84 percentiles
@@ -378,28 +419,28 @@ if __name__ == '__main__':
 
         # save the best fit and p50 +/- uncs values to a file
         # save as a single row table to provide a uniform format
-        f = open(args.starname + '_fit_params.dat', 'w')
+        f = open(args.starname + "_fit_params.dat", "w")
         f.write("# best fit, p50, +unc, -unc\n")
         for k, val in enumerate(params_per):
-            print('{} {} {} {} # {}'.format(params_best[k],
-                                            val[0],
-                                            val[1],
-                                            val[2],
-                                            pnames_extra[k]))
-            f.write('{} {} {} {} # {}\n'.format(params_best[k],
-                                                val[0],
-                                                val[1],
-                                                val[2],
-                                                pnames_extra[k]))
+            print(
+                "{} {} {} {} # {}".format(
+                    params_best[k], val[0], val[1], val[2], pnames_extra[k]
+                )
+            )
+            f.write(
+                "{} {} {} {} # {}\n".format(
+                    params_best[k], val[0], val[1], val[2], pnames_extra[k]
+                )
+            )
 
     else:
-        f = open(args.starname + '_fit_params.dat', 'w')
+        f = open(args.starname + "_fit_params.dat", "w")
         f.write("# best fit\n")
         print(params_best)
         print(pnames_extra)
         for k, val in enumerate(params_best):
-            print('{} # {}'.format(val, pnames_extra[k]))
-            f.write('{} # {}\n'.format(val, pnames_extra[k]))
+            print("{} # {}".format(val, pnames_extra[k]))
+            f.write("{} # {}\n".format(val, pnames_extra[k]))
 
     f.close()
 
@@ -420,8 +461,9 @@ if __name__ == '__main__':
     ext_modsed = modinfo.dust_extinguished_sed(fit_params[3:10], modsed)
 
     # hi_abs sed
-    hi_ext_modsed = modinfo.hi_abs_sed(fit_params[10:12], [args.velocity, 0.0],
-                                       ext_modsed)
+    hi_ext_modsed = modinfo.hi_abs_sed(
+        fit_params[10:12], [args.velocity, 0.0], ext_modsed
+    )
 
     # create a StarData object for the best fit SED
     modsed_stardata = modinfo.SED_to_StarData(modsed)
@@ -429,62 +471,71 @@ if __name__ == '__main__':
     # create an extincion curve and save it
     extdata = ExtData()
     extdata.calc_elv(reddened_star, modsed_stardata)
-    col_info = {'av': fit_params[3],
-                'rv': fit_params[4]}
-    extdata.save_ext_data(args.starname + '_ext.fits',
-                          column_info=col_info)
+    col_info = {"av": fit_params[3], "rv": fit_params[4]}
+    extdata.save_ext_data(args.starname + "_ext.fits", column_info=col_info)
 
     # plot the SEDs
-    norm_model = np.average(hi_ext_modsed['BAND'])
-    norm_data = np.average(reddened_star.data['BAND'].fluxes)
+    norm_model = np.average(hi_ext_modsed["BAND"])
+    norm_data = np.average(reddened_star.data["BAND"].fluxes)
 
     # plotting setup for easier to read plots
     fontsize = 18
-    font = {'size': fontsize}
-    mpl.rc('font', **font)
-    mpl.rc('lines', linewidth=1)
-    mpl.rc('axes', linewidth=2)
-    mpl.rc('xtick.major', width=2)
-    mpl.rc('xtick.minor', width=2)
-    mpl.rc('ytick.major', width=2)
-    mpl.rc('ytick.minor', width=2)
+    font = {"size": fontsize}
+    mpl.rc("font", **font)
+    mpl.rc("lines", linewidth=1)
+    mpl.rc("axes", linewidth=2)
+    mpl.rc("xtick.major", width=2)
+    mpl.rc("xtick.minor", width=2)
+    mpl.rc("ytick.major", width=2)
+    mpl.rc("ytick.minor", width=2)
 
     # setup the plot
     fig, ax = plt.subplots(figsize=(13, 10))
 
     # plot the bands and all spectra for this star
     for cspec in modinfo.fluxes.keys():
-        if cspec == 'BAND':
-            ptype = 'o'
+        if cspec == "BAND":
+            ptype = "o"
         else:
-            ptype = '-'
+            ptype = "-"
 
         # ax.plot(reddened_star.data[cspec].waves,
         #        weights[cspec], 'k-')
 
-        ax.plot(reddened_star.data[cspec].waves,
-                reddened_star.data[cspec].fluxes/norm_data,
-                'k'+ptype, label='data')
+        ax.plot(
+            reddened_star.data[cspec].waves,
+            reddened_star.data[cspec].fluxes / norm_data,
+            "k" + ptype,
+            label="data",
+        )
 
         print(reddened_star.data[cspec].waves)
         print(modinfo.waves[cspec])
 
-        ax.plot(modinfo.waves[cspec], modsed[cspec]/norm_model,
-                'b'+ptype, label=cspec)
-        ax.plot(modinfo.waves[cspec], ext_modsed[cspec]/norm_model,
-                'r'+ptype, label=cspec)
-        ax.plot(modinfo.waves[cspec], hi_ext_modsed[cspec]/norm_model,
-                'g'+ptype, label=cspec)
+        ax.plot(
+            modinfo.waves[cspec], modsed[cspec] / norm_model, "b" + ptype, label=cspec
+        )
+        ax.plot(
+            modinfo.waves[cspec],
+            ext_modsed[cspec] / norm_model,
+            "r" + ptype,
+            label=cspec,
+        )
+        ax.plot(
+            modinfo.waves[cspec],
+            hi_ext_modsed[cspec] / norm_model,
+            "g" + ptype,
+            label=cspec,
+        )
 
     # finish configuring the plot
-    ax.set_ylim(8e4/norm_model, 2e9/norm_model)
-    ax.set_yscale('log')
-    ax.set_xscale('log')
-    ax.set_xlabel('$\lambda$ [$\mu m$]', fontsize=1.3*fontsize)
-    ax.set_ylabel('$F(\lambda)$ [$ergs\ cm^{-2}\ s\ \AA$]',
-                  fontsize=1.3*fontsize)
-    ax.tick_params('both', length=10, width=2, which='major')
-    ax.tick_params('both', length=5, width=1, which='minor')
+    ax.set_ylim(8e4 / norm_model, 2e9 / norm_model)
+    ax.set_yscale("log")
+    ax.set_xscale("log")
+    ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.3 * fontsize)
+    ax.set_ylabel(r"$F(\lambda)$ [$ergs\ cm^{-2}\ s\ \AA$]", fontsize=1.3 * fontsize)
+    ax.tick_params("both", length=10, width=2, which="major")
+    ax.tick_params("both", length=5, width=1, which="minor")
 
     # ax.legend()
 
@@ -492,6 +543,6 @@ if __name__ == '__main__':
     fig.tight_layout()
 
     if args.png:
-        fig.savefig(args.starname + '_mod_obs_spec.png')
+        fig.savefig(args.starname + "_mod_obs_spec.png")
     else:
         plt.show()

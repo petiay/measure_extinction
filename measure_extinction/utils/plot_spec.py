@@ -16,7 +16,6 @@ def plot_spec_parser():
     parser.add_argument("starname", help="name of star")
     parser.add_argument("--path", help="path to star files", default="./")
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
-    parser.add_argument("--eps", help="save figure as an eps file", action="store_true")
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     return parser
 
@@ -63,8 +62,6 @@ if __name__ == "__main__":
     save_str = "_spec"
     if args.png:
         fig.savefig(args.starname.replace(".dat", save_str + ".png"))
-    elif args.eps:
-        fig.savefig(args.starname.replace(".dat", save_str + ".eps"))
     elif args.pdf:
         fig.savefig(args.starname.replace(".dat", save_str + ".pdf"))
     else:
