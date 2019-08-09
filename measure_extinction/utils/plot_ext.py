@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import argparse
@@ -57,7 +59,7 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(figsize=(13, 10))
 
     # plot the bands and all spectra for this star
-    extdata.plot_ext(ax, alav=args.alav)
+    extdata.plot(ax, alav=args.alav)
 
     # fix the x,y plot limits
     # ax.set_xlim(ax.get_xlim())

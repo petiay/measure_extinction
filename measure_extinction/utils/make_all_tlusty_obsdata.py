@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import glob
 
 from make_obsdata_from_model import make_obsdata_from_model
