@@ -7,13 +7,15 @@ import argparse
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
+import astropy.units as u
+
 from measure_extinction.stardata import StarData
 from measure_extinction.utils.helpers import get_full_starfile
 
 
-def plot_spec_parser():
+def plot_mspec_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("starname", help="name of star")
+    parser.add_argument("filelist", help="file with list of stars to plot")
     parser.add_argument("--path", help="path to star files", default="./")
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
@@ -23,12 +25,17 @@ def plot_spec_parser():
 if __name__ == "__main__":
 
     # commandline parser
-    parser = plot_spec_parser()
+    parser = plot_mspec_parser()
     args = parser.parse_args()
 
-    # read in the observed data on the star
-    fstarname, file_path = get_full_starfile(args.starname)
-    starobs = StarData(fstarname, path=file_path)
+    # get the names of the stars
+    f = open(args.filelist, "r")
+    file_lines = list(f)
+    starnames = []
+    for line in file_lines:
+        if (line.find("#") != 0) & (len(line) > 0):
+            name = line.rstrip()
+            starnames.append(name)
 
     # plotting setup for easier to read plots
     fontsize = 18
@@ -45,7 +52,11 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(figsize=(13, 10))
 
     # plot the bands and all spectra for this star
-    starobs.plot(ax)
+    # plot all the spectra on the same plot
+    for k, cstarname in enumerate(starnames):
+        fstarname, file_path = get_full_starfile(cstarname)
+        starobs = StarData(fstarname, path=file_path)
+        starobs.plot(ax, norm_wave_range=[0.4, 0.8] * u.micron, yoffset=0.5 * k)
 
     # finish configuring the plot
     ax.set_yscale("log")

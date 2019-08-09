@@ -625,11 +625,11 @@ class ExtData:
             Latex formated string for plotting
         """
         if exttype == "elv":
-            return "$E(\lambda - V)$"
+            return r"$E(\lambda - V)$"
         elif exttype == "elvebv":
-            return "$E(\lambda - V)/E(B - V)$"
+            return r"$E(\lambda - V)/E(B - V)$"
         elif exttype == "alav":
-            return "$A(\lambda)/A(V)$"
+            return r"$A(\lambda)/A(V)$"
         else:
             return "%s (not found)" % exttype
 
