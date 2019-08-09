@@ -1027,6 +1027,7 @@ class StarData:
                     fmt="o",
                     color=pcolor,
                     label=legval,
+                    mfc="white",
                 )
             else:
                 ax.plot(
