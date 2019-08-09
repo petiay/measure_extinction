@@ -93,25 +93,30 @@ if __name__ == "__main__":
         gbool = np.all(
             [
                 (extdata.npts[ftype] > 0),
-                (extdata.waves[ftype] > 1.0),
-                (extdata.waves[ftype] < 5.0),
+                (extdata.waves[ftype] > 1.0 * u.micron),
+                (extdata.waves[ftype] < 40.0 * u.micron),
             ],
             axis=0,
         )
-        xdata = extdata.waves[ftype][gbool]
+        xdata = extdata.waves[ftype][gbool].value
         ydata = extdata.exts[ftype][gbool]
-        func = irpowerlaw_18
+        func = irpowerlaw
+        # func = irpowerlaw_18
         popt, pcov = curve_fit(func, xdata, ydata)
-        # ax.plot(xdata, func(xdata, *popt), '-',
-        #        label='fit: a=%5.3f, b=%5.3f, c=%5.3f' % tuple(popt))
         ax.plot(
-            xdata, func(xdata, *popt), "-", label="fit: a=%5.3f, c=%5.3f" % tuple(popt)
+            xdata,
+            func(xdata, *popt),
+            "-",
+            label="fit: a=%5.3f, b=%5.3f, c=%5.3f" % tuple(popt),
         )
+        # ax.plot(
+        #    xdata, func(xdata, *popt), "-", label="fit: a=%5.3f, c=%5.3f" % tuple(popt)
+        # )
 
         mod_x = np.arange(1.0, 40.0, 0.1)
         mod_y = func(mod_x, *popt)
-        # ax.plot(mod_x, mod_y, '--', label='A(V) = %5.2f' % (popt[0]*popt[2]))
-        ax.plot(mod_x, mod_y, "--", label="A(V) = %5.2f" % (popt[0] * popt[1]))
+        ax.plot(mod_x, mod_y, "--", label="A(V) = %5.2f" % (popt[0] * popt[2]))
+        # ax.plot(mod_x, mod_y, "--", label="A(V) = %5.2f" % (popt[0] * popt[1]))
 
     # use the whitespace better
     ax.legend()

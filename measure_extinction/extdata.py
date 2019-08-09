@@ -697,7 +697,9 @@ class ExtData:
             if len(gindxs) < 20:
                 # plot small number of points (usually BANDS data) as
                 # points with errorbars
-                ax.errorbar(x, y, yerr=yu, fmt="o", color=color, alpha=alpha)
+                ax.errorbar(
+                    x, y, yerr=yu, fmt="o", color=color, alpha=alpha, mfc="white"
+                )
             else:
                 if rebin_fac is not None:
                     x = _rebin(x, rebin_fac)
