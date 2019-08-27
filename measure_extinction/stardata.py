@@ -923,7 +923,7 @@ class StarData:
             removes the Rayleigh-Jeans slope
 
         yoffset : float
-            addiative offset for the data
+            multiplicative offset for the data
 
         annotate_key : string
             annotate the spectrum using the given data key
@@ -1016,7 +1016,7 @@ class StarData:
                 )
                 .value
             )
-            yplotvals = ymult[gindxs] * yvals + yoffset
+            yplotvals = ymult[gindxs] * yvals * yoffset
             if len(gindxs) < 20:
                 # plot small number of points (usually BANDS data) as
                 # points with errorbars
