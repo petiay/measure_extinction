@@ -67,7 +67,11 @@ if __name__ == "__main__":
         )
         stable = [stable]
     else:
-        sfilename = "%s/Orig/%s/%s" % (args.path, args.waveregion, args.starname)
+        sfilename = "%s/Orig/%s/M31Ext2/%s" % (
+            args.path,
+            args.waveregion,
+            args.starname.lower(),
+        )
         t1 = read_stis_archive_format(sfilename + "10_x1d.fits")
         t2 = read_stis_archive_format(sfilename + "20_x1d.fits")
         t1.rename_column("ERROR", "STAT-ERROR")
