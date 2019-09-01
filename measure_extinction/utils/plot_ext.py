@@ -73,7 +73,7 @@ if __name__ == "__main__":
     if args.alav:
         ytype = "alav"
     else:
-        ytype = "elv"
+        ytype = extdata.type
     ax.set_ylabel(extdata._get_ext_ytitle(ytype), fontsize=1.3 * fontsize)
     ax.tick_params("both", length=10, width=2, which="major")
     ax.tick_params("both", length=5, width=1, which="minor")

@@ -470,7 +470,7 @@ if __name__ == "__main__":
 
     # create an extincion curve and save it
     extdata = ExtData()
-    extdata.calc_elv(reddened_star, modsed_stardata)
+    extdata.calc_elx(reddened_star, modsed_stardata)
     col_info = {"av": fit_params[3], "rv": fit_params[4]}
     extdata.save(args.starname + "_ext.fits", column_info=col_info)
 

@@ -124,7 +124,10 @@ class ExtData:
     Atributes:
 
     type : string
-        extinction curve type (e.g., elv or alav)
+        extinction curve type (e.g., elx or alax)
+
+    type_rel_band : string
+        band name for relative extinction measurement (x in elx)
 
     red_file : string
         reddened star filename
@@ -157,6 +160,7 @@ class ExtData:
             Full filename to a save extinction curve
         """
         self.type = ""
+        self.type_rel_band = ""
         self.red_file = ""
         self.comp_file = ""
         self.columns = {}
@@ -169,9 +173,9 @@ class ExtData:
         if filename is not None:
             self.read(filename)
 
-    def calc_elv_bands(self, red, comp):
+    def calc_elx_bands(self, red, comp, rel_band="V"):
         """
-        Calculate the E(lambda-V) for the photometric band data
+        Calculate the E(lambda-X) for the photometric band data
 
         Separate from the spectral case as the bands in common must
         be found.  In addition, some of the photometric observations are
@@ -187,13 +191,17 @@ class ExtData:
         comp : :class:StarData
             Observed data for the comparison star
 
+        rel_band : string
+            Band to use for relatie extinction measurement
+            default = "V"
+
         Returns
         -------
         Updated self.(waves, x, exts, uncs)['BANDS']
         """
         # reference band
-        red_V = red.data["BAND"].get_band_mag("V")
-        comp_V = comp.data["BAND"].get_band_mag("V")
+        red_rel_band = red.data["BAND"].get_band_mag(rel_band)
+        comp_rel_band = comp.data["BAND"].get_band_mag(rel_band)
 
         # possible bands for the band extinction curve
         poss_bands = red.data["BAND"].get_poss_bands()
@@ -206,9 +214,12 @@ class ExtData:
             red_mag = red.data["BAND"].get_band_mag(pband_name)
             comp_mag = comp.data["BAND"].get_band_mag(pband_name)
             if (red_mag is not None) & (comp_mag is not None):
-                ext = (red_mag[0] - red_V[0]) - (comp_mag[0] - comp_V[0])
+                ext = (red_mag[0] - red_rel_band[0]) - (comp_mag[0] - comp_rel_band[0])
                 unc = np.sqrt(
-                    red_mag[1] ** 2 + red_V[1] ** 2 + comp_mag[1] ** 2 + comp_V[1] ** 2
+                    red_mag[1] ** 2
+                    + red_rel_band[1] ** 2
+                    + comp_mag[1] ** 2
+                    + comp_rel_band[1] ** 2
                 )
                 waves.append(red.data["BAND"].band_waves[pband_name])
                 exts.append(ext)
@@ -221,7 +232,7 @@ class ExtData:
             self.uncs["BAND"] = np.array(uncs)
             self.npts["BAND"] = np.array(npts)
 
-    def calc_elv_spectra(self, red, comp, src):
+    def calc_elx_spectra(self, red, comp, src, rel_band="V"):
         """
         Calculate the E(lambda-V) for the spectroscopic data
 
@@ -236,6 +247,10 @@ class ExtData:
         src : string
             data source (see global _poss_datasources)
 
+        rel_band : string
+            Band to use for relatie extinction measurement
+            default = "V"
+
         Returns
         -------
         Updated self.(waves, x, exts, uncs)[src]
@@ -247,8 +262,8 @@ class ExtData:
                 warnings.warn("wavelength grids not equal for %s" % src, UserWarning)
             else:
                 # reference band
-                red_V = red.data["BAND"].get_band_mag("V")
-                comp_V = comp.data["BAND"].get_band_mag("V")
+                red_rel_band = red.data["BAND"].get_band_mag(rel_band)
+                comp_rel_band = comp.data["BAND"].get_band_mag(rel_band)
 
                 # setup the needed variables
                 self.waves[src] = red.data[src].waves
@@ -270,7 +285,7 @@ class ExtData:
                 )
                 self.exts[src][indxs] = -2.5 * np.log10(
                     red.data[src].fluxes[indxs] / comp.data[src].fluxes[indxs]
-                ) + (comp_V[0] - red_V[0])
+                ) + (comp_rel_band[0] - red_rel_band[0])
                 self.uncs[src][indxs] = np.sqrt(
                     np.square(
                         _flux_unc_as_mags(
@@ -282,15 +297,12 @@ class ExtData:
                             comp.data[src].fluxes[indxs], comp.data[src].uncs[indxs]
                         )
                     )
-                    + np.square(red_V[1])
-                    + np.square(comp_V[1])
+                    + np.square(red_rel_band[1])
+                    + np.square(comp_rel_band[1])
                 )
                 self.npts[src][indxs] = np.full(len(indxs), 1)
 
-                # print(src)
-                # print(self.exts[src])
-
-    def calc_elv(self, redstar, compstar):
+    def calc_elx(self, redstar, compstar, rel_band="V"):
         """
         Calculate the E(lambda-V) basic extinction measurement
 
@@ -302,18 +314,23 @@ class ExtData:
         compstar : :class:StarData
             Observed data for the comparison star
 
+        rel_band : string
+            Band to use for relatie extinction measurement
+            default = "V"
+
         Returns
         -------
         Updated self.ext_(waves, x, exts, uncs)
         """
-        self.type = "elv"
+        self.type = "elx"
+        self.type_rel_band = rel_band
         self.red_file = redstar.file
         self.comp_file = compstar.file
         for cursrc in _poss_datasources:
             if cursrc == "BAND":
-                self.calc_elv_bands(redstar, compstar)
+                self.calc_elx_bands(redstar, compstar, rel_band=rel_band)
             else:
-                self.calc_elv_spectra(redstar, compstar, cursrc)
+                self.calc_elx_spectra(redstar, compstar, cursrc, rel_band=rel_band)
 
     def trans_elv_elvebv(self):
         """
@@ -460,13 +477,14 @@ class ExtData:
         """
         # generate the primary header
         pheader = fits.Header()
-        hname = ["EXTTYPE", "R_FILE", "C_FILE"]
+        hname = ["EXTTYPE", "EXTBAND", "R_FILE", "C_FILE"]
         hcomment = [
-            "Type of ext curve (options: elv, elvebv, alav)",
+            "Type of ext curve (options: elx, elxebv, alax)",
+            "Band name for relative extinction measurement",
             "Data File of Reddened Star",
             "Data File of Comparison Star",
         ]
-        hval = [self.type, self.red_file, self.comp_file]
+        hval = [self.type, self.type_rel_band, self.red_file, self.comp_file]
 
         ext_col_info = {
             "ebv": ("EBV", "E(B-V)"),
@@ -541,7 +559,6 @@ class ExtData:
         filename : string
             Full filename to a save extinction curve
         """
-
         # read in the FITS file
         hdulist = fits.open(ext_filename)
 
@@ -566,6 +583,7 @@ class ExtData:
         # get the parameters of the extinction curve
         pheader = hdulist[0].header
         self.type = pheader.get("EXTTYPE")
+        self.rel_band = pheader.get("EXTBAND")
         self.red_file = pheader.get("R_FILE")
         self.comp_file = pheader.get("C_FILE")
 
@@ -610,7 +628,7 @@ class ExtData:
                         self.p92_best_fit[curkey] = float(pheader.get("%s" % curkey))
 
     @staticmethod
-    def _get_ext_ytitle(exttype):
+    def _get_ext_ytitle(exttype, rel_band="V"):
         """
         Format the extinction type nicely for plotting
 
@@ -619,13 +637,18 @@ class ExtData:
         exttype : string
             type of extinction curve (e.g., elv, alav, elvebv)
 
+        rel_band : string
+            Band to use for relatie extinction measurement
+            default = "V"
+
         Returns
         -------
         ptype : string
             Latex formated string for plotting
         """
-        if exttype == "elv":
-            return r"$E(\lambda - V)$"
+        print(exttype)
+        if exttype == "elx":
+            return fr"$E(\lambda - {rel_band})$"
         elif exttype == "elvebv":
             return r"$E(\lambda - V)/E(B - V)$"
         elif exttype == "alav":
