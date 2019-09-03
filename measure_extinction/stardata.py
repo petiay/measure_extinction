@@ -233,7 +233,7 @@ class BandData:
         )
 
         # zip everything together into a dictonary to pass back
-        #   and make sure ti is in wavelength order
+        #   and make sure it is in wavelength order
         windxs = np.argsort(_poss_band_waves)
         return OrderedDict(
             zip(

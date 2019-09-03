@@ -356,7 +356,7 @@ class ModelData(object):
         sd = StarData(None)
 
         for cspec in sed.keys():
-            if cspec is "BAND":
+            if cspec == "BAND":
                 # populate the BAND info
                 sd.data["BAND"] = BandData("BAND")
                 for k, cband in enumerate(self.band_names):

@@ -29,7 +29,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("extfile", help="file with saved extinction curve")
     parser.add_argument("--path", help="base path to extinction curves", default="./")
-    parser.add_argument("--alav", help="plot A(lambda)/A(V)", action="store_true")
+    parser.add_argument("--alax", help="plot A(lambda)/A(X)", action="store_true")
     parser.add_argument(
         "--extmodels", help="plot extinction curve models", action="store_true"
     )
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(figsize=(13, 10))
 
     # plot the bands and all spectra for this star
-    extdata.plot(ax, alav=args.alav)
+    extdata.plot(ax, alax=args.alax)
 
     # fix the x,y plot limits
     # ax.set_xlim(ax.get_xlim())
@@ -70,22 +70,33 @@ if __name__ == "__main__":
     ax.set_yscale("linear")
     ax.set_xscale("log")
     ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.3 * fontsize)
-    if args.alav:
-        ytype = "alav"
+    if args.alax:
+        ytype = 'alax'
     else:
         ytype = extdata.type
-    ax.set_ylabel(extdata._get_ext_ytitle(ytype), fontsize=1.3 * fontsize)
+    ax.set_ylabel(extdata._get_ext_ytitle(ytype=ytype), fontsize=1.3 * fontsize)
     ax.tick_params("both", length=10, width=2, which="major")
     ax.tick_params("both", length=5, width=1, which="minor")
     ax.set_title(args.extfile)
 
     # plot extinctionm models
     if args.extmodels:
+
         x = np.arange(0.12, 3.0, 0.01) * u.micron
         Rvs = [2.0, 3.1, 4.0, 5.0]
         for cRv in Rvs:
+            if args.alax:
+                if extdata.type_rel_band != "V":
+                    emod = CCM89(cRv)
+                    indx, = np.where(extdata.type_rel_band == extdata.names["BAND"])
+                    axav = emod(extdata.waves["BAND"][indx[0]])
+                else:
+                    axav = 1.0
+
             t = CCM89(Rv=cRv)
-            ax.plot(x, t(x), "k--", linewidth=2, label="R(V) = {:4.2f}".format(cRv))
+            ax.plot(
+                x, t(x) / axav, "k--", linewidth=2, label="R(V) = {:4.2f}".format(cRv)
+            )
 
     # plot NIR power law model
     if args.powerlaw:

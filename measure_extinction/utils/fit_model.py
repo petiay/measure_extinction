@@ -185,6 +185,9 @@ def fit_model_parser():
     )
     parser.add_argument("--velocity", type=float, default=0.0, help="Stellar velocity")
     parser.add_argument(
+        "--relband", default="V", help="Band to use for relative extinction measurement"
+    )
+    parser.add_argument(
         "-f", "--fast", help="Use minimal step debug code", action="store_true"
     )
     parser.add_argument("--path", help="path to star/model files", default="./")
@@ -244,6 +247,7 @@ if __name__ == "__main__":
     # commandline parser
     parser = fit_model_parser()
     args = parser.parse_args()
+    out_basename = args.starname
 
     # get the full starfilename and path
     fstarname, file_path = get_full_starfile(args.starname)
@@ -371,6 +375,7 @@ if __name__ == "__main__":
 
     # now run emcee to explore the region around the min solution
     if args.emcee:
+        out_basename += "_emcee"
         print("starting point")
         print(params)
 
@@ -419,7 +424,7 @@ if __name__ == "__main__":
 
         # save the best fit and p50 +/- uncs values to a file
         # save as a single row table to provide a uniform format
-        f = open(args.starname + "_fit_params.dat", "w")
+        f = open(out_basename + "_fit_params.dat", "w")
         f.write("# best fit, p50, +unc, -unc\n")
         for k, val in enumerate(params_per):
             print(
@@ -434,7 +439,7 @@ if __name__ == "__main__":
             )
 
     else:
-        f = open(args.starname + "_fit_params.dat", "w")
+        f = open(out_basename + "_fit_params.dat", "w")
         f.write("# best fit\n")
         print(params_best)
         print(pnames_extra)
@@ -470,9 +475,9 @@ if __name__ == "__main__":
 
     # create an extincion curve and save it
     extdata = ExtData()
-    extdata.calc_elx(reddened_star, modsed_stardata)
+    extdata.calc_elx(reddened_star, modsed_stardata, rel_band=args.relband)
     col_info = {"av": fit_params[3], "rv": fit_params[4]}
-    extdata.save(args.starname + "_ext.fits", column_info=col_info)
+    extdata.save(out_basename + "_ext.fits", column_info=col_info)
 
     # plot the SEDs
     norm_model = np.average(hi_ext_modsed["BAND"])
@@ -509,8 +514,8 @@ if __name__ == "__main__":
             label="data",
         )
 
-        print(reddened_star.data[cspec].waves)
-        print(modinfo.waves[cspec])
+        # print(reddened_star.data[cspec].waves)
+        # print(modinfo.waves[cspec])
 
         ax.plot(
             modinfo.waves[cspec], modsed[cspec] / norm_model, "b" + ptype, label=cspec
@@ -543,6 +548,6 @@ if __name__ == "__main__":
     fig.tight_layout()
 
     if args.png:
-        fig.savefig(args.starname + "_mod_obs_spec.png")
+        fig.savefig(out_basename + "_mod_obs_spec.png")
     else:
         plt.show()

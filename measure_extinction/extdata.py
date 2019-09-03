@@ -6,6 +6,8 @@ import numpy as np
 from astropy.io import fits
 import astropy.units as u
 
+from dust_extinction.parameter_averages import F04
+
 __all__ = ["ExtData", "AverageExtData"]
 
 
@@ -148,6 +150,8 @@ class ExtData:
 
     npts : dict of key:number of mesurements at each wavelength
 
+    names : dict of key:names of names of each wavelength (if photometric bands)
+
     fm90 : list of FM90 parameters tuples
         tuples are measurement, uncertainty
     """
@@ -169,6 +173,7 @@ class ExtData:
         self.exts = {}
         self.uncs = {}
         self.npts = {}
+        self.names = {}
 
         if filename is not None:
             self.read(filename)
@@ -210,6 +215,7 @@ class ExtData:
         exts = []
         uncs = []
         npts = []
+        names = []
         for pband_name in poss_bands.keys():
             red_mag = red.data["BAND"].get_band_mag(pband_name)
             comp_mag = comp.data["BAND"].get_band_mag(pband_name)
@@ -225,12 +231,14 @@ class ExtData:
                 exts.append(ext)
                 uncs.append(unc)
                 npts.append(1)
+                names.append(pband_name)
 
         if len(waves) > 0:
             self.waves["BAND"] = np.array(waves) * u.micron
             self.exts["BAND"] = np.array(exts)
             self.uncs["BAND"] = np.array(uncs)
             self.npts["BAND"] = np.array(npts)
+            self.names["BAND"] = np.array(names)
 
     def calc_elx_spectra(self, red, comp, src, rel_band="V"):
         """
@@ -481,8 +489,8 @@ class ExtData:
         hcomment = [
             "Type of ext curve (options: elx, elxebv, alax)",
             "Band name for relative extinction measurement",
-            "Data File of Reddened Star",
-            "Data File of Comparison Star",
+            "Reddened Star File",
+            "Comparison Star File",
         ]
         hval = [self.type, self.type_rel_band, self.red_file, self.comp_file]
 
@@ -541,7 +549,11 @@ class ExtData:
             col2 = fits.Column(name="EXT", format="E", array=self.exts[curname])
             col3 = fits.Column(name="UNC", format="E", array=self.uncs[curname])
             col4 = fits.Column(name="NPTS", format="E", array=self.npts[curname])
-            cols = fits.ColDefs([col1, col2, col3, col4])
+            if curname == "BAND":
+                col5 = fits.Column(name="NAME", format="A20", array=self.names[curname])
+                cols = fits.ColDefs([col1, col2, col3, col4, col5])
+            else:
+                cols = fits.ColDefs([col1, col2, col3, col4])
             tbhdu = fits.BinTableHDU.from_columns(cols)
             tbhdu.header.set(
                 "EXTNAME", "%sEXT" % curname, "%s based extinction" % curname
@@ -579,11 +591,13 @@ class ExtData:
                     self.npts[curname] = hdulist[curext].data["NPTS"]
                 else:
                     self.npts[curname] = np.full(len(self.waves[curname]), 1)
+                if "NAME" in hdulist[curext].data.columns.names:
+                    self.names[curname] = hdulist[curext].data["NAME"]
 
         # get the parameters of the extinction curve
         pheader = hdulist[0].header
         self.type = pheader.get("EXTTYPE")
-        self.rel_band = pheader.get("EXTBAND")
+        self.type_rel_band = pheader.get("EXTBAND")
         self.red_file = pheader.get("R_FILE")
         self.comp_file = pheader.get("C_FILE")
 
@@ -627,41 +641,38 @@ class ExtData:
                     if pheader.get(curkey):
                         self.p92_best_fit[curkey] = float(pheader.get("%s" % curkey))
 
-    @staticmethod
-    def _get_ext_ytitle(exttype, rel_band="V"):
+    def _get_ext_ytitle(self, ytype=None):
         """
         Format the extinction type nicely for plotting
-
-        Parameters
-        ----------
-        exttype : string
-            type of extinction curve (e.g., elv, alav, elvebv)
-
-        rel_band : string
-            Band to use for relatie extinction measurement
-            default = "V"
 
         Returns
         -------
         ptype : string
             Latex formated string for plotting
         """
-        print(exttype)
-        if exttype == "elx":
-            return fr"$E(\lambda - {rel_band})$"
-        elif exttype == "elvebv":
+        if not ytype:
+            ytype = self.type
+
+        relband = self.type_rel_band.replace('_', '')
+        if ytype == "elx":
+            return fr"$E(\lambda - {relband})$"
+        elif ytype == "alax":
+            return fr"$A(\lambda)/A({relband})$"
+        elif ytype == "elv":
+            return fr"$E(\lambda - V)$"
+        elif ytype == "elvebv":
             return r"$E(\lambda - V)/E(B - V)$"
-        elif exttype == "alav":
+        elif ytype == "alav":
             return r"$A(\lambda)/A(V)$"
         else:
-            return "%s (not found)" % exttype
+            return "%s (not found)" % ytype
 
     def plot(
         self,
-        ax,
+        pltax,
         color=None,
         alpha=None,
-        alav=False,
+        alax=False,
         rebin_fac=None,
         annotate_key=None,
         legend_key=None,
@@ -673,11 +684,11 @@ class ExtData:
 
         Parameters
         ----------
-        ax : matplotlib plot object
+        pltax : matplotlib plot object
 
-        alav : boolean [False]
-            plot A(lambda)/A(V)
-            convert from E(lambda-V) using A(V)
+        alax : boolean [False]
+            plot A(lambda)/A(X)
+            convert from E(lambda-X) using A(X)
 
         rebin_fac : int
             factor by which to rebin spectra
@@ -700,14 +711,26 @@ class ExtData:
         fontsize : int
             fontsize for plot
         """
+        if alax:
+            av = float(self.columns["AV"][0])
+            if self.type_rel_band != "V":
+                # use F04 model to convert AV to AX
+                rv = float(self.columns["RV"][0])
+                emod = F04(rv)
+                indx, = np.where(self.type_rel_band == self.names["BAND"])
+                axav = emod(self.waves["BAND"][indx[0]])
+            else:
+                axav = 1.0
+            ax = axav * av
+
         for curtype in self.waves.keys():
             gindxs, = np.where(self.npts[curtype] > 0)
             x = self.waves[curtype][gindxs].to(u.micron).value
             y = self.exts[curtype][gindxs]
             yu = self.uncs[curtype][gindxs]
-            if alav:
-                y = (y / float(self.columns["AV"][0])) + 1.0
-                yu /= float(self.columns["AV"][0])
+            if alax:
+                y = (y / ax) + 1.0
+                yu /= ax
 
             if curtype == legend_key:
                 if legend_label is None:
@@ -720,7 +743,7 @@ class ExtData:
             if len(gindxs) < 20:
                 # plot small number of points (usually BANDS data) as
                 # points with errorbars
-                ax.errorbar(
+                pltax.errorbar(
                     x, y, yerr=yu, fmt="o", color=color, alpha=alpha, mfc="white"
                 )
             else:
@@ -728,7 +751,7 @@ class ExtData:
                     x = _rebin(x, rebin_fac)
                     y = _rebin(y, rebin_fac)
 
-                ax.plot(x, y, "-", color=color, alpha=alpha)
+                pltax.plot(x, y, "-", color=color, alpha=alpha)
 
             if curtype == annotate_key:
                 max_gwave = max(self.waves[annotate_key][gindxs])
@@ -739,7 +762,7 @@ class ExtData:
                     & (self.npts[annotate_key] > 0)
                 )
                 ann_val = np.median(self.exts[annotate_key][ann_indxs])
-                ax.annotate(
+                pltax.annotate(
                     legval,
                     xy=(max_gwave, ann_val),
                     xytext=(max_gwave + 5.0, ann_val),
