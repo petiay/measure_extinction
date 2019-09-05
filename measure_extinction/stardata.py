@@ -896,7 +896,7 @@ class StarData:
         pcolor=None,
         norm_wave_range=None,
         mlam4=False,
-        yoffset=0.0,
+        yoffset=None,
         annotate_key=None,
         annotate_wave_range=None,
         annotate_text=None,
@@ -935,6 +935,9 @@ class StarData:
             fontsize for plot
         """
         fluxunit = u.erg / ((u.cm ** 2) * u.s * u.angstrom)
+
+        if yoffset is None:
+            yoffset = 1.0
 
         # find the data to use for the normalization if requested
         if norm_wave_range is not None:

@@ -598,6 +598,8 @@ class ExtData:
         pheader = hdulist[0].header
         self.type = pheader.get("EXTTYPE")
         self.type_rel_band = pheader.get("EXTBAND")
+        if self.type_rel_band is None:
+            self.type_rel_band = "V"
         self.red_file = pheader.get("R_FILE")
         self.comp_file = pheader.get("C_FILE")
 
@@ -653,7 +655,7 @@ class ExtData:
         if not ytype:
             ytype = self.type
 
-        relband = self.type_rel_band.replace('_', '')
+        relband = self.type_rel_band.replace("_", "")
         if ytype == "elx":
             return fr"$E(\lambda - {relband})$"
         elif ytype == "alax":
@@ -673,8 +675,14 @@ class ExtData:
         color=None,
         alpha=None,
         alax=False,
+        normval=1.0,
+        yoffset=0.0,
         rebin_fac=None,
         annotate_key=None,
+        annotate_wave_range=None,
+        annotate_rotation=0.0,
+        annotate_yoffset=0.0,
+        annotate_text=None,
         legend_key=None,
         legend_label=None,
         fontsize=None,
@@ -689,6 +697,9 @@ class ExtData:
         alax : boolean [False]
             plot A(lambda)/A(X)
             convert from E(lambda-X) using A(X)
+
+        yoffset : float
+            addiative offset for the data
 
         rebin_fac : int
             factor by which to rebin spectra
@@ -732,6 +743,9 @@ class ExtData:
                 y = (y / ax) + 1.0
                 yu /= ax
 
+            y = y / normval + yoffset
+            yu = yu / normval
+
             if curtype == legend_key:
                 if legend_label is None:
                     legval = self.red_file
@@ -754,20 +768,18 @@ class ExtData:
                 pltax.plot(x, y, "-", color=color, alpha=alpha)
 
             if curtype == annotate_key:
-                max_gwave = max(self.waves[annotate_key][gindxs])
-                ann_wave_range = np.array([max_gwave - 5.0, max_gwave - 1.0])
-                ann_indxs = np.where(
-                    (self.waves[annotate_key] >= ann_wave_range[0])
-                    & (self.waves[annotate_key] <= ann_wave_range[1])
-                    & (self.npts[annotate_key] > 0)
+                ann_indxs, = np.where(
+                    (x >= annotate_wave_range[0].value)
+                    & (x <= annotate_wave_range[1].value)
                 )
-                ann_val = np.median(self.exts[annotate_key][ann_indxs])
-                pltax.annotate(
-                    legval,
-                    xy=(max_gwave, ann_val),
-                    xytext=(max_gwave + 5.0, ann_val),
-                    verticalalignment="center",
-                    arrowprops=dict(facecolor=color, shrink=0.1),
-                    fontsize=0.85 * fontsize,
-                    rotation=-0.0,
+                ann_val = np.median(y[ann_indxs])
+                ann_val += (annotate_yoffset,)
+                ann_xval = 0.5 * np.sum(annotate_wave_range.value)
+                pltax.text(
+                    ann_xval,
+                    ann_val,
+                    annotate_text,
+                    horizontalalignment="right",
+                    rotation=annotate_rotation,
+                    fontsize=10,
                 )
