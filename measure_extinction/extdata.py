@@ -467,7 +467,9 @@ class ExtData:
 
         return (wave, y, unc)
 
-    def save(self, ext_filename, column_info=None, p92_best_params=None):
+    def save(
+        self, ext_filename, column_info=None, p92_best_params=None, p92_per_params=None
+    ):
         """
         Save the extinction curve to a FITS file
 
@@ -481,7 +483,10 @@ class ExtData:
             for example: {'ebv': 0.1, 'rv': 4.2, 'av': 0.42}
 
         p92_best_params : tuple of 2 float vectors
-           Best fit parameter names and values for the P92 fit
+           parameter names and best fit values for the P92 fit
+
+        p92_per_params : tuple of 2 float vectors
+           parameter names and (p50, +unc, -unc) values for the P92 fit
         """
         # generate the primary header
         pheader = fits.Header()
@@ -517,6 +522,26 @@ class ExtData:
             hname = np.concatenate((hname, p92_best_params[0]))
             hval = np.concatenate((hval, p92_best_params[1]))
             p92_comment = [pname + ": P92 parameter" for pname in p92_best_params[0]]
+            hcomment = np.concatenate((hcomment, p92_comment))
+
+        # P92 p50 +unc -unc fit parameters
+        if p92_per_params is not None:
+            # p50 values
+            hname = np.concatenate((hname, [cp + '_p50' for cp in p92_per_params[0]]))
+            hval = np.concatenate((hval, [cv[0] for cv in p92_per_params[1]]))
+            p92_comment = [pname + ": P92 p50 parameter" for pname in p92_per_params[0]]
+            hcomment = np.concatenate((hcomment, p92_comment))
+
+            # +unc values
+            hname = np.concatenate((hname, [cp + '_punc' for cp in p92_per_params[0]]))
+            hval = np.concatenate((hval, [cv[1] for cv in p92_per_params[1]]))
+            p92_comment = [pname + ": P92 punc parameter" for pname in p92_per_params[0]]
+            hcomment = np.concatenate((hcomment, p92_comment))
+
+            # -unc values
+            hname = np.concatenate((hname, [cp + '_munc' for cp in p92_per_params[0]]))
+            hval = np.concatenate((hval, [cv[2] for cv in p92_per_params[1]]))
+            p92_comment = [pname + ": P92 munc parameter" for pname in p92_per_params[0]]
             hcomment = np.concatenate((hcomment, p92_comment))
 
         # P92 emcee results
