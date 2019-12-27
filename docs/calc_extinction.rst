@@ -168,7 +168,7 @@ Extinction
 Measuring the extinction is done by reading in observed data for both
 stars in to :class:`~measure_extinction.stardata.StarData` objects and
 then using an :class:`~measure_extinction.extdata.ExtData` object and its
-calc_elv member function.  The calc_elv function ratios the reddened to
+calc_elx member function.  The calc_elx function ratios the reddened to
 comparison star relative to V band and coverts the results to magnitudes
 resulting in :math:`E(\lambda - V)`.  The plot can then be shown using the
 memebr function plot_ext.
@@ -182,7 +182,7 @@ memebr function plot_ext.
    compstar = StarData(comp_dat_filename)
 
    extdata = ExtData()
-   extdata.calc_elv(redstar, compstar)
+   extdata.calc_elx(redstar, compstar)
 
    fig, ax = plt.subplots()
    extdata.plot(ax)
@@ -204,7 +204,7 @@ memebr function plot_ext.
 
    # calculate the extinction curve
    extdata = ExtData()
-   extdata.calc_elv(redstar, compstar)
+   extdata.calc_elx(redstar, compstar)
 
    # start the plotting
    fig, ax = plt.subplots()
