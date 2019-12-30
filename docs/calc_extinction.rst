@@ -264,7 +264,7 @@ exists.
 
    # calculate the extinction curve
    extdata = ExtData()
-   extdata.calc_elv(redstar, compstar)
+   extdata.calc_elx(redstar, compstar)
 
    # divide by the E(B-V)
    extdata.trans_elv_elvebv()
@@ -342,7 +342,7 @@ by setting the parameter `akav` in this member function.
 
    # calculate the extinction curve
    extdata = ExtData()
-   extdata.calc_elv(redstar, compstar)
+   extdata.calc_elx(redstar, compstar)
 
    # make a copy for use later
    extdata2 = copy.deepcopy(extdata)
