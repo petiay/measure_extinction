@@ -16,7 +16,7 @@ def test_calc_ext():
 
     # calculate the extinction curve
     ext = ExtData()
-    ext.calc_elv(redstar, compstar)
+    ext.calc_elx(redstar, compstar)
 
     # test that the quanties have units (or not as appropriate)
     for cursrc in ext.waves.keys():
@@ -41,7 +41,7 @@ def test_get_fitdata():
 
     # calculate the extinction curve
     ext = ExtData()
-    ext.calc_elv(redstar, compstar)
+    ext.calc_elx(redstar, compstar)
 
     # once wavelenth units saved, update FITS file and use this line instead
     # of the 4 lines above

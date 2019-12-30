@@ -101,7 +101,7 @@ Example
 Spectra
 ^^^^^^^
 
-HD 283809 and HD 64802 are two stars with similar spectral types have
+HD 283809 and HD 64802 are two stars with similar spectral types that have
 observed ultraviolet spectra from IUE or HST/STIS and optical/NIR photometry
 from ground-based observations.  These two stars differ in that HD 283809
 is seen through a large column of dust and HD 64802 is seen through
@@ -116,6 +116,8 @@ and then calling its member function plot.
 
 .. code-block:: python
 
+   import matplotlib.pyplot as plt
+
    from measure_extinction.stardata import StarData
    starobs = StarData(dat_filename)
 
@@ -123,12 +125,13 @@ and then calling its member function plot.
    starobs.plot(ax)
 
 The spectra for both stars are plotted using those data files.  Which star
-is reddened is clear as it has a non-stellar slope for a early type star
+is reddened is clear as it has a non-stellar slope for an early type star
 and clearly shows the 2175 A absorption feature.
 
 .. plot::
 
    import pkg_resources
+   import matplotlib.pyplot as plt
 
    from measure_extinction.stardata import StarData
 
@@ -136,7 +139,7 @@ and clearly shows the 2175 A absorption feature.
    data_path = pkg_resources.resource_filename('measure_extinction',
                                                'data/')
 
-   # read in the observed data on the star
+   # read in the observed data of the stars
    redstar = StarData('hd283809.dat', path=data_path)
    compstar = StarData('hd064802.dat', path=data_path)
 
@@ -148,7 +151,7 @@ and clearly shows the 2175 A absorption feature.
    compstar.plot(ax, pcolor='b')
 
    # finish configuring the plot
-   ax.set_title('HD 283809 (reddened) & HD 64802 (comparion)')
+   ax.set_title('HD 283809 (reddened) & HD 64802 (comparison)')
    ax.set_yscale('log')
    ax.set_xscale('log')
    ax.set_ylim(1e-17, 1e-9)
@@ -166,14 +169,16 @@ Extinction
 ^^^^^^^^^^
 
 Measuring the extinction is done by reading in observed data for both
-stars in to :class:`~measure_extinction.stardata.StarData` objects and
+stars into :class:`~measure_extinction.stardata.StarData` objects and
 then using an :class:`~measure_extinction.extdata.ExtData` object and its
-calc_elv member function.  The calc_elv function ratios the reddened to
-comparison star relative to V band and coverts the results to magnitudes
-resulting in :math:`E(\lambda - V)`.  The plot can then be shown using the
-memebr function plot_ext.
+calc_elx member function.  The calc_elx function ratios the reddened to
+the comparison star relative to any band (x) and coverts the results to magnitudes
+resulting in :math:`E(\lambda - x)`.  The plot can then be shown using the
+member function plot_ext.
 
 .. code-block:: python
+
+   import matplotlib.pyplot as plt
 
    from measure_extinction.stardata import StarData
    from measure_extinction.extdata import ExtData
@@ -182,7 +187,7 @@ memebr function plot_ext.
    compstar = StarData(comp_dat_filename)
 
    extdata = ExtData()
-   extdata.calc_elv(redstar, compstar)
+   extdata.calc_elx(redstar, compstar)
 
    fig, ax = plt.subplots()
    extdata.plot(ax)
@@ -190,6 +195,7 @@ memebr function plot_ext.
 .. plot::
 
    import pkg_resources
+   import matplotlib.pyplot as plt
 
    from measure_extinction.stardata import StarData
    from measure_extinction.extdata import ExtData
@@ -198,18 +204,18 @@ memebr function plot_ext.
    data_path = pkg_resources.resource_filename('measure_extinction',
                                                'data/')
 
-   # read in the observed data on the star
+   # read in the observed data of the stars
    redstar = StarData('hd283809.dat', path=data_path)
    compstar = StarData('hd064802.dat', path=data_path)
 
    # calculate the extinction curve
    extdata = ExtData()
-   extdata.calc_elv(redstar, compstar)
+   extdata.calc_elx(redstar, compstar)
 
    # start the plotting
    fig, ax = plt.subplots()
 
-   # plot the bands and all spectra for this star
+   # plot the extinction curve
    extdata.plot(ax)
 
    # finish configuring the plot
@@ -229,7 +235,7 @@ Normalization
 ^^^^^^^^^^^^^
 
 One common normalization is to divide by :math:`E(B-V)`.  As long as
-both the data used for the reddened and comparison stars inlcude B and V
+both the data used for the reddened and comparison stars include B and V
 measurements, :math:`E(B-V)` has already been calculated.  The
 :class:`~measure_extinction.extdata.ExtData` member function trans_elv_elvebv
 performs this normalization while checking that the B band measurement
@@ -258,7 +264,7 @@ exists.
 
    # calculate the extinction curve
    extdata = ExtData()
-   extdata.calc_elv(redstar, compstar)
+   extdata.calc_elx(redstar, compstar)
 
    # divide by the E(B-V)
    extdata.trans_elv_elvebv()
@@ -287,12 +293,12 @@ normalization instead of the differential normalization provide by
 |Ebv|.  In order to determine |Av|, the |Elv| curve is extrapolated to
 infinite wavelength as :math:`A(inf) = 0`, thus :math:`E(inf - V) = -A(V)`.
 In general, the longest wavelength easy to measure is K band so
-:math:`E(K - V)` is often the measurement to extrapolated.
-To do this extrapolation, a functional form the extinction curve at the
+:math:`E(K - V)` is often the measurement to be extrapolated.
+To do this extrapolation, a functional form of the extinction curve at the
 longest wavelengths must be assumed.
 One choice is to assume the near-/mid-IR extinction curve from
 `Rieke & Lebofsky 1985 <https://ui.adsabs.harvard.edu//#abs/1985ApJ...288..618R/abstract>`_.
-The value for the K band extinction is give in Table 3 of this reference as
+The value for the K band extinction is given in Table 3 of this reference as
 :math:`A(K)/A(V) = 0.112`.
 
 .. math::
@@ -336,7 +342,7 @@ by setting the parameter `akav` in this member function.
 
    # calculate the extinction curve
    extdata = ExtData()
-   extdata.calc_elv(redstar, compstar)
+   extdata.calc_elx(redstar, compstar)
 
    # make a copy for use later
    extdata2 = copy.deepcopy(extdata)
