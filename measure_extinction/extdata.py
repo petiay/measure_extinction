@@ -781,13 +781,13 @@ class ExtData:
             y = y / normval + yoffset
             yu = yu / normval
 
-            if curtype == legend_key:
-                if legend_label is None:
-                    legval = self.red_file
-                else:
-                    legval = legend_label
-            else:
-                legval = None
+            # if curtype == legend_key:
+            #     if legend_label is None:
+            #         legval = self.red_file
+            #     else:
+            #         legval = legend_label
+            # else:
+            #     legval = None
 
             if len(gindxs) < 20:
                 # plot small number of points (usually BANDS data) as
