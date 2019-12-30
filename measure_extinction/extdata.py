@@ -657,7 +657,7 @@ class ExtData:
                     2.84 * self.fm90["C2"][1],
                 )
 
-        # get P92 parameters if they exist
+        # get P92 best fit parameters if they exist
         if pheader.get("BKG_amp"):
             P92_mkeys = ["BKG", "FUV", "NUV", "SIL1", "SIL2", "FIR"]
             P92_types = ["AMP", "LAMBDA", "B", "N"]
@@ -667,6 +667,16 @@ class ExtData:
                     curkey = "%s_%s" % (curmkey, curtype)
                     if pheader.get(curkey):
                         self.p92_best_fit[curkey] = float(pheader.get("%s" % curkey))
+
+        # get the P92 p50 +unc -unc fit parameters if they exist
+        if pheader.get("BKG_amp_p50"):
+            self.p92_p50_fit = {}
+            for kval in pheader.get("*_p50"):
+                bkey = kval[:-4]
+                val = float(pheader.get(f"{bkey}_p50"))
+                punc = float(pheader.get(f"{bkey}_punc"))
+                munc = float(pheader.get(f"{bkey}_munc"))
+                self.p92_p50_fit[bkey] = (val, punc, munc)
 
     def _get_ext_ytitle(self, ytype=None):
         """
