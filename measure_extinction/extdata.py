@@ -352,7 +352,7 @@ class ExtData:
         -------
         Updates self.ext_(exts, uncs)
         """
-        if self.type != "elv":
+        if self.type_rel_band != "V":
             warnings.warn("attempt to normalize a non-elv curve with ebv", UserWarning)
         else:
             # determine the index for the B band
@@ -385,7 +385,7 @@ class ExtData:
         -------
         Updates self.ext_(exts, uncs)
         """
-        if self.type != "elv":
+        if self.type_rel_band != "V":
             warnings.warn("attempt to normalize a non-elv curve with av", UserWarning)
         else:
             # determine the index for the B band
