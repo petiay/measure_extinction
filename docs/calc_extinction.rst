@@ -15,39 +15,39 @@ is seen through more dust than the other.
 Finding two stars with identical properties is straightforward
 as it just means finding two stars with the same 2D spectral types
 (temperature and luminosity) and the metallicities.
-As a result, measuring extinction is a simple matter of dividing the
+As a result, measuring extinction is a simple matter of dividing
 the observations of the two stars and a small amount of math to convert
 it to magnitudes.  Using observations taken with the same instrumentation
 for both the reddened and comparison star means that only good relative
 calibration is needed.  Instead of using observations of a star with little
 to no reddening, a model stellar atmosphere can be used
-(e.g., `Fitzpatrick & Massa 2005 <https://ui.adsabs.harvard.edu//#abs/2005AJ....130.1127F/abstract>`_).
+(e.g., `Fitzpatrick & Massa 2005 <https://ui.adsabs.harvard.edu/abs/2005AJ....130.1127F/abstract>`_).
 This can provide a better match, but it comes at the expense of requiring
 good absolute calibration.
 
-The basic measurement is given the magnitude excess relative to a
+The basic measurement is giving the magnitude excess relative to a
 reference wavelength measurement.
 This use of a reference wavelength is that the distance to a star is rarely
 known to high enough accuracy to directly measure the extinction at a
 single wavelength.
 Thus, the basic measurement gives the relative extinction between two
 wavelengths.
-Usually, the V band measurement is used at the reference.
-Thus, the dust extinction at :math:`\lambda` wavelength is:
+Usually, the V band measurement is used as the reference.
+Thus, the dust extinction at wavelength :math:`\lambda` is:
 
 .. math ::
   E(\lambda - V) = m(\lambda - V)_r - m(\lambda - V)_c
 
       = m(\lambda)_r - m(\lambda)_c - m(V)_r + m(V)_c
 
-      = -2.5 \ln [F_r(\lambda)/F_c(\lambda)] + 2.5 \ln [F_r(V)/F_c(V)]
+      = -2.5 \log10 [F_r(\lambda)/F_c(\lambda)] + 2.5 \log10 [F_r(V)/F_c(V)]
 
 where :math:`m(\lambda - V)` is the difference in magnitudes between the flux at
 :math:`\lambda` and the V band, :math:`m(\lambda)` is the magnitude,
 :math:`F(\lambda)` is the flux,
 :math:`r` refers to the reddened star, and :math:`c` refers to the comparison
 star.  Note that since :math:`E(\lambda - V)` is a differential measurement
-there is not dependence on the zero point of the magnitude system.
+there is no dependence on the zero point of the magnitude system.
 
 This extinction measurement can be normalized allowing comparison with
 extinction along other lines-of-sight.
@@ -56,7 +56,7 @@ But notice that this is a normalization to a differential measurement.
 
 Converting the :math:`E(\lambda-V)` differential measurement to the
 :math:`A(\lambda)`
-absolute measurement requires knowledge of the the absolute extinction at the
+absolute measurement requires knowledge of the absolute extinction at the
 reference wavelength, V band in this case.
 Determining |Av| requires measuring :math:`E(\lambda-V)` at
 the longest wavelength
@@ -64,8 +64,8 @@ possible and extrapolating with a reference shape to infinite wavelength
 as :math:`A(inf) = 0`.
 Usually, the longest wavelength measured is the K band and the extrapolation
 to infinite wavelength is on the order of 10%
-(`Whittet, van Breda, & Glass 1976 <https://ui.adsabs.harvard.edu//#abs/1976MNRAS.177..625W/abstract>`_;
-`Fitzpatrick & Massa 2009 <https://ui.adsabs.harvard.edu//#abs/2009ApJ...699.1209F/abstract>`_).
+(`Whittet, van Breda, & Glass 1976 <https://ui.adsabs.harvard.edu/abs/1976MNRAS.177..625W/abstract>`_;
+`Fitzpatrick & Massa 2009 <https://ui.adsabs.harvard.edu/abs/2009ApJ...699.1209F/abstract>`_).
 With a measurement of |Av| then an absolute normalized extinction
 measurement is possible using
 
@@ -76,14 +76,14 @@ With a measurement of |Ebv| and the extrapolated measurement of
 |Av|, then the total-to-selective extinction can be computed as
 this is :math:`R(V) = A(V)/E(B-V)`.  :math:`R(V)` is diagnostic of the
 average behavior of dust extinction as a function of wavelength
-(`Cardelli, Clayton, & Mathis 1989 <https://ui.adsabs.harvard.edu//#abs/1989ApJ...345..245C/abstract>`_;
-`Valencic et al. 2004 <https://ui.adsabs.harvard.edu//#abs/2004ApJ...616..912V/abstract>`_;
-`Fitzpatrick & Massa 2007 <https://ui.adsabs.harvard.edu//#abs/2007ApJ...663..320F/abstract>`_;
-`Gordon et al. 2009 <https://ui.adsabs.harvard.edu//#abs/2009ApJ...705.1320G/abstract>`_).
+(`Cardelli, Clayton, & Mathis 1989 <https://ui.adsabs.harvard.edu/abs/1989ApJ...345..245C/abstract>`_;
+`Valencic et al. 2004 <https://ui.adsabs.harvard.edu/abs/2004ApJ...616..912V/abstract>`_;
+`Fitzpatrick & Massa 2007 <https://ui.adsabs.harvard.edu/abs/2007ApJ...663..320F/abstract>`_;
+`Gordon et al. 2009 <https://ui.adsabs.harvard.edu/abs/2009ApJ...705.1320G/abstract>`_).
 The :math:`R(V)` dependent relationship for the average extinction behavior
 does not give the full picture as extinction curves in the Magellanic Clouds
 strongly deviate from this relationship
-(`Gordon et al. 2003 <https://ui.adsabs.harvard.edu//#abs/2003ApJ...594..279G/abstract>`_).
+(`Gordon et al. 2003 <https://ui.adsabs.harvard.edu/abs/2003ApJ...594..279G/abstract>`_).
 
 Terminology Summary
 ^^^^^^^^^^^^^^^^^^^
@@ -297,7 +297,7 @@ In general, the longest wavelength easy to measure is K band so
 To do this extrapolation, a functional form of the extinction curve at the
 longest wavelengths must be assumed.
 One choice is to assume the near-/mid-IR extinction curve from
-`Rieke & Lebofsky 1985 <https://ui.adsabs.harvard.edu//#abs/1985ApJ...288..618R/abstract>`_.
+`Rieke & Lebofsky 1985 <https://ui.adsabs.harvard.edu/abs/1985ApJ...288..618R/abstract>`_.
 The value for the K band extinction is given in Table 3 of this reference as
 :math:`A(K)/A(V) = 0.112`.
 

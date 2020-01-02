@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import argparse
 import numpy as np
+import pkg_resources
 
 from astropy.table import Table
 
@@ -37,7 +38,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--path",
         help="path where merged spectra will be stored",
-        default="/home/kgordon/Python_git/extstar_data/STIS_Data/",
+        default=pkg_resources.resource_filename('measure_extinction',
+                                            'data/')
     )
     parser.add_argument(
         "--ralph", action="store_true", help="Ralph Bohlin reduced data"
@@ -49,7 +51,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.ralph:
-        sfilename = "%s/Orig/%s/%s.mrg" % (args.path, args.waveregion, args.starname)
+        sfilename = "%sOrig/%s/%s.mrg" % (args.path, args.waveregion, args.starname)
         stable = Table.read(
             sfilename,
             format="ascii",
@@ -87,5 +89,5 @@ if __name__ == "__main__":
         outname = args.outname
     else:
         outname = args.starname
-    stis_opt_file = "%s_stis_%s.fits" % (outname, args.waveregion)
-    rb_stis_opt.write("%s/%s" % (args.path, stis_opt_file), overwrite=True)
+    stis_opt_file = "%s_stis_%s_table.fits" % (outname, args.waveregion)
+    rb_stis_opt.write("%s/Out/%s" % (args.path, stis_opt_file), overwrite=True)
