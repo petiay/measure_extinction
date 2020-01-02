@@ -3,7 +3,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import argparse
-import numpy as np
 import pkg_resources
 
 from astropy.table import Table
@@ -20,7 +19,7 @@ if __name__ == "__main__":
         "--path",
         help="path where merged spectra will be stored",
         default=pkg_resources.resource_filename('measure_extinction',
-                                            'data/')
+                                                'data/')
     )
     parser.add_argument("--outname", help="Output filebase")
     parser.add_argument("--png", help="save figure as a png file", action="store_true")

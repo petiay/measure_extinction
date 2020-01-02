@@ -4,7 +4,8 @@ import numpy as np
 from astropy.table import Table, Column
 import astropy.units as u
 
-__all__ = ["merge_iue_obsspec", "merge_stis_obsspec","merge_irs_obsspec","merge_spex_obsspec"]
+__all__ = ["merge_iue_obsspec", "merge_stis_obsspec", "merge_irs_obsspec",
+           "merge_spex_obsspec"]
 
 
 def _wavegrid(resolution, wave_range):
