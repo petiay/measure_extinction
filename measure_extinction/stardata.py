@@ -979,7 +979,7 @@ class StarData:
                     ymult = np.full((len(waves.value)), 1.0)
                 normval = np.average(fluxes * ymult)
             else:
-                raise ValueError("no good data in reqeusted norm range")
+                raise ValueError("no good data in requested norm range")
         else:
             normval = 1.0
 
