@@ -50,6 +50,6 @@ if __name__ == "__main__":
     if args.outname:
         outname = args.outname
     else:
-        outname = args.starname
-    spex_file = "%s_spex_table.fits" % (outname)
+        outname = args.starname.lower()
+    spex_file = "%s_spex.fits" % (outname)
     rb_stis_opt.write("%s/%s" % (args.outpath, spex_file), overwrite=True)

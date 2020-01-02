@@ -94,6 +94,6 @@ if __name__ == "__main__":
     if args.outname:
         outname = args.outname
     else:
-        outname = args.starname
-    stis_opt_file = "%s_stis_%s_table.fits" % (outname, args.waveregion)
+        outname = args.starname.lower()
+    stis_opt_file = "%s_stis_%s.fits" % (outname, args.waveregion)
     rb_stis_opt.write("%s/%s" % (args.outpath, stis_opt_file), overwrite=True)
