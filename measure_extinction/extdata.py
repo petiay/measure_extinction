@@ -675,7 +675,7 @@ class ExtData:
         Returns
         -------
         ptype : string
-            Latex formated string for plotting
+            Latex formatted string for plotting
         """
         if not ytype:
             ytype = self.type
