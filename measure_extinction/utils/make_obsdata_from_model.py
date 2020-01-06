@@ -112,7 +112,7 @@ def get_phot(mwave, mflux, band_names, band_resp_filenames):
     -------
     bandinfo : BandData object
     """
-    # get a band data object
+    # get a BandData object
     bdata = BandData("BAND")
 
     # path for non-HST band response curves
