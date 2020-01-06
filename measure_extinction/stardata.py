@@ -695,7 +695,7 @@ class SpecData:
         self.read_spectra(line, path)
 
         # correct the SpeX spectra if desired and if corfacs are defined
-        if use_corfac==True and "SpeX" in corfac.keys():
+        if use_corfac and "SpeX" in corfac.keys():
             self.fluxes *= corfac["SpeX"]
             self.uncs *= corfac["SpeX"]
 
@@ -737,7 +737,7 @@ class SpecData:
         # self.uncs *= mfac
 
         # correct the IRS spectra if desired and if corfacs are defined
-        if use_corfac==True and "IRS" in corfac.keys():
+        if use_corfac and "IRS" in corfac.keys():
             if ("IRS_zerowave" in corfac.keys()) and ("IRS_slope" in corfac.keys()):
                 mod_line = corfac["IRS"] + (
                     corfac["IRS_slope"] * (self.waves.value - corfac["IRS_zerowave"])
