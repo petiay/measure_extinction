@@ -45,7 +45,7 @@ if __name__ == "__main__":
         "--outpath",
         help="path where merged spectra will be stored",
         default=pkg_resources.resource_filename('measure_extinction',
-                                            'data/Out')
+                                                'data/Out')
     )
     parser.add_argument(
         "--ralph", action="store_true", help="Ralph Bohlin reduced data"

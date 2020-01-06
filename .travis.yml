@@ -24,6 +24,8 @@ stages:
    - name: Initial tests
    # Test docs, astropy dev, and without optional dependencies
    - name: Comprehensive tests
+   # Slow tests that should only run if comprehensive ones passed
+   - name: Slow tests
    # These will only run when cron is opted in
    - name: Cron tests
      if: type = cron
@@ -44,8 +46,8 @@ env:
 
         # List runtime dependencies for the package that are available as conda
         # packages here.
-        - CONDA_DEPENDENCIES='scipy stsynphot'
-        - CONDA_DEPENDENCIES_DOC='sphinx-astropy scipy sphinx-argparse dust_extinction stsynphot'
+        - CONDA_DEPENDENCIES='scipy stsynphot dust_extinction'
+        - CONDA_DEPENDENCIES_DOC='sphinx-astropy scipy dust_extinction stsynphot'
 
         # List other runtime dependencies for the package that are available as
         # pip packages here.
@@ -98,7 +100,7 @@ matrix:
           env: ASTROPY_VERSION=development
                EVENT_TYPE='pull_request push cron'
         - os: linux
-          env: PYTHON_VERSION=3.6 ASTROPY_VERSION=lts NUMPY_VERSION=1.13
+          env: PYTHON_VERSION=3.6 ASTROPY_VERSION=lts NUMPY_VERSION=1.16
 
         # Add a job that runs from cron only and tests against astropy dev and
         # numpy dev to give a change for early discovery of issues and feedback
@@ -108,15 +110,20 @@ matrix:
           env: ASTROPY_VERSION=development NUMPY_VERSION=development
                EVENT_TYPE='cron'
 
+        # Try on Windows.
+        - os: windows
+          stage: Slow tests
+          env: SETUP_CMD='test'
+
         # Try all python versions and Numpy versions. Since we can assume that
         # the Numpy developers have taken care of testing Numpy with different
         # versions of Python, we can vary Python and Numpy versions at the same
         # time.
 
         - os: linux
-          env: PYTHON_VERSION=3.6 NUMPY_VERSION=1.14
+          env: PYTHON_VERSION=3.6 NUMPY_VERSION=1.16
         - os: linux
-          env: NUMPY_VERSION=1.15
+          env: NUMPY_VERSION=1.17
 
         # Do a PEP8 test with flake8
         - os: linux
@@ -129,6 +136,9 @@ matrix:
         - os: linux
           stage: Initial tests
           env: MAIN_CMD='flake8 measure_extinction --count --show-source --statistics $FLAKE8_OPT' SETUP_CMD=''
+
+        - os: linux
+          env: PYTHON_VERSION=3.6 ASTROPY_VERSION=lts NUMPY_VERSION=1.16
 
 install:
 
