@@ -16,10 +16,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("starname", help="name of star (filebase)")
     parser.add_argument(
-        "--path",
+        "--inpath",
+        help="path where original data files are stored",
+        default=pkg_resources.resource_filename('measure_extinction',
+                                            'data/Orig/NIR')
+    )
+    parser.add_argument(
+        "--outpath",
         help="path where merged spectra will be stored",
         default=pkg_resources.resource_filename('measure_extinction',
-                                                'data/')
+                                                'data/Out')
     )
     parser.add_argument("--outname", help="Output filebase")
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
@@ -27,7 +33,7 @@ if __name__ == "__main__":
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
 
-    sfilename = "%sOrig/NIR/%s.txt" % (args.path, args.starname)
+    sfilename = "%s/%s.txt" % (args.inpath, args.starname)
     stable = Table.read(
         sfilename,
         format="ascii",
@@ -43,6 +49,6 @@ if __name__ == "__main__":
     if args.outname:
         outname = args.outname
     else:
-        outname = args.starname
-    spex_file = "%s_spex_table.fits" % (outname)
-    rb_stis_opt.write("%s/Out/%s" % (args.path, spex_file), overwrite=True)
+        outname = args.starname.lower()
+    spex_file = "%s_spex.fits" % (outname)
+    rb_stis_opt.write("%s/%s" % (args.outpath, spex_file), overwrite=True)

@@ -36,10 +36,16 @@ if __name__ == "__main__":
         help="wavelength region to merge",
     )
     parser.add_argument(
-        "--path",
+        "--inpath",
+        help="path where original data files are stored",
+        default=pkg_resources.resource_filename('measure_extinction',
+                                            'data/Orig')
+    )
+    parser.add_argument(
+        "--outpath",
         help="path where merged spectra will be stored",
         default=pkg_resources.resource_filename('measure_extinction',
-                                                'data/')
+                                                'data/Out')
     )
     parser.add_argument(
         "--ralph", action="store_true", help="Ralph Bohlin reduced data"
@@ -51,7 +57,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.ralph:
-        sfilename = "%sOrig/%s/%s.mrg" % (args.path, args.waveregion, args.starname)
+        sfilename = "%s/%s/%s.mrg" % (args.inpath, args.waveregion, args.starname)
         stable = Table.read(
             sfilename,
             format="ascii",
@@ -69,8 +75,8 @@ if __name__ == "__main__":
         )
         stable = [stable]
     else:
-        sfilename = "%s/Orig/%s/M31Ext2/%s" % (
-            args.path,
+        sfilename = "%s/%s/M31Ext2/%s" % (
+            args.inpath,
             args.waveregion,
             args.starname.lower(),
         )
@@ -88,6 +94,6 @@ if __name__ == "__main__":
     if args.outname:
         outname = args.outname
     else:
-        outname = args.starname
-    stis_opt_file = "%s_stis_%s_table.fits" % (outname, args.waveregion)
-    rb_stis_opt.write("%s/Out/%s" % (args.path, stis_opt_file), overwrite=True)
+        outname = args.starname.lower()
+    stis_opt_file = "%s_stis_%s.fits" % (outname, args.waveregion)
+    rb_stis_opt.write("%s/%s" % (args.outpath, stis_opt_file), overwrite=True)

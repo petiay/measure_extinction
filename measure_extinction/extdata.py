@@ -13,7 +13,7 @@ __all__ = ["ExtData", "AverageExtData"]
 
 # globals
 # possible datasets (also extension names in saved FITS file)
-_poss_datasources = ["BAND", "IUE", "STIS", "IRS"]
+_poss_datasources = ["BAND", "IUE", "STIS", "SpeX", "IRS"]
 
 
 def _rebin(a, rebin_fac):
