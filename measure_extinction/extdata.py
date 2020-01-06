@@ -263,7 +263,7 @@ class ExtData:
         -------
         Updated self.(waves, x, exts, uncs)[src]
         """
-        if (src in red.data.keys()) & (src in red.data.keys()):
+        if (src in red.data.keys()) & (src in comp.data.keys()):
             # check that the wavelenth grids are identical
             delt_wave = red.data[src].waves - comp.data[src].waves
             if np.sum(np.absolute(delt_wave)) > 0.01 * u.micron:

@@ -15,6 +15,7 @@ def plot_spec_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("starname", help="name of star")
     parser.add_argument("--path", help="path to star files", default="./")
+    parser.add_argument("--mlam4", help="plot lambda^4*F(lambda)", action="store_true")
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     return parser
@@ -45,7 +46,7 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(figsize=(13, 10))
 
     # plot the bands and all spectra for this star
-    starobs.plot(ax)
+    starobs.plot(ax, mlam4=args.mlam4)
 
     # finish configuring the plot
     ax.set_yscale("log")

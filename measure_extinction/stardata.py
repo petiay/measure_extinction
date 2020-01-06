@@ -1,5 +1,6 @@
 import math
 import warnings
+import os.path
 
 from collections import OrderedDict
 
@@ -490,6 +491,30 @@ class BandData:
         self.n_bands = len(self.bands)
 
 
+def _getspecfilename(line, path):
+    """
+    Get the full filename including path from the line in the dat file
+
+    Parameters
+    ----------
+    line : string
+        formated line from DAT file
+        example: 'IUE = hd029647_iue.fits'
+
+    path : string
+        path of the FITS file
+
+    Returns
+    -------
+    full_filename : str
+        full name of file including path
+    """
+    eqpos = line.find("=")
+    tfile = line[eqpos + 2 :].rstrip()
+
+    return path + tfile
+
+
 class SpecData:
     """
     Spectroscopic data (used by StarData)
@@ -555,11 +580,7 @@ class SpecData:
         -------
         Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
         """
-        eqpos = line.find("=")
-        self.file = line[eqpos + 2 :].rstrip()
-
-        # check if file exists
-        full_filename = path + self.file
+        full_filename = _getspecfilename(line, path)
 
         # open and read the spectrum
         tdata = Table.read(full_filename)
@@ -845,26 +866,50 @@ class StarData:
         if not self.photonly:
             for line in self.datfile_lines:
                 if line.find("IUE") == 0:
-                    self.data["IUE"] = SpecData("IUE")
-                    self.data["IUE"].read_iue(line, path=self.path)
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["IUE"] = SpecData("IUE")
+                        self.data["IUE"].read_iue(line, path=self.path)
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
                 elif line.find("FUSE") == 0:
-                    self.data["FUSE"] = SpecData("FUSE")
-                    self.data["FUSE"].read_fuse(line, path=self.path)
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["FUSE"] = SpecData("FUSE")
+                        self.data["FUSE"].read_fuse(line, path=self.path)
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
                 elif line.find("STIS_Opt") == 0:
-                    self.data["STIS_Opt"] = SpecData("STIS_Opt")
-                    self.data["STIS_Opt"].read_stis(line, path=self.path)
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["STIS_Opt"] = SpecData("STIS_Opt")
+                        self.data["STIS_Opt"].read_stis(line, path=self.path)
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
                 elif line.find("STIS") == 0:
-                    self.data["STIS"] = SpecData("STIS")
-                    self.data["STIS"].read_stis(line, path=self.path)
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["STIS"] = SpecData("STIS")
+                        self.data["STIS"].read_stis(line, path=self.path)
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
                 elif line.find("SpeX") == 0:
-                    self.data["SpeX"] = SpecData("SpeX")
-                    self.data["SpeX"].read_spex(line, path=self.path)
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["SpeX"] = SpecData("IUE")
+                        self.data["SpeX"].read_spex(line, path=self.path)
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
                 elif line.find("IRS") == 0 and line.find("IRS15") < 0:
-                    self.data["IRS"] = SpecData("IRS")
-                    irs_corfacs = self.corfac
-                    if not self.use_corfac:
-                        irs_corfacs = {}
-                    self.data["IRS"].read_irs(line, path=self.path, corfac=irs_corfacs)
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["IRS"] = SpecData("IRS")
+                        irs_corfacs = self.corfac
+                        if not self.use_corfac:
+                            irs_corfacs = {}
+                        self.data["IRS"].read_irs(line, path=self.path, corfac=irs_corfacs)
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
 
     @staticmethod
     def _parse_dfile_line(line):
