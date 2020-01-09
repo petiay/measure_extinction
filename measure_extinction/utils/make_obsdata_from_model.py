@@ -103,7 +103,7 @@ def get_phot(mwave, mflux, band_names, band_resp_filenames):
         model fluxes
 
     band_names: list of strings
-        names of bands reqeusted
+        names of bands requested
 
     band_resp_filename : list of strings
         filenames of band response functions for the requested bands
@@ -112,7 +112,7 @@ def get_phot(mwave, mflux, band_names, band_resp_filenames):
     -------
     bandinfo : BandData object
     """
-    # get a band data object
+    # get a BandData object
     bdata = BandData("BAND")
 
     # path for non-HST band response curves

@@ -84,7 +84,7 @@ class BandData:
         Parameters
         ----------
         lines : list of string
-            lines from a DAT formated file
+            lines from a DAT formatted file
 
         Returns
         -------
@@ -570,7 +570,7 @@ class SpecData:
         Parameters
         ----------
         line : string
-            formated line from DAT file
+            formatted line from DAT file
             example: 'IUE = hd029647_iue.fits'
 
         path : string, optional
@@ -629,7 +629,7 @@ class SpecData:
         Parameters
         ----------
         line : string
-            formated line from DAT file
+            formatted line from DAT file
             example: 'STIS = hd029647_fuse.fits'
 
         path : string, optional
@@ -651,7 +651,7 @@ class SpecData:
         Parameters
         ----------
         line : string
-            formated line from DAT file
+            formatted line from DAT file
             example: 'IUE = hd029647_iue.fits'
 
         path : string, optional
@@ -677,7 +677,7 @@ class SpecData:
         Parameters
         ----------
         line : string
-            formated line from DAT file
+            formatted line from DAT file
             example: 'STIS = hd029647_stis.fits'
 
         path : string, optional
@@ -693,18 +693,21 @@ class SpecData:
         self.fluxes = self.fluxes.value * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
         self.uncs = self.uncs.value * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
 
-    def read_spex(self, line, path="./"):
+    def read_spex(self, line, path="./", use_corfac=True, corfac=None):
         """
         Read in SPeX spectra
 
         Parameters
         ----------
         line : string
-            formated line from DAT file
+            formatted line from DAT file
             example: 'SpeX = hd029647_spex.fits'
 
         path : string, optional
             location of the FITS files path
+
+        corfac : dict of key: coefficients
+            keys identify the spectrum to be corrected and how
 
         Returns
         -------
@@ -712,11 +715,16 @@ class SpecData:
         """
         self.read_spectra(line, path)
 
+        # correct the SpeX spectra if desired and if corfacs are defined
+        if use_corfac and "SpeX" in corfac.keys():
+            self.fluxes *= corfac["SpeX"]
+            self.uncs *= corfac["SpeX"]
+
         # add units
         self.fluxes = self.fluxes.value * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
         self.uncs = self.uncs.value * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
 
-    def read_irs(self, line, path="./", corfac=None):
+    def read_irs(self, line, path="./", use_corfac=True, corfac=None):
         """
         Read in Spitzer/IRS spectra
 
@@ -729,7 +737,7 @@ class SpecData:
         Parameters
         ----------
         line : string
-            formated line from DAT file
+            formatted line from DAT file
             example: 'IRS = hd029647_irs.fits'
 
         path : string, optional
@@ -749,8 +757,8 @@ class SpecData:
         # self.fluxes *= mfac
         # self.uncs *= mfac
 
-        # correct the IRS spectra if corfacs defined
-        if "IRS" in corfac.keys():
+        # correct the IRS spectra if desired and if corfacs are defined
+        if use_corfac and "IRS" in corfac.keys():
             if ("IRS_zerowave" in corfac.keys()) and ("IRS_slope" in corfac.keys()):
                 mod_line = corfac["IRS"] + (
                     corfac["IRS_slope"] * (self.waves.value - corfac["IRS_zerowave"])
@@ -813,7 +821,7 @@ class StarData:
 
         use_corfac: boolean
             Modify the spectra based on precomputed correction factors
-            Currently only affects Spitzer/IRS data
+            Currently only affects Spitzer/IRS data and SpeX data
         """
         self.file = datfile
         self.path = path
@@ -853,6 +861,8 @@ class StarData:
                     self.sptype = cpair[1]
                 elif cpair[0] in poss_mod_params:
                     self.model_params[cpair[0]] = cpair[1]
+                elif cpair[0] == "corfac_spex":
+                    self.corfac["SpeX"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs_zerowave":
                     self.corfac["IRS_zerowave"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs_slope":
@@ -861,6 +871,7 @@ class StarData:
                     self.corfac["IRS_maxwave"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs":
                     self.corfac["IRS"] = float(cpair[1])
+
 
         # read the spectra
         if not self.photonly:
@@ -894,22 +905,21 @@ class StarData:
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
                 elif line.find("SpeX") == 0:
+
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
-                        self.data["SpeX"] = SpecData("IUE")
-                        self.data["SpeX"].read_spex(line, path=self.path)
+                        self.data["SpeX"] = SpecData("Spex")
+                        self.data["SpeX"].read_spex(line, path=self.path, use_corfac=self.use_corfac, corfac=self.corfac)
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
                 elif line.find("IRS") == 0 and line.find("IRS15") < 0:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["IRS"] = SpecData("IRS")
-                        irs_corfacs = self.corfac
-                        if not self.use_corfac:
-                            irs_corfacs = {}
-                        self.data["IRS"].read_irs(line, path=self.path, corfac=irs_corfacs)
+                        self.data["IRS"].read_irs(line, path=self.path, use_corfac=self.use_corfac, corfac=self.corfac)
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
+
 
     @staticmethod
     def _parse_dfile_line(line):
@@ -920,12 +930,12 @@ class StarData:
         Parameters
         ----------
         line : string
-            DAT file formated string
+            DAT file formatted string
 
         Returns
         -------
         substring : string
-            The value substring in a DAT file formated string
+            The value substring in a DAT file formatted string
         """
         if line[0] != "#":
             eqpos = line.find("=")
