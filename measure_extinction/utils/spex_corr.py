@@ -46,7 +46,7 @@ def get_phot(wave, flux, bands, bandnames):
 
     # compute the flux in each band
     for k, band in enumerate(bands):
-        bp = SpectralElement.from_file("%s%s" % (band_path, band_resp_filenames[k]))
+        bp = SpectralElement.from_file("%s%s" % (band_path, bandnames[k]))
         resp = bp(wave)
         fluxes[k] = np.sum(resp * flux) / np.sum(resp)
     return fluxes
@@ -79,7 +79,7 @@ def calc_corfac(star_phot, star_spec, bands, bandnames):
     bands = [band for band in bands if band in star_phot.band_fluxes.keys()]
     if not bands:
         print("No photometric data available to scale " + star_spec.type + " spectrum!!")
-        return 1
+        return None
     fluxes_bands = np.array([star_phot.band_fluxes[band][0] for band in bands])
     fluxes_spectra = get_phot(star_spec.waves.to(u.Angstrom), star_spec.fluxes.value, bands, bandnames)
     corfacs = fluxes_bands / fluxes_spectra
@@ -106,10 +106,18 @@ if __name__ == "__main__":
     # add the correction factor(s) to the data file if not already in there,
     # otherwise overwrite the existing correction factor(s)
     if args.split:
-        star_spec_short = star_data.data["SpeX_SXD"]
-        star_spec_long = star_data.data["SpeX_LXD"]
-        corfac_SXD = calc_corfac(star_phot, star_spec_short, ["J", "H", "K"], ["JohnJ.dat","JohnH.dat","JohnK.dat"])
-        corfac_LXD = calc_corfac(star_phot, star_spec_long, ["L"], ["JohnL.dat"])
+        if "SpeX_SXD" in star_data.data.keys():
+            star_spec_short = star_data.data["SpeX_SXD"]
+            corfac_SXD = calc_corfac(star_phot, star_spec_short, ["J", "H", "K"], ["JohnJ.dat","JohnH.dat","JohnK.dat"])
+        else:
+            corfac_SXD = None
+
+        if "SpeX_LXD" in star_data.data.keys():
+            star_spec_long = star_data.data["SpeX_LXD"]
+            corfac_LXD = calc_corfac(star_phot, star_spec_long, ["L"], ["JohnL.dat"])
+        else:
+            corfac_LXD = None
+
         if "SpeX_SXD" in star_data.corfac.keys():
             datafile = open(args.path+'%s.dat' % args.starname.lower(), "w")
             for ln, line in enumerate(star_data.datfile_lines):

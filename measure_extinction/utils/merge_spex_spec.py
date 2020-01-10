@@ -36,11 +36,18 @@ if __name__ == "__main__":
     if args.split:
         sfilename_S = "%s/%s_SXD.txt" % (args.inpath, args.starname)
         sfilename_L = "%s/%s_LXD.txt" % (args.inpath, args.starname)
-        sfilesnames = [sfilename_S, sfilename_L]
+        if not os.path.isfile(sfilename_S):
+            sfilenames = [sfilename_L]
+            if not os.path.isfile(sfilename_L):
+                print("No spectra could be found to merge!")
+        elif not os.path.isfile(sfilename_L):
+            sfilenames = [sfilename_S]
+        else:
+            sfilenames = [sfilename_S, sfilename_L]
     else:
-        sfilesnames = ["%s/%s.txt" % (args.inpath, args.starname)]
+        sfilenames = ["%s/%s.txt" % (args.inpath, args.starname)]
 
-    for filename in sfilesnames:
+    for filename in sfilenames:
         stable = Table.read(
             filename,
             format="ascii",
