@@ -91,6 +91,7 @@ def AverageExtData(extdatas, alav=None):
     pwaves = {}
     pwaves_uncs = {}
     pwaves_npts = {}
+    pwaves_names = {}
     for cext in extdatas:
         for k, cwave in enumerate(cext.waves[src]):
             y = cext.exts[src][k]
@@ -98,16 +99,18 @@ def AverageExtData(extdatas, alav=None):
             if alav is not None:
                 y = (y / float(cext.columns["AV"][0])) + 1.0
                 yu /= float(cext.columns["AV"][0])
+            cwavev = cwave.to(u.micron).value
             if cwave in pwaves.keys():
-                pwaves[cwave] += y
-                pwaves_uncs[cwave] += np.square(yu)
-                pwaves_npts[cwave] += 1.0
+                pwaves[cwavev] += y
+                pwaves_uncs[cwavev] += np.square(yu)
+                pwaves_npts[cwavev] += 1.0
             else:
-                pwaves[cwave] = y
-                pwaves_uncs[cwave] = np.square(yu)
-                pwaves_npts[cwave] = 1.0
+                pwaves[cwavev] = y
+                pwaves_uncs[cwavev] = np.square(yu)
+                pwaves_npts[cwavev] = 1.0
+                pwaves_names[cwavev] = cext.names[src][k]
 
-    aveext.waves[src] = np.array(list(pwaves.keys()))
+    aveext.waves[src] = np.array(list(pwaves.keys())) * u.micron
     aveext.exts[src] = np.array(list(pwaves.values())) / np.array(
         list(pwaves_npts.values())
     )
@@ -115,6 +118,7 @@ def AverageExtData(extdatas, alav=None):
         list(pwaves_npts.values())
     )
     aveext.npts[src] = np.array(list(pwaves_npts.values()))
+    aveext.names[src] = np.array(list(pwaves_names))
 
     return aveext
 
