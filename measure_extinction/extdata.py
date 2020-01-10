@@ -468,7 +468,10 @@ class ExtData:
         return (wave, y, unc)
 
     def save(
-        self, ext_filename, column_info=None, p92_best_params=None, p92_per_params=None
+        self, ext_filename,
+        column_info=None,
+        fm90_best_params=None, fm90_per_params=None,
+        p92_best_params=None, p92_per_params=None,
     ):
         """
         Save the extinction curve to a FITS file
@@ -481,6 +484,12 @@ class ExtData:
         column_info : dict
             dictionary with information about the dust column
             for example: {'ebv': 0.1, 'rv': 4.2, 'av': 0.42}
+
+        fm90_best_params : tuple of 2 float vectors
+           parameter names and best fit values for the FM90 fit
+
+        fm90_per_params : tuple of 2 float vectors
+           parameter names and (p50, +unc, -unc) values for the FM90 fit
 
         p92_best_params : tuple of 2 float vectors
            parameter names and best fit values for the P92 fit
@@ -516,6 +525,33 @@ class ExtData:
                     hval.append(column_info[ckey])
                 else:
                     print(ckey + " not supported for saving extcurves")
+
+        # FM90 best fit parameters
+        if fm90_best_params is not None:
+            hname = np.concatenate((hname, fm90_best_params[0]))
+            hval = np.concatenate((hval, fm90_best_params[1]))
+            fm90_comment = [pname + ": FM90 parameter" for pname in fm90_best_params[0]]
+            hcomment = np.concatenate((hcomment, fm90_comment))
+
+        # FM90 p50 +unc -unc fit parameters
+        if fm90_per_params is not None:
+            # p50 values
+            hname = np.concatenate((hname, [cp + '_p50' for cp in fm90_per_params[0]]))
+            hval = np.concatenate((hval, [cv[0] for cv in fm90_per_params[1]]))
+            fm90_comment = [pname + ": FM90 p50 parameter" for pname in fm90_per_params[0]]
+            hcomment = np.concatenate((hcomment, fm90_comment))
+
+            # +unc values
+            hname = np.concatenate((hname, [cp + '_punc' for cp in fm90_per_params[0]]))
+            hval = np.concatenate((hval, [cv[1] for cv in fm90_per_params[1]]))
+            fm90_comment = [pname + ": FM90 punc parameter" for pname in fm90_per_params[0]]
+            hcomment = np.concatenate((hcomment, fm90_comment))
+
+            # -unc values
+            hname = np.concatenate((hname, [cp + '_munc' for cp in fm90_per_params[0]]))
+            hval = np.concatenate((hval, [cv[2] for cv in fm90_per_params[1]]))
+            fm90_comment = [pname + ": FM90 munc parameter" for pname in fm90_per_params[0]]
+            hcomment = np.concatenate((hcomment, fm90_comment))
 
         # P92 best fit parameters
         if p92_best_params is not None:
@@ -660,7 +696,7 @@ class ExtData:
         # get P92 best fit parameters if they exist
         if pheader.get("BKG_amp"):
             P92_mkeys = ["BKG", "FUV", "NUV", "SIL1", "SIL2", "FIR"]
-            P92_types = ["AMP", "LAMBDA", "B", "N"]
+            P92_types = ["AMP", "LAMBDA", "WIDTH", "B", "N"]
             self.p92_best_fit = {}
             for curmkey in P92_mkeys:
                 for curtype in P92_types:
