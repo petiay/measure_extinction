@@ -1,4 +1,4 @@
-# Johnson I band response function
+# Johnson I band response function, taken from Bessell 1990 table 2
 # wavelength  throughput
 7000.0 0.000
 7100.0 0.024

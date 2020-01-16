@@ -1,4 +1,4 @@
-# Johnson U band response function
+# Johnson U band response function, taken from Bessell 1990 table 2
 # wavelength  throughput
 3000.0 0.000
 3050.0 0.016

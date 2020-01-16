@@ -1,4 +1,4 @@
-# Johnson K band response function
+# Johnson K band response function, taken from Bessell et al. 1988 table IV
 # wavelength  throughput
 19400.0 0.00
 19600.0 0.12

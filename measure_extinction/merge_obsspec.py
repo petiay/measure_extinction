@@ -263,10 +263,9 @@ def merge_spex_obsspec(obstable, output_resolution=2000):
     # determine the wavelength range and calculate the wavelength grid
     if np.max(waves) < 25000:
         wave_range = [0.8, 2.45] * u.micron
-    elif np.min(waves) > 24000:
-        wave_range = [2.4, 5.5] * u.micron
     else:
-        wave_range = [0.8, 5.5] * u.micron
+        wave_range = [2.4, 5.5] * u.micron
+
     iwave_range = wave_range.to(u.angstrom).value
     full_wave, full_wave_min, full_wave_max = _wavegrid(output_resolution, iwave_range)
 

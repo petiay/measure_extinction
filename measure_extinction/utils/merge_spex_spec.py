@@ -29,26 +29,22 @@ if __name__ == "__main__":
                                                 'data/Out')
     )
     parser.add_argument("--outname", help="Output filebase")
-    parser.add_argument("--split", help="Whether the input data are stored in one file (False) or split over two files (True)", action="store_true")
     args = parser.parse_args()
 
-    # check whether the data are stored in one file or split over two files
-    if args.split:
-        sfilename_S = "%s/%s_SXD.txt" % (args.inpath, args.starname)
-        sfilename_L = "%s/%s_LXD.txt" % (args.inpath, args.starname)
-        if not os.path.isfile(sfilename_S):
-            sfilenames = [sfilename_L]
-            if not os.path.isfile(sfilename_L):
-                print("No spectra could be found to merge!")
-        elif not os.path.isfile(sfilename_L):
-            sfilenames = [sfilename_S]
-        else:
-            sfilenames = [sfilename_S, sfilename_L]
+    # check which data are available
+    filename_S = "%s/%s_SXD.txt" % (args.inpath, args.starname)
+    filename_L = "%s/%s_LXD.txt" % (args.inpath, args.starname)
+    if not os.path.isfile(filename_S):
+        filenames = [filename_L]
+        if not os.path.isfile(filename_L):
+            print("No spectra could be found for this star!")
+    elif not os.path.isfile(filename_L):
+        filenames = [filename_S]
     else:
-        sfilenames = ["%s/%s.txt" % (args.inpath, args.starname)]
+        filenames = [filename_S, filename_L]
 
-    for filename in sfilenames:
-        stable = Table.read(
+    for filename in filenames:
+        table = Table.read(
             filename,
             format="ascii",
             names=[
@@ -58,7 +54,7 @@ if __name__ == "__main__":
                 "FLAG",
                 ],
                 )
-        rb_stis_opt = merge_spex_obsspec(stable)
+        rb_stis_opt = merge_spex_obsspec(table)
         if args.outname:
             outname = args.outname
         else:

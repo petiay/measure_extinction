@@ -721,14 +721,9 @@ class SpecData:
                 corfac = corfac["SpeX_SXD"]
             else:
                 corfac = None
-        elif self.type == "SpeX_LXD":
+        else:
             if "SpeX_LXD" in corfac.keys():
                 corfac = corfac["SpeX_LXD"]
-            else:
-                corfac = None
-        else:
-            if "SpeX_full" in corfac.keys():
-                corfac = corfac["SpeX_full"]
             else:
                 corfac = None
 
@@ -878,8 +873,6 @@ class StarData:
                     self.sptype = cpair[1]
                 elif cpair[0] in poss_mod_params:
                     self.model_params[cpair[0]] = cpair[1]
-                elif cpair[0] == "corfac_spex_full":
-                    self.corfac["SpeX_full"] = cpair[1]
                 elif cpair[0] == "corfac_spex_SXD":
                     self.corfac["SpeX_SXD"] = cpair[1]
                 elif cpair[0] == "corfac_spex_LXD":
@@ -923,13 +916,6 @@ class StarData:
                     if os.path.isfile(fname):
                         self.data["STIS"] = SpecData("STIS")
                         self.data["STIS"].read_stis(line, path=self.path)
-                    else:
-                        warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("SpeX_full") == 0:
-                    fname = _getspecfilename(line, self.path)
-                    if os.path.isfile(fname):
-                        self.data["SpeX_full"] = SpecData("SpeX_full")
-                        self.data["SpeX_full"].read_spex(line, path=self.path, use_corfac=self.use_corfac, corfac=self.corfac)
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
                 elif line.find("SpeX_SXD") == 0:
