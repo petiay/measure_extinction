@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-# import pkg_resources
+import pkg_resources
 import argparse
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -14,7 +14,7 @@ from measure_extinction.utils.helpers import get_full_starfile
 def plot_spec_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("starname", help="name of star")
-    parser.add_argument("--path", help="path to star files", default="./")
+    parser.add_argument("--path", help="path to star files", default=pkg_resources.resource_filename('measure_extinction', 'data/'))
     parser.add_argument("--mlam4", help="plot lambda^4*F(lambda)", action="store_true")
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
@@ -27,9 +27,11 @@ if __name__ == "__main__":
     parser = plot_spec_parser()
     args = parser.parse_args()
 
-    # read in the observed data on the star
-    fstarname, file_path = get_full_starfile(args.starname)
-    starobs = StarData(fstarname, path=file_path)
+    # read in the observed data of the star
+    # fstarname, file_path = get_full_starfile(args.starname)
+    # --> this is currently not working, because the default path in get_full_starfile is not accessible as an external user.
+
+    starobs = StarData('%s.dat' % args.starname.lower(), path=args.path, use_corfac=True)
 
     # plotting setup for easier to read plots
     fontsize = 18
@@ -60,10 +62,9 @@ if __name__ == "__main__":
     fig.tight_layout()
 
     # plot or save to a file
-    save_str = "_spec"
     if args.png:
-        fig.savefig(args.starname.replace(".dat", save_str + ".png"))
+        fig.savefig(args.path + args.starname + "_spec.png")
     elif args.pdf:
-        fig.savefig(args.starname.replace(".dat", save_str + ".pdf"))
+        fig.savefig(args.path + args.starname + "_spec.pdf")
     else:
         plt.show()

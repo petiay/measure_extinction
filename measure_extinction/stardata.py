@@ -874,9 +874,9 @@ class StarData:
                 elif cpair[0] in poss_mod_params:
                     self.model_params[cpair[0]] = cpair[1]
                 elif cpair[0] == "corfac_spex_SXD":
-                    self.corfac["SpeX_SXD"] = cpair[1]
+                    self.corfac["SpeX_SXD"] = float(cpair[1])
                 elif cpair[0] == "corfac_spex_LXD":
-                        self.corfac["SpeX_LXD"] = cpair[1]
+                    self.corfac["SpeX_LXD"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs_zerowave":
                     self.corfac["IRS_zerowave"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs_slope":
@@ -1075,7 +1075,6 @@ class StarData:
                 legval = "%s / %s" % (red_name, self.sptype)
             else:
                 legval = None
-
             yvals = (
                 self.data[curtype]
                 .fluxes[gindxs]
