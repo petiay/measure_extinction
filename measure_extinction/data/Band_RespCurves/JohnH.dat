@@ -1,4 +1,4 @@
-# Johnson H band response function
+# Johnson H band response function, taken from Bessell et al. 1988 table IV
 # wavelength  throughput
 14600.0 0.00
 14800.0 0.15

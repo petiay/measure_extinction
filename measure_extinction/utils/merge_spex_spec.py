@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import argparse
 import pkg_resources
+import os
 
 from astropy.table import Table
 
@@ -28,27 +29,35 @@ if __name__ == "__main__":
                                                 'data/Out')
     )
     parser.add_argument("--outname", help="Output filebase")
-    parser.add_argument("--png", help="save figure as a png file", action="store_true")
-    parser.add_argument("--eps", help="save figure as an eps file", action="store_true")
-    parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
 
-    sfilename = "%s/%s.txt" % (args.inpath, args.starname)
-    stable = Table.read(
-        sfilename,
-        format="ascii",
-        names=[
-            "WAVELENGTH",
-            "FLUX",
-            "ERROR",
-            "FLAG",
-        ],
-    )
-    stable = [stable]
-    rb_stis_opt = merge_spex_obsspec(stable)
-    if args.outname:
-        outname = args.outname
+    # check which data are available
+    filename_S = "%s/%s_SXD.txt" % (args.inpath, args.starname)
+    filename_L = "%s/%s_LXD.txt" % (args.inpath, args.starname)
+    if not os.path.isfile(filename_S):
+        filenames = [filename_L]
+        if not os.path.isfile(filename_L):
+            print("No spectra could be found for this star!")
+    elif not os.path.isfile(filename_L):
+        filenames = [filename_S]
     else:
-        outname = args.starname.lower()
-    spex_file = "%s_spex.fits" % (outname)
-    rb_stis_opt.write("%s/%s" % (args.outpath, spex_file), overwrite=True)
+        filenames = [filename_S, filename_L]
+
+    for filename in filenames:
+        table = Table.read(
+            filename,
+            format="ascii",
+            names=[
+                "WAVELENGTH",
+                "FLUX",
+                "ERROR",
+                "FLAG",
+                ],
+                )
+        rb_spex_opt = merge_spex_obsspec(table)
+        if args.outname:
+            outname = args.outname
+        else:
+            outname = os.path.basename(filename).split('.')[0]
+        spex_file = "%s_spex.fits" % (outname)
+        rb_spex_opt.write("%s/%s" % (args.outpath, spex_file), overwrite=True)

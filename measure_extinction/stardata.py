@@ -695,7 +695,7 @@ class SpecData:
 
     def read_spex(self, line, path="./", use_corfac=True, corfac=None):
         """
-        Read in SPeX spectra
+        Read in SpeX spectra
 
         Parameters
         ----------
@@ -715,10 +715,22 @@ class SpecData:
         """
         self.read_spectra(line, path)
 
-        # correct the SpeX spectra if desired and if corfacs are defined
-        if use_corfac and "SpeX" in corfac.keys():
-            self.fluxes *= corfac["SpeX"]
-            self.uncs *= corfac["SpeX"]
+        # determine which correction factor to use
+        if self.type == "SpeX_SXD":
+            if "SpeX_SXD" in corfac.keys():
+                corfac = corfac["SpeX_SXD"]
+            else:
+                corfac = None
+        else:
+            if "SpeX_LXD" in corfac.keys():
+                corfac = corfac["SpeX_LXD"]
+            else:
+                corfac = None
+
+        # correct the SpeX spectra if desired and if the correction factor is defined
+        if use_corfac and corfac is not None:
+            self.fluxes *= corfac
+            self.uncs *= corfac
 
         # add units
         self.fluxes = self.fluxes.value * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
@@ -861,8 +873,10 @@ class StarData:
                     self.sptype = cpair[1]
                 elif cpair[0] in poss_mod_params:
                     self.model_params[cpair[0]] = cpair[1]
-                elif cpair[0] == "corfac_spex":
-                    self.corfac["SpeX"] = float(cpair[1])
+                elif cpair[0] == "corfac_spex_SXD" and cpair[1] != "None":
+                        self.corfac["SpeX_SXD"] = float(cpair[1])
+                elif cpair[0] == "corfac_spex_LXD" and cpair[1] != "None":
+                        self.corfac["SpeX_LXD"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs_zerowave":
                     self.corfac["IRS_zerowave"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs_slope":
@@ -871,7 +885,6 @@ class StarData:
                     self.corfac["IRS_maxwave"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs":
                     self.corfac["IRS"] = float(cpair[1])
-
 
         # read the spectra
         if not self.photonly:
@@ -904,12 +917,18 @@ class StarData:
                         self.data["STIS"].read_stis(line, path=self.path)
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("SpeX") == 0:
-
+                elif line.find("SpeX_SXD") == 0:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
-                        self.data["SpeX"] = SpecData("Spex")
-                        self.data["SpeX"].read_spex(line, path=self.path, use_corfac=self.use_corfac, corfac=self.corfac)
+                        self.data["SpeX_SXD"] = SpecData("SpeX_SXD")
+                        self.data["SpeX_SXD"].read_spex(line, path=self.path, use_corfac=self.use_corfac, corfac=self.corfac)
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
+                elif line.find("SpeX_LXD") == 0:
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["SpeX_LXD"] = SpecData("SpeX_LXD")
+                        self.data["SpeX_LXD"].read_spex(line, path=self.path, use_corfac=self.use_corfac, corfac=self.corfac)
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
                 elif line.find("IRS") == 0 and line.find("IRS15") < 0:
@@ -1055,7 +1074,6 @@ class StarData:
                 legval = "%s / %s" % (red_name, self.sptype)
             else:
                 legval = None
-
             yvals = (
                 self.data[curtype]
                 .fluxes[gindxs]

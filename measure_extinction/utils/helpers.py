@@ -5,7 +5,7 @@ __all__ = ["get_full_starfile"]
 
 def get_full_starfile(starname):
     """
-    Get full path to the DAT file for the specificed star
+    Get full path to the DAT file for the specified star
     """
     if "dat" not in starname:
         fstarname = "%s.dat" % starname
