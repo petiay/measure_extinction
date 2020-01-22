@@ -22,6 +22,7 @@ def plot_bandpasses(bands):
     plt.legend(ncol=2,loc=1)
     plt.show()
 
+
 if __name__ == "__main__":
     # path for band response curves
     band_path = pkg_resources.resource_filename("measure_extinction", "data/Band_RespCurves/")

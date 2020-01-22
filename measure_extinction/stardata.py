@@ -873,10 +873,10 @@ class StarData:
                     self.sptype = cpair[1]
                 elif cpair[0] in poss_mod_params:
                     self.model_params[cpair[0]] = cpair[1]
-                elif cpair[0] == "corfac_spex_SXD":
-                    self.corfac["SpeX_SXD"] = float(cpair[1])
-                elif cpair[0] == "corfac_spex_LXD":
-                    self.corfac["SpeX_LXD"] = float(cpair[1])
+                elif cpair[0] == "corfac_spex_SXD" and cpair[1] != "None":
+                        self.corfac["SpeX_SXD"] = float(cpair[1])
+                elif cpair[0] == "corfac_spex_LXD" and cpair[1] != "None":
+                        self.corfac["SpeX_LXD"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs_zerowave":
                     self.corfac["IRS_zerowave"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs_slope":
@@ -885,7 +885,6 @@ class StarData:
                     self.corfac["IRS_maxwave"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs":
                     self.corfac["IRS"] = float(cpair[1])
-
 
         # read the spectra
         if not self.photonly:
