@@ -734,7 +734,7 @@ class ExtData:
             convert from E(lambda-X) using A(X)
 
         yoffset : float
-            addiative offset for the data
+            additive offset for the data
 
         rebin_fac : int
             factor by which to rebin spectra
@@ -770,10 +770,11 @@ class ExtData:
             ax = axav * av
 
         for curtype in self.waves.keys():
-            gindxs, = np.where(self.npts[curtype] > 0)
-            x = self.waves[curtype][gindxs].to(u.micron).value
-            y = self.exts[curtype][gindxs]
-            yu = self.uncs[curtype][gindxs]
+            # replace extinction values by NaNs for wavelength regions that need to be excluded from the plot
+            self.exts[curtype][self.npts[curtype]==0] = np.nan
+            x = self.waves[curtype].to(u.micron).value
+            y = self.exts[curtype]
+            yu = self.uncs[curtype]
             if alax:
                 y = (y / ax) + 1.0
                 yu /= ax
@@ -789,9 +790,8 @@ class ExtData:
             # else:
             #     legval = None
 
-            if len(gindxs) < 20:
-                # plot small number of points (usually BANDS data) as
-                # points with errorbars
+            if curtype == "BAND":
+                # plot band data as points with errorbars
                 pltax.errorbar(
                     x, y, yerr=yu, fmt="o", color=color, alpha=alpha, mfc="white"
                 )
