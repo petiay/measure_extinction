@@ -13,8 +13,8 @@ from measure_extinction.utils.helpers import get_full_starfile
 
 def plot_spec_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("starname", help="name of star")
-    parser.add_argument("--path", help="path to star files", default=pkg_resources.resource_filename('measure_extinction', 'data/'))
+    parser.add_argument("starname", help="name of star for which to plot the spectrum")
+    parser.add_argument("--path", help="path to data files", default=pkg_resources.resource_filename('measure_extinction', 'data/'))
     parser.add_argument("--mlam4", help="plot lambda^4*F(lambda)", action="store_true")
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")

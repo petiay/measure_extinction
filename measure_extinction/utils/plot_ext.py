@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import pkg_resources
 import argparse
 import matplotlib.pyplot as plt
 import matplotlib
@@ -27,8 +28,8 @@ if __name__ == "__main__":
 
     # commandline parser
     parser = argparse.ArgumentParser()
-    parser.add_argument("extfile", help="file with saved extinction curve")
-    parser.add_argument("--path", help="base path to extinction curves", default="./")
+    parser.add_argument("starname", help="name of star for which to plot the extinction curve")
+    parser.add_argument("--path", help="path to data files", default=pkg_resources.resource_filename('measure_extinction', 'data/'))
     parser.add_argument("--alax", help="plot A(lambda)/A(X)", action="store_true")
     parser.add_argument(
         "--extmodels", help="plot extinction curve models", action="store_true"
@@ -41,8 +42,8 @@ if __name__ == "__main__":
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
 
-    # read in the observed data for both stars
-    extdata = ExtData("%s/%s" % (args.path, args.extfile))
+    # read in the extinction curve data
+    extdata = ExtData("%s%s_ext.fits" % (args.path,args.starname))
 
     # plotting setup for easier to read plots
     fontsize = 18
@@ -56,9 +57,9 @@ if __name__ == "__main__":
     matplotlib.rc("ytick.minor", width=2)
 
     # setup the plot
-    fig, ax = plt.subplots(figsize=(13, 10))
+    fig, ax = plt.subplots(figsize=(10, 7))
 
-    # plot the bands and all spectra for this star
+    # plot the extinction curve
     extdata.plot(ax, alax=args.alax)
 
     # fix the x,y plot limits
@@ -77,11 +78,10 @@ if __name__ == "__main__":
     ax.set_ylabel(extdata._get_ext_ytitle(ytype=ytype), fontsize=1.3 * fontsize)
     ax.tick_params("both", length=10, width=2, which="major")
     ax.tick_params("both", length=5, width=1, which="minor")
-    ax.set_title(args.extfile)
+    ax.set_title(args.starname)
 
-    # plot extinctionm models
+    # plot extinction models
     if args.extmodels:
-
         x = np.arange(0.12, 3.0, 0.01) * u.micron
         Rvs = [2.0, 3.1, 4.0, 5.0]
         for cRv in Rvs:
@@ -130,16 +130,15 @@ if __name__ == "__main__":
         # ax.plot(mod_x, mod_y, "--", label="A(V) = %5.2f" % (popt[0] * popt[1]))
 
     # use the whitespace better
-    ax.legend()
+    #ax.legend()
     fig.tight_layout()
 
     # plot or save to a file
-    save_str = "_ext"
     if args.png:
-        fig.savefig(args.extfile.replace(".fits", save_str + ".png"))
+        fig.savefig("%s%s_ext.png" % (args.path,args.starname))
     elif args.eps:
-        fig.savefig(args.extfile.replace(".fits", save_str + ".eps"))
+        fig.savefig("%s%s_ext.eps" % (args.path,args.starname))
     elif args.pdf:
-        fig.savefig(args.extfile.replace(".fits", save_str + ".pdf"))
+        fig.savefig("%s%s_ext.pdf" % (args.path,args.starname))
     else:
         plt.show()

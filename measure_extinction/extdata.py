@@ -13,7 +13,7 @@ __all__ = ["ExtData", "AverageExtData"]
 
 # globals
 # possible datasets (also extension names in saved FITS file)
-_poss_datasources = ["BAND", "IUE", "STIS", "SpeX", "IRS"]
+_poss_datasources = ["BAND", "IUE", "STIS", "SpeX_SXD", "SpeX_LXD", "IRS"]
 
 
 def _rebin(a, rebin_fac):
@@ -197,7 +197,7 @@ class ExtData:
             Observed data for the comparison star
 
         rel_band : string
-            Band to use for relatie extinction measurement
+            Band to use for relative extinction measurement
             default = "V"
 
         Returns
@@ -242,7 +242,7 @@ class ExtData:
 
     def calc_elx_spectra(self, red, comp, src, rel_band="V"):
         """
-        Calculate the E(lambda-V) for the spectroscopic data
+        Calculate the E(lambda-X) for the spectroscopic data
 
         Parameters
         ----------
@@ -256,7 +256,7 @@ class ExtData:
             data source (see global _poss_datasources)
 
         rel_band : string
-            Band to use for relatie extinction measurement
+            Band to use for relative extinction measurement
             default = "V"
 
         Returns
@@ -312,7 +312,7 @@ class ExtData:
 
     def calc_elx(self, redstar, compstar, rel_band="V"):
         """
-        Calculate the E(lambda-V) basic extinction measurement
+        Calculate the E(lambda-X) basic extinction measurement
 
         Parameters
         ----------
@@ -323,7 +323,7 @@ class ExtData:
             Observed data for the comparison star
 
         rel_band : string
-            Band to use for relatie extinction measurement
+            Band to use for relative extinction measurement
             default = "V"
 
         Returns
@@ -476,7 +476,7 @@ class ExtData:
         Parameters
         ----------
         filename : string
-            Full filename to a save extinction curve
+            Full filename to save extinction curve
 
         column_info : dict
             dictionary with information about the dust column
