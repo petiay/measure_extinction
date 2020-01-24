@@ -993,7 +993,7 @@ class StarData:
             min/max wavelength range to use to normalize data
 
         mlam4 : boolean
-            plot the data multipled by lamda^4
+            plot the data multiplied by lamda^4
             removes the Rayleigh-Jeans slope
 
         yoffset : float
@@ -1059,7 +1059,8 @@ class StarData:
 
         # plot the bands and all spectra for this star
         for curtype in self.data.keys():
-            gindxs, = np.where(self.data[curtype].npts > 0)
+            # replace fluxes by NaNs for wavelength regions that need to be excluded from the plot
+            self.data[curtype].fluxes[self.data[curtype].npts==0] = np.nan
 
             if mlam4:
                 ymult = np.power(self.data[curtype].waves.value, 4.0)
@@ -1076,28 +1077,27 @@ class StarData:
                 legval = None
             yvals = (
                 self.data[curtype]
-                .fluxes[gindxs]
+                .fluxes
                 .to(
                     fluxunit,
-                    equivalencies=u.spectral_density(self.data[curtype].waves[gindxs]),
+                    equivalencies=u.spectral_density(self.data[curtype].waves),
                 )
                 .value
             )
             yuncs = (
                 self.data[curtype]
-                .uncs[gindxs]
+                .uncs
                 .to(
                     fluxunit,
-                    equivalencies=u.spectral_density(self.data[curtype].waves[gindxs]),
+                    equivalencies=u.spectral_density(self.data[curtype].waves),
                 )
                 .value
             )
-            yplotvals = ymult[gindxs] * yvals * yoffset
-            if len(gindxs) < 20:
-                # plot small number of points (usually BANDS data) as
-                # points with errorbars
+            yplotvals = ymult * yvals * yoffset
+            if curtype == "BAND":
+                # plot band data as points with errorbars
                 ax.errorbar(
-                    self.data[curtype].waves[gindxs].value,
+                    self.data[curtype].waves.value,
                     yplotvals,
                     yerr=ymult * yuncs,
                     fmt="o",
@@ -1107,7 +1107,7 @@ class StarData:
                 )
             else:
                 ax.plot(
-                    self.data[curtype].waves[gindxs].value,
+                    self.data[curtype].waves.value,
                     yplotvals,
                     "-",
                     color=pcolor,
@@ -1117,7 +1117,7 @@ class StarData:
             if curtype == annotate_key:
                 # annotate the spectra
                 # ann_wave_range = np.array([max_gwave-5.0, max_gwave-1.0])
-                waves = self.data[curtype].waves[gindxs]
+                waves = self.data[curtype].waves
                 ann_indxs = np.where(
                     (waves >= annotate_wave_range[0])
                     & (waves <= annotate_wave_range[1])

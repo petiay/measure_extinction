@@ -13,7 +13,7 @@ __all__ = ["ExtData", "AverageExtData"]
 
 # globals
 # possible datasets (also extension names in saved FITS file)
-_poss_datasources = ["BAND", "IUE", "STIS", "SpeX", "IRS"]
+_poss_datasources = ["BAND", "IUE", "STIS", "SpeX_SXD", "SpeX_LXD", "IRS"]
 
 
 def _rebin(a, rebin_fac):
@@ -201,7 +201,7 @@ class ExtData:
             Observed data for the comparison star
 
         rel_band : string
-            Band to use for relatie extinction measurement
+            Band to use for relative extinction measurement
             default = "V"
 
         Returns
@@ -246,7 +246,7 @@ class ExtData:
 
     def calc_elx_spectra(self, red, comp, src, rel_band="V"):
         """
-        Calculate the E(lambda-V) for the spectroscopic data
+        Calculate the E(lambda-X) for the spectroscopic data
 
         Parameters
         ----------
@@ -260,7 +260,7 @@ class ExtData:
             data source (see global _poss_datasources)
 
         rel_band : string
-            Band to use for relatie extinction measurement
+            Band to use for relative extinction measurement
             default = "V"
 
         Returns
@@ -316,7 +316,7 @@ class ExtData:
 
     def calc_elx(self, redstar, compstar, rel_band="V"):
         """
-        Calculate the E(lambda-V) basic extinction measurement
+        Calculate the E(lambda-X) basic extinction measurement
 
         Parameters
         ----------
@@ -327,7 +327,7 @@ class ExtData:
             Observed data for the comparison star
 
         rel_band : string
-            Band to use for relatie extinction measurement
+            Band to use for relative extinction measurement
             default = "V"
 
         Returns
@@ -483,7 +483,7 @@ class ExtData:
         Parameters
         ----------
         filename : string
-            Full filename to a save extinction curve
+            Full filename to save extinction curve
 
         column_info : dict
             dictionary with information about the dust column
@@ -774,7 +774,7 @@ class ExtData:
             convert from E(lambda-X) using A(X)
 
         yoffset : float
-            addiative offset for the data
+            additive offset for the data
 
         rebin_fac : int
             factor by which to rebin spectra
@@ -810,10 +810,11 @@ class ExtData:
             ax = axav * av
 
         for curtype in self.waves.keys():
-            gindxs, = np.where(self.npts[curtype] > 0)
-            x = self.waves[curtype][gindxs].to(u.micron).value
-            y = self.exts[curtype][gindxs]
-            yu = self.uncs[curtype][gindxs]
+            # replace extinction values by NaNs for wavelength regions that need to be excluded from the plot
+            self.exts[curtype][self.npts[curtype]==0] = np.nan
+            x = self.waves[curtype].to(u.micron).value
+            y = self.exts[curtype]
+            yu = self.uncs[curtype]
             if alax:
                 y = (y / ax) + 1.0
                 yu /= ax
@@ -829,9 +830,8 @@ class ExtData:
             # else:
             #     legval = None
 
-            if len(gindxs) < 20:
-                # plot small number of points (usually BANDS data) as
-                # points with errorbars
+            if curtype == "BAND":
+                # plot band data as points with errorbars
                 pltax.errorbar(
                     x, y, yerr=yu, fmt="o", color=color, alpha=alpha, mfc="white"
                 )

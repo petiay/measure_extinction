@@ -54,10 +54,10 @@ if __name__ == "__main__":
                 "FLAG",
                 ],
                 )
-        rb_spex_opt = merge_spex_obsspec(table)
+        spex_merged = merge_spex_obsspec(table)
         if args.outname:
             outname = args.outname
         else:
             outname = os.path.basename(filename).split('.')[0]
         spex_file = "%s_spex.fits" % (outname)
-        rb_spex_opt.write("%s/%s" % (args.outpath, spex_file), overwrite=True)
+        spex_merged.write("%s/%s" % (args.outpath, spex_file), overwrite=True)
