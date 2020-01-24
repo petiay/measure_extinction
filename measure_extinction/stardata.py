@@ -611,7 +611,7 @@ class SpecData:
         )
 
         # trim any data that is not finite
-        indxs, = np.where(~np.isfinite(self.fluxes))
+        (indxs,) = np.where(~np.isfinite(self.fluxes))
         if len(indxs) > 0:
             self.fluxes[indxs] = 0.0
             self.npts[indxs] = 0
@@ -664,7 +664,7 @@ class SpecData:
         self.read_spectra(line, path)
 
         # trim the long wavelength data by setting the npts to zero
-        indxs, = np.where(self.waves > 3200.0 * u.angstrom)
+        (indxs,) = np.where(self.waves > 3200.0 * u.angstrom)
         if len(indxs) > 0:
             self.npts[indxs] = 0
 
@@ -783,7 +783,7 @@ class SpecData:
 
         # remove bad long wavelength IRS data if keyword set
         if "IRS_maxwave" in corfac.keys():
-            indxs, = np.where(self.waves.value > corfac["IRS_maxwave"])
+            (indxs,) = np.where(self.waves.value > corfac["IRS_maxwave"])
             if len(indxs) > 0:
                 self.npts[indxs] = 0
 
@@ -874,9 +874,9 @@ class StarData:
                 elif cpair[0] in poss_mod_params:
                     self.model_params[cpair[0]] = cpair[1]
                 elif cpair[0] == "corfac_spex_SXD" and cpair[1] != "None":
-                        self.corfac["SpeX_SXD"] = float(cpair[1])
+                    self.corfac["SpeX_SXD"] = float(cpair[1])
                 elif cpair[0] == "corfac_spex_LXD" and cpair[1] != "None":
-                        self.corfac["SpeX_LXD"] = float(cpair[1])
+                    self.corfac["SpeX_LXD"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs_zerowave":
                     self.corfac["IRS_zerowave"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs_slope":
@@ -921,24 +921,38 @@ class StarData:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["SpeX_SXD"] = SpecData("SpeX_SXD")
-                        self.data["SpeX_SXD"].read_spex(line, path=self.path, use_corfac=self.use_corfac, corfac=self.corfac)
+                        self.data["SpeX_SXD"].read_spex(
+                            line,
+                            path=self.path,
+                            use_corfac=self.use_corfac,
+                            corfac=self.corfac,
+                        )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
                 elif line.find("SpeX_LXD") == 0:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["SpeX_LXD"] = SpecData("SpeX_LXD")
-                        self.data["SpeX_LXD"].read_spex(line, path=self.path, use_corfac=self.use_corfac, corfac=self.corfac)
+                        self.data["SpeX_LXD"].read_spex(
+                            line,
+                            path=self.path,
+                            use_corfac=self.use_corfac,
+                            corfac=self.corfac,
+                        )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
                 elif line.find("IRS") == 0 and line.find("IRS15") < 0:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["IRS"] = SpecData("IRS")
-                        self.data["IRS"].read_irs(line, path=self.path, use_corfac=self.use_corfac, corfac=self.corfac)
+                        self.data["IRS"].read_irs(
+                            line,
+                            path=self.path,
+                            use_corfac=self.use_corfac,
+                            corfac=self.corfac,
+                        )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-
 
     @staticmethod
     def _parse_dfile_line(line):
@@ -1011,7 +1025,7 @@ class StarData:
         fluxunit = u.erg / ((u.cm ** 2) * u.s * u.angstrom)
 
         if yoffset is None:
-            yoffset = 1.0
+            yoffset = 0.0
 
         # find the data to use for the normalization if requested
         if norm_wave_range is not None:
@@ -1030,7 +1044,7 @@ class StarData:
                 return
                 # raise ValueError("requested normalization range not valid")
 
-            gindxs, = np.where(
+            (gindxs,) = np.where(
                 (self.data[normtype].npts > 0)
                 & (
                     (self.data[normtype].waves >= norm_wave_range[0])
@@ -1046,12 +1060,11 @@ class StarData:
                     .to(fluxunit, equivalencies=u.spectral_density(waves))
                     .value
                 )
-
                 if mlam4:
                     ymult = np.power(waves.value, 4.0)
                 else:
                     ymult = np.full((len(waves.value)), 1.0)
-                normval = np.average(fluxes * ymult)
+                normval = np.nanmean(fluxes * ymult)
             else:
                 raise ValueError("no good data in requested norm range")
         else:
@@ -1060,7 +1073,7 @@ class StarData:
         # plot the bands and all spectra for this star
         for curtype in self.data.keys():
             # replace fluxes by NaNs for wavelength regions that need to be excluded from the plot
-            self.data[curtype].fluxes[self.data[curtype].npts==0] = np.nan
+            self.data[curtype].fluxes[self.data[curtype].npts == 0] = np.nan
 
             if mlam4:
                 ymult = np.power(self.data[curtype].waves.value, 4.0)
@@ -1077,8 +1090,7 @@ class StarData:
                 legval = None
             yvals = (
                 self.data[curtype]
-                .fluxes
-                .to(
+                .fluxes.to(
                     fluxunit,
                     equivalencies=u.spectral_density(self.data[curtype].waves),
                 )
@@ -1086,14 +1098,13 @@ class StarData:
             )
             yuncs = (
                 self.data[curtype]
-                .uncs
-                .to(
+                .uncs.to(
                     fluxunit,
                     equivalencies=u.spectral_density(self.data[curtype].waves),
                 )
                 .value
             )
-            yplotvals = ymult * yvals * yoffset
+            yplotvals = ymult * yvals + yoffset
             if curtype == "BAND":
                 # plot band data as points with errorbars
                 ax.errorbar(
@@ -1122,7 +1133,7 @@ class StarData:
                     (waves >= annotate_wave_range[0])
                     & (waves <= annotate_wave_range[1])
                 )
-                ann_val = np.median(yplotvals[ann_indxs])
+                ann_val = np.nanmedian(yplotvals[ann_indxs])
                 ann_val += (annotate_yoffset,)
                 ann_xval = 0.5 * np.sum(annotate_wave_range.value)
                 ax.text(
