@@ -91,6 +91,7 @@ def AverageExtData(extdatas, alav=None):
     pwaves = {}
     pwaves_uncs = {}
     pwaves_npts = {}
+    pwaves_names = {}
     for cext in extdatas:
         for k, cwave in enumerate(cext.waves[src]):
             y = cext.exts[src][k]
@@ -98,16 +99,18 @@ def AverageExtData(extdatas, alav=None):
             if alav is not None:
                 y = (y / float(cext.columns["AV"][0])) + 1.0
                 yu /= float(cext.columns["AV"][0])
+            cwavev = cwave.to(u.micron).value
             if cwave in pwaves.keys():
-                pwaves[cwave] += y
-                pwaves_uncs[cwave] += np.square(yu)
-                pwaves_npts[cwave] += 1.0
+                pwaves[cwavev] += y
+                pwaves_uncs[cwavev] += np.square(yu)
+                pwaves_npts[cwavev] += 1.0
             else:
-                pwaves[cwave] = y
-                pwaves_uncs[cwave] = np.square(yu)
-                pwaves_npts[cwave] = 1.0
+                pwaves[cwavev] = y
+                pwaves_uncs[cwavev] = np.square(yu)
+                pwaves_npts[cwavev] = 1.0
+                pwaves_names[cwavev] = cext.names[src][k]
 
-    aveext.waves[src] = np.array(list(pwaves.keys()))
+    aveext.waves[src] = np.array(list(pwaves.keys())) * u.micron
     aveext.exts[src] = np.array(list(pwaves.values())) / np.array(
         list(pwaves_npts.values())
     )
@@ -115,6 +118,7 @@ def AverageExtData(extdatas, alav=None):
         list(pwaves_npts.values())
     )
     aveext.npts[src] = np.array(list(pwaves_npts.values()))
+    aveext.names[src] = np.array(list(pwaves_names))
 
     return aveext
 
@@ -369,13 +373,17 @@ class ExtData:
                     self.uncs[curname] /= ebv
                 self.type = "elvebv"
 
-    def trans_elv_alav(self, akav=0.112):
+    def trans_elv_alav(self, av=None, akav=0.112):
         """
         Transform E(lambda-V) to A(lambda)/A(V) by normalizing to
-        A(V) and adding 1.
+        A(V) and adding 1.  Default is to calculate this from the
+        input elx curve.  If A(V) values passed, use that instead.
 
         Parameters
         ----------
+        av : float [default = None]
+            value of A(V) to use - other otherwise calculate it
+
         akav : float  [default = 0.112]
            Value of A(K)/A(V)
            default is from Rieke & Lebosky (1985)
@@ -388,21 +396,23 @@ class ExtData:
         if self.type_rel_band != "V":
             warnings.warn("attempt to normalize a non-elv curve with av", UserWarning)
         else:
-            # determine the index for the B band
-            dwaves = np.absolute(self.waves["BAND"] - 2.19 * u.micron)
-            sindxs = np.argsort(dwaves)
-            kindx = sindxs[0]
-            if dwaves[kindx] > 0.02 * u.micron:
-                warnings.warn("no K band mesurement in E(l-V)", UserWarning)
-            else:
-                # normalize each portion of the extinction curve
-                ekv = self.exts["BAND"][kindx]
-                av = ekv / (akav - 1)
-                for curname in self.exts.keys():
-                    self.exts[curname] /= av
-                    self.exts[curname] += 1.0
-                    self.uncs[curname] /= av
-                self.type = "alav"
+            if av is None:
+                # compute A(V) from E(K-V)
+                dwaves = np.absolute(self.waves["BAND"] - 2.19 * u.micron)
+                sindxs = np.argsort(dwaves)
+                kindx = sindxs[0]
+                if dwaves[kindx] > 0.02 * u.micron:
+                    warnings.warn("no K band mesurement in E(l-V)", UserWarning)
+                else:
+                    # normalize each portion of the extinction curve
+                    ekv = self.exts["BAND"][kindx]
+                    av = ekv / (akav - 1)
+
+            for curname in self.exts.keys():
+                self.exts[curname] /= float(av)
+                self.exts[curname] += 1.0
+                self.uncs[curname] /= av
+            self.type = "alav"
 
     def get_fitdata(
         self, req_datasources, remove_uvwind_region=False, remove_lya_region=False
@@ -468,7 +478,10 @@ class ExtData:
         return (wave, y, unc)
 
     def save(
-        self, ext_filename, column_info=None, p92_best_params=None, p92_per_params=None
+        self, ext_filename,
+        column_info=None,
+        fm90_best_params=None, fm90_per_params=None,
+        p92_best_params=None, p92_per_params=None,
     ):
         """
         Save the extinction curve to a FITS file
@@ -481,6 +494,12 @@ class ExtData:
         column_info : dict
             dictionary with information about the dust column
             for example: {'ebv': 0.1, 'rv': 4.2, 'av': 0.42}
+
+        fm90_best_params : tuple of 2 float vectors
+           parameter names and best fit values for the FM90 fit
+
+        fm90_per_params : tuple of 2 float vectors
+           parameter names and (p50, +unc, -unc) values for the FM90 fit
 
         p92_best_params : tuple of 2 float vectors
            parameter names and best fit values for the P92 fit
@@ -516,6 +535,33 @@ class ExtData:
                     hval.append(column_info[ckey])
                 else:
                     print(ckey + " not supported for saving extcurves")
+
+        # FM90 best fit parameters
+        if fm90_best_params is not None:
+            hname = np.concatenate((hname, fm90_best_params[0]))
+            hval = np.concatenate((hval, fm90_best_params[1]))
+            fm90_comment = [pname + ": FM90 parameter" for pname in fm90_best_params[0]]
+            hcomment = np.concatenate((hcomment, fm90_comment))
+
+        # FM90 p50 +unc -unc fit parameters
+        if fm90_per_params is not None:
+            # p50 values
+            hname = np.concatenate((hname, [cp + '_p50' for cp in fm90_per_params[0]]))
+            hval = np.concatenate((hval, [cv[0] for cv in fm90_per_params[1]]))
+            fm90_comment = [pname + ": FM90 p50 parameter" for pname in fm90_per_params[0]]
+            hcomment = np.concatenate((hcomment, fm90_comment))
+
+            # +unc values
+            hname = np.concatenate((hname, [cp + '_punc' for cp in fm90_per_params[0]]))
+            hval = np.concatenate((hval, [cv[1] for cv in fm90_per_params[1]]))
+            fm90_comment = [pname + ": FM90 punc parameter" for pname in fm90_per_params[0]]
+            hcomment = np.concatenate((hcomment, fm90_comment))
+
+            # -unc values
+            hname = np.concatenate((hname, [cp + '_munc' for cp in fm90_per_params[0]]))
+            hval = np.concatenate((hval, [cv[2] for cv in fm90_per_params[1]]))
+            fm90_comment = [pname + ": FM90 munc parameter" for pname in fm90_per_params[0]]
+            hcomment = np.concatenate((hcomment, fm90_comment))
 
         # P92 best fit parameters
         if p92_best_params is not None:
@@ -633,34 +679,41 @@ class ExtData:
             if pheader.get(curkey):
                 if pheader.get("%s_UNC" % curkey):
                     self.columns[curkey] = (
-                        pheader.get(curkey),
-                        pheader.get("%s_UNC" % curkey),
+                        float(pheader.get(curkey)),
+                        float(pheader.get("%s_UNC" % curkey)),
                     )
                 else:
-                    self.columns[curkey] = (pheader.get(curkey), 0.0)
+                    self.columns[curkey] = (float(pheader.get(curkey)), 0.0)
 
         # get FM90 parameters if they exist
-        if pheader.get("FMC2"):
-            FM90_keys = ["C1", "C2", "C3", "C4", "x0", "gam"]
-            self.fm90 = {}
+        FM90_keys = ["C1", "C2", "C3", "C4", "XO", "GAMMA"]
+        if pheader.get("C2"):
+            self.fm90_best_fit = {}
             for curkey in FM90_keys:
                 if pheader.get(curkey):
-                    self.fm90[curkey] = (
-                        float(pheader.get("FM%s" % curkey)),
-                        float(pheader.get("FM%sU" % curkey)),
-                    )
+                    self.fm90_best_fit[curkey] = float(pheader.get("%s" % curkey))
             # for completeness, populate C1 using from the FM07 relationship
             # if not already present
-            if "C1" not in self.fm90.keys():
-                self.fm90["C1"] = (
-                    2.09 - 2.84 * self.fm90["C2"][0],
-                    2.84 * self.fm90["C2"][1],
+            if "C1" not in self.fm90_best_fit.keys():
+                self.fm90_best_fit["C1"] = (
+                    2.09 - 2.84 * self.fm90_best_fit["C2"][0],
+                    2.84 * self.fm90_best_fit["C2"][1],
                 )
 
+        # get the FM90 p50 +unc -unc fit parameters if they exist
+        if pheader.get("C2_p50"):
+            self.fm90_p50_fit = {}
+            for bkey in FM90_keys:
+                if pheader.get(f"{bkey}_p50"):
+                    val = float(pheader.get(f"{bkey}_p50"))
+                    punc = float(pheader.get(f"{bkey}_punc"))
+                    munc = float(pheader.get(f"{bkey}_munc"))
+                    self.fm90_p50_fit[bkey] = (val, punc, munc)
+
         # get P92 best fit parameters if they exist
+        P92_mkeys = ["BKG", "FUV", "NUV", "SIL1", "SIL2", "FIR"]
+        P92_types = ["AMP", "LAMBDA", "WIDTH", "B", "N"]
         if pheader.get("BKG_amp"):
-            P92_mkeys = ["BKG", "FUV", "NUV", "SIL1", "SIL2", "FIR"]
-            P92_types = ["AMP", "LAMBDA", "B", "N"]
             self.p92_best_fit = {}
             for curmkey in P92_mkeys:
                 for curtype in P92_types:
@@ -671,12 +724,14 @@ class ExtData:
         # get the P92 p50 +unc -unc fit parameters if they exist
         if pheader.get("BKG_amp_p50"):
             self.p92_p50_fit = {}
-            for kval in pheader.get("*_p50"):
-                bkey = kval[:-4]
-                val = float(pheader.get(f"{bkey}_p50"))
-                punc = float(pheader.get(f"{bkey}_punc"))
-                munc = float(pheader.get(f"{bkey}_munc"))
-                self.p92_p50_fit[bkey] = (val, punc, munc)
+            for curmkey in P92_mkeys:
+                for curtype in P92_types:
+                    bkey = "%s_%s" % (curmkey, curtype)
+                    if pheader.get(f"{bkey}_p50"):
+                        val = float(pheader.get(f"{bkey}_p50"))
+                        punc = float(pheader.get(f"{bkey}_punc"))
+                        munc = float(pheader.get(f"{bkey}_munc"))
+                        self.p92_p50_fit[bkey] = (val, punc, munc)
 
     def _get_ext_ytitle(self, ytype=None):
         """
@@ -807,7 +862,7 @@ class ExtData:
                     (x >= annotate_wave_range[0].value)
                     & (x <= annotate_wave_range[1].value)
                 )
-                ann_val = np.median(y[ann_indxs])
+                ann_val = np.nanmedian(y[ann_indxs])
                 ann_val += (annotate_yoffset,)
                 ann_xval = 0.5 * np.sum(annotate_wave_range.value)
                 pltax.text(
