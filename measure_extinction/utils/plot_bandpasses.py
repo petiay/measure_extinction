@@ -15,7 +15,7 @@ def plot_bandpasses(bands):
             wavelengths = bp.waveset * 10**4
         else:
             wavelengths = bp.waveset
-            plt.plot(wavelengths, bp(bp.waveset), label=band)
+        plt.plot(wavelengths, bp(bp.waveset), label=band)
 
     plt.xlabel('$\lambda$ [$\AA$]',size=15)
     plt.ylabel('transmission',size=15)
