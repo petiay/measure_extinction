@@ -5,8 +5,7 @@ import numpy as np
 import astropy.units as u
 import pkg_resources
 from synphot import SpectralElement
-from measure_extinction.stardata import StarData
-from measure_extinction.stardata import BandData
+from measure_extinction.stardata import StarData,BandData
 
 # function to get photometry from a spectrum
 def get_phot(wave, flux, bands, bandnames):
@@ -72,7 +71,7 @@ def calc_corfac(star_phot, star_spec, bands, bandnames):
 
     Outputs
     -------
-    corfac : floats
+    corfac : float
         mean correction factor for the spectrum
     """
     bands = [band for band in bands if band in star_phot.band_fluxes.keys()]
@@ -88,21 +87,10 @@ def calc_corfac(star_phot, star_spec, bands, bandnames):
     corfacs = fluxes_bands / fluxes_spectra
     return np.mean(corfacs)
 
-
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("starname", help="name of the star (filebase)")
-    parser.add_argument("--path", help="path where data files are stored",
-    default=pkg_resources.resource_filename('measure_extinction',
-                                            'data/'))
-    args = parser.parse_args()
-
+def corr_spex(starname,path):
     # read in the data file (do not use the correction factors at this point)
-    star_data = StarData('%s.dat' % args.starname.lower(), path=args.path, use_corfac=False)
+    star_data = StarData('%s.dat' % starname.lower(), path=path, use_corfac=False)
     star_phot = star_data.data["BAND"]
-
     # check which spectra are available,
     # and calculate the correction factors for the spectra
     if "SpeX_SXD" in star_data.data.keys():
@@ -120,23 +108,38 @@ if __name__ == "__main__":
     # add the correction factors to the data file if not already in there,
     # otherwise overwrite the existing correction factors
     if "SpeX_SXD" in star_data.corfac.keys():
-        datafile = open(args.path+'%s.dat' % args.starname.lower(), "w")
+        datafile = open(path+'%s.dat' % starname.lower(), "w")
         for ln, line in enumerate(star_data.datfile_lines):
             if "corfac_spex_SXD" in line:
                 star_data.datfile_lines[ln] = "corfac_spex_SXD = " + str(corfac_SXD) + "\n"
             datafile.write(star_data.datfile_lines[ln])
         datafile.close()
     else:
-         with open(args.path+'%s.dat' % args.starname.lower(), "a") as datafile:
+         with open(path+'%s.dat' % starname.lower(), "a") as datafile:
              datafile.write("corfac_spex_SXD = "+ str(corfac_SXD) + "\n")
 
     if "SpeX_LXD" in star_data.corfac.keys():
-        datafile = open(args.path+'%s.dat' % args.starname.lower(), "w")
+        datafile = open(path+'%s.dat' % starname.lower(), "w")
         for ln, line in enumerate(star_data.datfile_lines):
             if "corfac_spex_LXD" in line:
                 star_data.datfile_lines[ln] = "corfac_spex_LXD = " + str(corfac_LXD) + "\n"
             datafile.write(star_data.datfile_lines[ln])
         datafile.close()
     else:
-        with open(args.path+'%s.dat' % args.starname.lower(), "a") as datafile:
+        with open(path+'%s.dat' % starname.lower(), "a") as datafile:
             datafile.write("corfac_spex_LXD = "+ str(corfac_LXD) + "\n")
+
+
+if __name__ == "__main__":
+
+    # commandline parser
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("starname", help="name of the star (filebase)")
+    parser.add_argument("--path", help="path where data files are stored",
+    default=pkg_resources.resource_filename('measure_extinction',
+                                            'data/'))
+    args = parser.parse_args()
+
+    # calculate and save the SpeX correction factors
+    corr_spex(args.starname,args.path)
