@@ -11,27 +11,12 @@ from measure_extinction.stardata import StarData
 from measure_extinction.utils.helpers import get_full_starfile
 
 
-def plot_spec_parser():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("starname", help="name of star for which to plot the spectrum")
-    parser.add_argument("--path", help="path to data files", default=pkg_resources.resource_filename('measure_extinction', 'data/'))
-    parser.add_argument("--mlam4", help="plot lambda^4*F(lambda)", action="store_true")
-    parser.add_argument("--png", help="save figure as a png file", action="store_true")
-    parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
-    return parser
-
-
-if __name__ == "__main__":
-
-    # commandline parser
-    parser = plot_spec_parser()
-    args = parser.parse_args()
-
+def plot_spec(starname,path,mlam4,pdf):
     # read in the observed data of the star
     # fstarname, file_path = get_full_starfile(args.starname)
     # --> this is currently not working, because the default path in get_full_starfile is not accessible as an external user.
 
-    starobs = StarData('%s.dat' % args.starname.lower(), path=args.path, use_corfac=True)
+    starobs = StarData('%s.dat' % starname.lower(), path=path, use_corfac=True)
 
     # plotting setup for easier to read plots
     fontsize = 18
@@ -47,8 +32,8 @@ if __name__ == "__main__":
     # setup the plot
     fig, ax = plt.subplots(figsize=(13, 10))
 
-    # plot the bands and all spectra for this star
-    starobs.plot(ax, mlam4=args.mlam4)
+    # plot all bands and spectra for this star
+    starobs.plot(ax, mlam4=mlam4)
 
     # finish configuring the plot
     ax.set_yscale("log")
@@ -62,9 +47,21 @@ if __name__ == "__main__":
     fig.tight_layout()
 
     # plot or save to a file
-    if args.png:
-        fig.savefig(args.path + args.starname + "_spec.png")
-    elif args.pdf:
-        fig.savefig(args.path + args.starname + "_spec.pdf")
+    if pdf:
+        fig.savefig(path + starname + "_spec.pdf")
     else:
         plt.show()
+
+
+if __name__ == "__main__":
+
+    # commandline parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument("starname", help="name of star for which to plot the spectrum")
+    parser.add_argument("--path", help="path to data files", default=pkg_resources.resource_filename('measure_extinction', 'data/'))
+    parser.add_argument("--mlam4", help="plot lambda^4*F(lambda)", action="store_true")
+    parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
+    args = parser.parse_args()
+
+    # plot the spectrum
+    plot_spec(args.starname, args.path, args.mlam4, args.pdf)

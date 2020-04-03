@@ -856,7 +856,6 @@ class StarData:
         f = open(self.path + self.file, "r")
         self.datfile_lines = list(f)
         f.close()
-
         # get the photometric band data
         self.data["BAND"] = BandData("BAND")
         self.data["BAND"].read_bands(self.datfile_lines)
@@ -873,10 +872,16 @@ class StarData:
                     self.sptype = cpair[1]
                 elif cpair[0] in poss_mod_params:
                     self.model_params[cpair[0]] = cpair[1]
-                elif cpair[0] == "corfac_spex_SXD" and cpair[1] != "None":
-                    self.corfac["SpeX_SXD"] = float(cpair[1])
-                elif cpair[0] == "corfac_spex_LXD" and cpair[1] != "None":
-                    self.corfac["SpeX_LXD"] = float(cpair[1])
+                elif cpair[0] == "corfac_spex_SXD":
+                    if cpair[1] == "None":
+                        self.corfac["SpeX_SXD"] = None
+                    else:
+                        self.corfac["SpeX_SXD"] = float(cpair[1])
+                elif cpair[0] == "corfac_spex_LXD":
+                    if cpair[1] == "None":
+                        self.corfac["SpeX_LXD"] = None
+                    else:
+                        self.corfac["SpeX_LXD"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs_zerowave":
                     self.corfac["IRS_zerowave"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs_slope":
