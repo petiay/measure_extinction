@@ -35,12 +35,12 @@ def _flux_unc_as_mags(fluxes, uncs):
     uncs_mag = np.empty(len(fluxes))
 
     # fluxes-uncs case
-    indxs, = np.where(fluxes - uncs <= 0)
+    (indxs,) = np.where(fluxes - uncs <= 0)
     if len(indxs) > 0:
         uncs_mag[indxs] = -2.5 * np.log10(fluxes[indxs] / (fluxes[indxs] + uncs[indxs]))
 
     # normal case
-    indxs, = np.where(fluxes - uncs > 0)
+    (indxs,) = np.where(fluxes - uncs > 0)
     if len(indxs) > 0:
         uncs_mag[indxs] = -2.5 * np.log10(
             (fluxes[indxs] - uncs[indxs]) / (fluxes[indxs] + uncs[indxs])
@@ -69,7 +69,7 @@ def AverageExtData(extdatas, alav=None):
         aveext.npts[src] = np.zeros(n_waves)
         for cext in extdatas:
             if src in cext.waves.keys():
-                gindxs, = np.where(cext.npts[src] > 0)
+                (gindxs,) = np.where(cext.npts[src] > 0)
                 y = cext.exts[src][gindxs]
                 yu = cext.uncs[src][gindxs]
                 if alav is not None:
@@ -78,7 +78,7 @@ def AverageExtData(extdatas, alav=None):
                 aveext.exts[src][gindxs] += y
                 aveext.uncs[src][gindxs] += np.square(yu)
                 aveext.npts[src][gindxs] += cext.npts[src][gindxs]
-        gindxs, = np.where(aveext.npts[src] > 0)
+        (gindxs,) = np.where(aveext.npts[src] > 0)
         aveext.exts[src][gindxs] /= aveext.npts[src][gindxs]
         aveext.uncs[src][gindxs] /= aveext.npts[src][gindxs]
         aveext.uncs[src][gindxs] = (
@@ -292,7 +292,7 @@ class ExtData:
                 # only compute the extinction for good, positive fluxes
                 # print(comp.data[src].npts)
                 # print(comp.data[src].fluxes)
-                indxs, = np.where(
+                (indxs,) = np.where(
                     (red.data[src].npts > 0)
                     & (comp.data[src].npts > 0)
                     & (red.data[src].fluxes.value > 0)
@@ -471,7 +471,7 @@ class ExtData:
 
         # sort the data
         # at the same time, remove points with no data
-        gindxs, = np.where(npts > 0)
+        (gindxs,) = np.where(npts > 0)
         sindxs = np.argsort(x[gindxs])
         gindxs = gindxs[sindxs]
         wave = wave[gindxs]
@@ -481,10 +481,13 @@ class ExtData:
         return (wave, y, unc)
 
     def save(
-        self, ext_filename,
+        self,
+        ext_filename,
         column_info=None,
-        fm90_best_params=None, fm90_per_params=None,
-        p92_best_params=None, p92_per_params=None,
+        fm90_best_params=None,
+        fm90_per_params=None,
+        p92_best_params=None,
+        p92_per_params=None,
     ):
         """
         Save the extinction curve to a FITS file
@@ -549,21 +552,27 @@ class ExtData:
         # FM90 p50 +unc -unc fit parameters
         if fm90_per_params is not None:
             # p50 values
-            hname = np.concatenate((hname, [cp + '_p50' for cp in fm90_per_params[0]]))
+            hname = np.concatenate((hname, [cp + "_p50" for cp in fm90_per_params[0]]))
             hval = np.concatenate((hval, [cv[0] for cv in fm90_per_params[1]]))
-            fm90_comment = [pname + ": FM90 p50 parameter" for pname in fm90_per_params[0]]
+            fm90_comment = [
+                pname + ": FM90 p50 parameter" for pname in fm90_per_params[0]
+            ]
             hcomment = np.concatenate((hcomment, fm90_comment))
 
             # +unc values
-            hname = np.concatenate((hname, [cp + '_punc' for cp in fm90_per_params[0]]))
+            hname = np.concatenate((hname, [cp + "_punc" for cp in fm90_per_params[0]]))
             hval = np.concatenate((hval, [cv[1] for cv in fm90_per_params[1]]))
-            fm90_comment = [pname + ": FM90 punc parameter" for pname in fm90_per_params[0]]
+            fm90_comment = [
+                pname + ": FM90 punc parameter" for pname in fm90_per_params[0]
+            ]
             hcomment = np.concatenate((hcomment, fm90_comment))
 
             # -unc values
-            hname = np.concatenate((hname, [cp + '_munc' for cp in fm90_per_params[0]]))
+            hname = np.concatenate((hname, [cp + "_munc" for cp in fm90_per_params[0]]))
             hval = np.concatenate((hval, [cv[2] for cv in fm90_per_params[1]]))
-            fm90_comment = [pname + ": FM90 munc parameter" for pname in fm90_per_params[0]]
+            fm90_comment = [
+                pname + ": FM90 munc parameter" for pname in fm90_per_params[0]
+            ]
             hcomment = np.concatenate((hcomment, fm90_comment))
 
         # P92 best fit parameters
@@ -576,21 +585,25 @@ class ExtData:
         # P92 p50 +unc -unc fit parameters
         if p92_per_params is not None:
             # p50 values
-            hname = np.concatenate((hname, [cp + '_p50' for cp in p92_per_params[0]]))
+            hname = np.concatenate((hname, [cp + "_p50" for cp in p92_per_params[0]]))
             hval = np.concatenate((hval, [cv[0] for cv in p92_per_params[1]]))
             p92_comment = [pname + ": P92 p50 parameter" for pname in p92_per_params[0]]
             hcomment = np.concatenate((hcomment, p92_comment))
 
             # +unc values
-            hname = np.concatenate((hname, [cp + '_punc' for cp in p92_per_params[0]]))
+            hname = np.concatenate((hname, [cp + "_punc" for cp in p92_per_params[0]]))
             hval = np.concatenate((hval, [cv[1] for cv in p92_per_params[1]]))
-            p92_comment = [pname + ": P92 punc parameter" for pname in p92_per_params[0]]
+            p92_comment = [
+                pname + ": P92 punc parameter" for pname in p92_per_params[0]
+            ]
             hcomment = np.concatenate((hcomment, p92_comment))
 
             # -unc values
-            hname = np.concatenate((hname, [cp + '_munc' for cp in p92_per_params[0]]))
+            hname = np.concatenate((hname, [cp + "_munc" for cp in p92_per_params[0]]))
             hval = np.concatenate((hval, [cv[2] for cv in p92_per_params[1]]))
-            p92_comment = [pname + ": P92 munc parameter" for pname in p92_per_params[0]]
+            p92_comment = [
+                pname + ": P92 munc parameter" for pname in p92_per_params[0]
+            ]
             hcomment = np.concatenate((hcomment, p92_comment))
 
         # P92 emcee results
@@ -687,6 +700,16 @@ class ExtData:
                     )
                 else:
                     self.columns[curkey] = (float(pheader.get(curkey)), 0.0)
+
+        # get the columns p50 +unc -unc fit parameters if they exist
+        if pheader.get("AV_p50"):
+            self.columns_p50_fit = {}
+            for bkey in column_keys:
+                if pheader.get(f"{bkey}_p50"):
+                    val = float(pheader.get(f"{bkey}_p50"))
+                    punc = float(pheader.get(f"{bkey}_punc"))
+                    munc = float(pheader.get(f"{bkey}_munc"))
+                    self.columns_p50_fit[bkey] = (val, punc, munc)
 
         # get FM90 parameters if they exist
         FM90_keys = ["C1", "C2", "C3", "C4", "XO", "GAMMA"]
@@ -821,7 +844,7 @@ class ExtData:
                 # use F04 model to convert AV to AX
                 rv = float(self.columns["RV"][0])
                 emod = F04(rv)
-                indx, = np.where(self.type_rel_band == self.names["BAND"])
+                (indx,) = np.where(self.type_rel_band == self.names["BAND"])
                 axav = emod(self.waves["BAND"][indx[0]])
             else:
                 axav = 1.0
@@ -829,7 +852,7 @@ class ExtData:
 
         for curtype in self.waves.keys():
             # replace extinction values by NaNs for wavelength regions that need to be excluded from the plot
-            self.exts[curtype][self.npts[curtype]==0] = np.nan
+            self.exts[curtype][self.npts[curtype] == 0] = np.nan
             x = self.waves[curtype].to(u.micron).value
             y = self.exts[curtype]
             yu = self.uncs[curtype]
@@ -861,7 +884,7 @@ class ExtData:
                 pltax.plot(x, y, "-", color=color, alpha=alpha)
 
             if curtype == annotate_key:
-                ann_indxs, = np.where(
+                (ann_indxs,) = np.where(
                     (x >= annotate_wave_range[0].value)
                     & (x <= annotate_wave_range[1].value)
                 )
