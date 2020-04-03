@@ -1145,7 +1145,7 @@ class StarData:
                     (waves >= annotate_wave_range[0])
                     & (waves <= annotate_wave_range[1])
                 )
-                ann_val = np.median(yplotvals[ann_indxs])
+                ann_val = np.nanmedian(yplotvals[ann_indxs])
                 ann_val += (annotate_yoffset,)
                 ann_xval = 0.5 * np.sum(annotate_wave_range.value)
                 ax.text(
