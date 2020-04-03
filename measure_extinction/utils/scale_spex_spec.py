@@ -87,7 +87,8 @@ def calc_corfac(star_phot, star_spec, bands, bandnames):
     corfacs = fluxes_bands / fluxes_spectra
     return np.mean(corfacs)
 
-def corr_spex(starname,path):
+# function to read in the available data, calculate the correction factors and save the factors in the data file
+def calc_save_corfac_spex(starname,path):
     # read in the data file (do not use the correction factors at this point)
     star_data = StarData('%s.dat' % starname.lower(), path=path, use_corfac=False)
     star_phot = star_data.data["BAND"]

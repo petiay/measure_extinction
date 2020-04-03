@@ -4,7 +4,7 @@
 #	- plotting the spectra
 
 from measure_extinction.utils.merge_spex_spec import merge_spex
-from measure_extinction.utils.spex_corr import corr_spex
+from measure_extinction.utils.scale_spex_spec import calc_save_corfac_spex
 from measure_extinction.utils.plot_spec import plot_spec
 
 import argparse
@@ -39,5 +39,5 @@ for filename in glob.glob(args.inpath+"/*.txt"):
 for star in stars:
     print(star)
     merge_spex(star,args.inpath,args.spex_path,outname=None)
-    corr_spex(star,os.path.dirname(os.path.normpath(args.spex_path))+"/")
+    calc_save_corfac_spex(star,os.path.dirname(os.path.normpath(args.spex_path))+"/")
     plot_spec(star,os.path.dirname(os.path.normpath(args.spex_path))+"/",args.mlam4,pdf=True)
