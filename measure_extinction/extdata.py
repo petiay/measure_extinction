@@ -49,6 +49,31 @@ def _flux_unc_as_mags(fluxes, uncs):
     return uncs_mag
 
 
+def _hierarch_keywords(names):
+    """
+    Prepend the 'HIERARCH ' string to all keywords > 8 characters
+    Avoids FITS VerifyWarning.
+
+    Parameters
+    ----------
+    names : list
+        keywords
+
+    Returns
+    -------
+    new_names : list
+        keywords with HIERARCH prepended as apprpriate
+    """
+    new_names = []
+    for cname in names:
+        if len(cname) >= 8:
+            new_names.append(f"HIERARCH {cname}")
+        else:
+            new_names.append(cname)
+
+    return new_names
+
+
 def AverageExtData(extdatas, alav=None):
     """
     Generate the average extinction curve from a list of ExtData objects
@@ -552,7 +577,9 @@ class ExtData:
         # FM90 p50 +unc -unc fit parameters
         if fm90_per_params is not None:
             # p50 values
-            hname = np.concatenate((hname, [cp + "_p50" for cp in fm90_per_params[0]]))
+            hname = np.concatenate(
+                (hname, _hierarch_keywords([f"{cp}_p50" for cp in fm90_per_params[0]]))
+            )
             hval = np.concatenate((hval, [cv[0] for cv in fm90_per_params[1]]))
             fm90_comment = [
                 pname + ": FM90 p50 parameter" for pname in fm90_per_params[0]
@@ -560,7 +587,9 @@ class ExtData:
             hcomment = np.concatenate((hcomment, fm90_comment))
 
             # +unc values
-            hname = np.concatenate((hname, [cp + "_punc" for cp in fm90_per_params[0]]))
+            hname = np.concatenate(
+                (hname, _hierarch_keywords([f"{cp}_punc" for cp in fm90_per_params[0]]))
+            )
             hval = np.concatenate((hval, [cv[1] for cv in fm90_per_params[1]]))
             fm90_comment = [
                 pname + ": FM90 punc parameter" for pname in fm90_per_params[0]
@@ -568,7 +597,9 @@ class ExtData:
             hcomment = np.concatenate((hcomment, fm90_comment))
 
             # -unc values
-            hname = np.concatenate((hname, [cp + "_munc" for cp in fm90_per_params[0]]))
+            hname = np.concatenate(
+                (hname, _hierarch_keywords([f"{cp}_munc" for cp in fm90_per_params[0]]))
+            )
             hval = np.concatenate((hval, [cv[2] for cv in fm90_per_params[1]]))
             fm90_comment = [
                 pname + ": FM90 munc parameter" for pname in fm90_per_params[0]
@@ -577,7 +608,7 @@ class ExtData:
 
         # P92 best fit parameters
         if p92_best_params is not None:
-            hname = np.concatenate((hname, p92_best_params[0]))
+            hname = np.concatenate((hname, _hierarch_keywords(p92_best_params[0])))
             hval = np.concatenate((hval, p92_best_params[1]))
             p92_comment = [pname + ": P92 parameter" for pname in p92_best_params[0]]
             hcomment = np.concatenate((hcomment, p92_comment))
@@ -585,13 +616,17 @@ class ExtData:
         # P92 p50 +unc -unc fit parameters
         if p92_per_params is not None:
             # p50 values
-            hname = np.concatenate((hname, [cp + "_p50" for cp in p92_per_params[0]]))
+            hname = np.concatenate(
+                (hname, _hierarch_keywords([f"{cp}_p50" for cp in p92_per_params[0]]))
+            )
             hval = np.concatenate((hval, [cv[0] for cv in p92_per_params[1]]))
             p92_comment = [pname + ": P92 p50 parameter" for pname in p92_per_params[0]]
             hcomment = np.concatenate((hcomment, p92_comment))
 
             # +unc values
-            hname = np.concatenate((hname, [cp + "_punc" for cp in p92_per_params[0]]))
+            hname = np.concatenate(
+                (hname, _hierarch_keywords([f"{cp}_punc" for cp in p92_per_params[0]]))
+            )
             hval = np.concatenate((hval, [cv[1] for cv in p92_per_params[1]]))
             p92_comment = [
                 pname + ": P92 punc parameter" for pname in p92_per_params[0]
@@ -599,7 +634,9 @@ class ExtData:
             hcomment = np.concatenate((hcomment, p92_comment))
 
             # -unc values
-            hname = np.concatenate((hname, [cp + "_munc" for cp in p92_per_params[0]]))
+            hname = np.concatenate(
+                (hname, _hierarch_keywords([f"{cp}_munc" for cp in p92_per_params[0]]))
+            )
             hval = np.concatenate((hval, [cv[2] for cv in p92_per_params[1]]))
             p92_comment = [
                 pname + ": P92 munc parameter" for pname in p92_per_params[0]
