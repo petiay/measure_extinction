@@ -139,12 +139,10 @@ class BandData:
             np.array([0.6605, 0.2668, 0.1069, 0.03055, 1.941e-3, 3.831e-4]) * 1e-11
         )
 
-        # WISE bands. Wavelenghts are taken from http://www.astro.ucla.edu/~wright/WISE/passbands.html.
-        # Zeropoints are taken from http://svo2.cab.inta-csic.es/theory/fps/index.php?mode=browse&gname=WISE.
+        # WISE bands. Wavelenghts and zeropoints are taken from http://svo2.cab.inta-csic.es/theory/fps/index.php?mode=browse&gname=WISE.
         _wise_band_names = ["WISE1", "WISE2", "WISE3", "WISE4"]
-        _wise_band_waves = np.array([3.368, 4.618, 12.082, 22.194])
+        _wise_band_waves = np.array([3.3526, 4.6028, 11.5608, 22.0883])
         _wise_band_zeromag_fluxes = (np.array([8.1787e-12, 2.415e-12, 6.5151e-14, 5.0901e-15]))
-
         # WFPC2 bands
         _wfpc2_band_names = [
             "WFPC2_F170W",
