@@ -86,7 +86,7 @@ def calc_corfac(star_phot, star_spec, bands):
     fluxes_bands = np.array([star_phot.band_fluxes[band][0] for band in bands])
     fluxes_spectra = get_phot(star_spec, bands)
     corfacs = fluxes_bands / fluxes_spectra
-    return np.mean(corfacs)
+    return "%.3f" % np.mean(corfacs)
 
 
 # function to read in the available data, calculate the correction factors and save the factors in the data file
