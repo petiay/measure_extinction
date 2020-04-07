@@ -11,7 +11,7 @@ def plot_bandpasses(bands):
     # plot all response curves
     for band in bands:
         bp = SpectralElement.from_file("%s%s.dat" % (band_path, band))
-        if "IRAC" in band or "MIPS" in band:
+        if "MIPS" in band:
             wavelengths = bp.waveset * 10**4
         else:
             wavelengths = bp.waveset
@@ -28,5 +28,5 @@ if __name__ == "__main__":
     band_path = pkg_resources.resource_filename("measure_extinction", "data/Band_RespCurves/")
 
     # define the different bandpasses
-    bands = ["JohnU", "JohnB", "JohnV", "JohnR", "JohnI", "JohnJ", "2MASSJ", "JohnH", "2MASSH", "JohnK", "JohnKs", "2MASSKs", "AAOL", "IRAC1", "AAOLprime", "IRAC2", "AAOM", "IRAC3", "IRAC4"]
+    bands = ["JohnU", "JohnB", "JohnV", "JohnR", "JohnI", "JohnJ", "2MASSJ", "JohnH", "2MASSH", "JohnK", "JohnKs", "2MASSKs", "AAOL", "IRAC1", "AAOLprime", "IRAC2", "AAOM"]
     plot_bandpasses(bands)

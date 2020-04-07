@@ -4,27 +4,23 @@ import argparse
 import numpy as np
 import astropy.units as u
 import pkg_resources
-from synphot import SpectralElement
-from measure_extinction.stardata import StarData,BandData
+from synphot import SpectralElement, SourceSpectrum, Observation
+from measure_extinction.stardata import StarData, BandData
+from synphot.models import Empirical1D
+
 
 # function to get photometry from a spectrum
-def get_phot(wave, flux, bands, bandnames):
+def get_phot(spec, bands):
     """
     Compute the fluxes in the requested bands.
 
     Parameters
     ----------
-    wave : vector
-        spectrum wavelengths
-
-    flux : vector
-        spectrum fluxes
+    spec : SpecData object
+        the spectrum
 
     bands: list of strings
         bands requested
-
-    bandnames : list of strings
-        filenames of band response functions for the requested bands
 
     Outputs
     -------
@@ -32,26 +28,34 @@ def get_phot(wave, flux, bands, bandnames):
         calculated band fluxes
     """
 
-    # create a BandData object
-    bdata = BandData("BAND")
+    # create a SourceSpectrum object from the spectrum, excluding the bad regions
+    spectrum = SourceSpectrum(Empirical1D, points=spec.waves.to(u.Angstrom)[spec.npts!=0], lookup_table=spec.fluxes[spec.npts!=0])
 
     # path for band response curves
     band_path = pkg_resources.resource_filename(
         "measure_extinction", "data/Band_RespCurves/"
     )
 
-    fluxes = np.zeros(len(bands))
+    # dictionary linking the bands to their response curves
+    bandnames = {"J":"2MASSJ", "H":"2MASSH", "K":"2MASSKs", "IRAC1":"IRAC1", "IRAC2":"IRAC2", "L":"AAOL", "M":"AAOM"}
+
+    # define the units of the output fluxes
+    funit = u.erg / (u.s * u.cm * u.cm * u.Angstrom)
 
     # compute the flux in each band
+    fluxes = np.zeros(len(bands))
     for k, band in enumerate(bands):
-        bp = SpectralElement.from_file("%s%s" % (band_path, bandnames[k]))
-        resp = bp(wave)
-        fluxes[k] = np.sum(resp * flux) / np.sum(resp)
+        # create the bandpass (as a SpectralElement object)
+        bp = SpectralElement.from_file("%s%s.dat" % (band_path, bandnames[band])) # assumes wavelengths are in Angstrom!!
+        # integrate the spectrum over the bandpass
+        obs = Observation(spectrum,bp,force='taper') # 'taper' bridges the gaps in the spectrum
+        fluxes[k] = obs.effstim(funit).value
     return fluxes
+
 
 # function to compare the photometry obtained from the spectrum with the band photometry
 # and to calculate an average correction factor for the spectrum
-def calc_corfac(star_phot, star_spec, bands, bandnames):
+def calc_corfac(star_phot, star_spec, bands):
     """
     Compute the correction factor for the spectrum.
 
@@ -65,9 +69,6 @@ def calc_corfac(star_phot, star_spec, bands, bandnames):
 
     bands: list of strings
         bands to use in the calculation of the correction factor
-
-    bandnames : list of strings
-        filenames of band response functions
 
     Outputs
     -------
@@ -83,9 +84,10 @@ def calc_corfac(star_phot, star_spec, bands, bandnames):
         print("No photometric data available to scale " + star_spec.type + " spectrum!!")
         return None
     fluxes_bands = np.array([star_phot.band_fluxes[band][0] for band in bands])
-    fluxes_spectra = get_phot(star_spec.waves.to(u.Angstrom), star_spec.fluxes.value, bands, bandnames)
+    fluxes_spectra = get_phot(star_spec, bands)
     corfacs = fluxes_bands / fluxes_spectra
     return np.mean(corfacs)
+
 
 # function to read in the available data, calculate the correction factors and save the factors in the data file
 def calc_save_corfac_spex(starname,path):
@@ -96,13 +98,13 @@ def calc_save_corfac_spex(starname,path):
     # and calculate the correction factors for the spectra
     if "SpeX_SXD" in star_data.data.keys():
         star_spec_SXD = star_data.data["SpeX_SXD"]
-        corfac_SXD = calc_corfac(star_phot, star_spec_SXD, ["J", "H", "K"], ["2MASSJ.dat","2MASSH.dat","2MASSKs.dat"])
+        corfac_SXD = calc_corfac(star_phot, star_spec_SXD, ["J", "H", "K"])
     else:
         corfac_SXD = None
 
     if "SpeX_LXD" in star_data.data.keys():
         star_spec_LXD = star_data.data["SpeX_LXD"]
-        corfac_LXD = calc_corfac(star_phot, star_spec_LXD, ["IRAC1", "IRAC2", "L", "M"], ["IRAC1.dat", "IRAC2.dat", "AAOL.dat", "AAOM.dat"])
+        corfac_LXD = calc_corfac(star_phot, star_spec_LXD, ["IRAC1", "IRAC2", "L", "M"])
     else:
         corfac_LXD = None
 
@@ -143,4 +145,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # calculate and save the SpeX correction factors
-    corr_spex(args.starname,args.path)
+    calc_save_corfac_spex(args.starname,args.path)
