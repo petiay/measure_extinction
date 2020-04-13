@@ -98,6 +98,9 @@ class BandData:
                 colpos = max((line.find(";"), line.find("#"), line.find("mJy")))
                 if colpos == -1:
                     colpos = len(line)
+                # if there is both a reference and a unit
+                elif line.find(";") != -1 and line.find("mJy") != -1:
+                    colpos =  min(line.find(";"), line.find("mJy"))
                 band_name = line[0:eqpos].strip()
                 self.bands[band_name] = (
                     float(line[eqpos + 1 : pmpos]),
