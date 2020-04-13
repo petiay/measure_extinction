@@ -7,6 +7,7 @@ import pkg_resources
 from synphot import SpectralElement, SourceSpectrum, Observation
 from measure_extinction.stardata import StarData, BandData
 from synphot.models import Empirical1D
+import matplotlib.pyplot as plt
 
 
 # function to get photometry from a spectrum
@@ -37,7 +38,7 @@ def get_phot(spec, bands):
     )
 
     # dictionary linking the bands to their response curves
-    bandnames = {"J":"2MASSJ", "H":"2MASSH", "K":"2MASSKs", "IRAC1":"IRAC1", "IRAC2":"IRAC2", "L":"AAOL", "M":"AAOM"}
+    bandnames = {"J":"2MASSJ", "H":"2MASSH", "K":"2MASSKs", "IRAC1":"IRAC1", "IRAC2":"IRAC2", "WISE1":"WISE1", "WISE2":"WISE2", "L":"AAOL", "M":"AAOM"}
 
     # define the units of the output fluxes
     funit = u.erg / (u.s * u.cm * u.cm * u.Angstrom)
@@ -47,9 +48,12 @@ def get_phot(spec, bands):
     for k, band in enumerate(bands):
         # create the bandpass (as a SpectralElement object)
         bp = SpectralElement.from_file("%s%s.dat" % (band_path, bandnames[band])) # assumes wavelengths are in Angstrom!!
-        # integrate the spectrum over the bandpass
-        obs = Observation(spectrum,bp,force='taper') # 'taper' bridges the gaps in the spectrum
-        fluxes[k] = obs.effstim(funit).value
+        # integrate the spectrum over the bandpass, only if the bandpass fully overlaps with the spectrum (this actually excludes WISE2)
+        if bp.check_overlap(spectrum) == "full":
+            obs = Observation(spectrum,bp)
+            fluxes[k] = obs.effstim(funit).value
+        else:
+            fluxes[k] =  np.nan
     return fluxes
 
 
@@ -75,18 +79,32 @@ def calc_corfac(star_phot, star_spec, bands):
     corfac : float
         mean correction factor for the spectrum
     """
+
+    # check which bands have photometry
     bands = [band for band in bands if band in star_phot.band_fluxes.keys()]
-    if "IRAC1" in bands and "L" in bands:
-        bands.remove("L")
-    if "IRAC2" in bands and "M" in bands:
-        bands.remove("M")
+    # for LXD spectra: pick the best bands for the scaling
+    use_bands = []
+    if "IRAC1" in bands:
+        use_bands.append("IRAC1")
+    elif "WISE1" in bands:
+        use_bands.append("WISE1")
+    elif "L" in bands:
+        use_bands.append("L")
+    if "IRAC2" in bands:
+        use_bands.append("IRAC2")
+    elif "WISE2" in bands:
+        use_bands.append("WISE2")
+    elif "M" in bands:
+        use_bands.append("M")
+    if use_bands:
+        bands = use_bands
     if not bands:
         print("No photometric data available to scale " + star_spec.type + " spectrum!!")
         return None
     fluxes_bands = np.array([star_phot.band_fluxes[band][0] for band in bands])
     fluxes_spectra = get_phot(star_spec, bands)
     corfacs = fluxes_bands / fluxes_spectra
-    return np.mean(corfacs)
+    return "%.3f" % np.nanmean(corfacs)
 
 
 # function to read in the available data, calculate the correction factors and save the factors in the data file
@@ -104,7 +122,7 @@ def calc_save_corfac_spex(starname,path):
 
     if "SpeX_LXD" in star_data.data.keys():
         star_spec_LXD = star_data.data["SpeX_LXD"]
-        corfac_LXD = calc_corfac(star_phot, star_spec_LXD, ["IRAC1", "IRAC2", "L", "M"])
+        corfac_LXD = calc_corfac(star_phot, star_spec_LXD, ["IRAC1", "IRAC2", "WISE1", "WISE2", "L", "M"])
     else:
         corfac_LXD = None
 

@@ -98,6 +98,9 @@ class BandData:
                 colpos = max((line.find(";"), line.find("#"), line.find("mJy")))
                 if colpos == -1:
                     colpos = len(line)
+                # if there is both a reference and a unit
+                elif line.find(";") != -1 and line.find("mJy") != -1:
+                    colpos =  min(line.find(";"), line.find("mJy"))
                 band_name = line[0:eqpos].strip()
                 self.bands[band_name] = (
                     float(line[eqpos + 1 : pmpos]),
@@ -120,6 +123,7 @@ class BandData:
         -------
         band_info : dict of band_name: value
             value is tuple of ( zeromag_flux, wavelength [micron] )
+            The zeromag_flux is the flux in erg/cm2/s/A for a star of (Vega) mag=0. It gives the conversion factor from Vega magnitudes to erg/cm2/s/A.
         """
         _johnson_band_names = ["U", "B", "V", "R", "I", "J", "H", "K", "L", "M"]
         _johnson_band_waves = np.array(
@@ -138,6 +142,10 @@ class BandData:
             np.array([0.6605, 0.2668, 0.1069, 0.03055, 1.941e-3, 3.831e-4]) * 1e-11
         )
 
+        # WISE bands. Wavelenghts and zeropoints are taken from http://svo2.cab.inta-csic.es/theory/fps/index.php?mode=browse&gname=WISE.
+        _wise_band_names = ["WISE1", "WISE2", "WISE3", "WISE4"]
+        _wise_band_waves = np.array([3.3526, 4.6028, 11.5608, 22.0883])
+        _wise_band_zeromag_fluxes = (np.array([8.1787e-12, 2.415e-12, 6.5151e-14, 5.0901e-15]))
         # WFPC2 bands
         _wfpc2_band_names = [
             "WFPC2_F170W",
@@ -209,6 +217,7 @@ class BandData:
             [
                 _johnson_band_names,
                 _spitzer_band_names,
+                _wise_band_names,
                 _wfpc2_band_names,
                 _wfc3_band_names,
                 _acs_band_names,
@@ -218,6 +227,7 @@ class BandData:
             [
                 _johnson_band_waves,
                 _spitzer_band_waves,
+                _wise_band_waves,
                 _wfpc2_band_waves,
                 _wfc3_band_waves,
                 _acs_band_waves,
@@ -227,6 +237,7 @@ class BandData:
             [
                 _johnson_band_zeromag_fluxes,
                 _spitzer_band_zeromag_fluxes,
+                _wise_band_zeromag_fluxes,
                 _wfpc2_band_zeromag_fluxes,
                 _wfc3_band_zeromag_fluxes,
                 _acs_band_zeromag_fluxes,
@@ -1087,7 +1098,6 @@ class StarData:
         for curtype in self.data.keys():
             # replace fluxes by NaNs for wavelength regions that need to be excluded from the plot
             self.data[curtype].fluxes[self.data[curtype].npts == 0] = np.nan
-
             if mlam4:
                 ymult = np.power(self.data[curtype].waves.value, 4.0)
             else:
