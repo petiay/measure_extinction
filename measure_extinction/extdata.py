@@ -731,12 +731,16 @@ class ExtData:
         for curkey in column_keys:
             if pheader.get(curkey):
                 if pheader.get("%s_UNC" % curkey):
-                    self.columns[curkey] = (
-                        float(pheader.get(curkey)),
-                        float(pheader.get("%s_UNC" % curkey)),
+                    tunc = float(pheader.get("%s_UNC" % curkey))
+                elif pheader.get("%s_PUNC" % curkey):
+                    tunc = 0.5 * (
+                        float(pheader.get("%s_PUNC" % curkey))
+                        + float(pheader.get("%s_MUNC" % curkey))
                     )
                 else:
-                    self.columns[curkey] = (float(pheader.get(curkey)), 0.0)
+                    tunc = 0.0
+
+                self.columns[curkey] = (float(pheader.get(curkey)), tunc)
 
         # get the columns p50 +unc -unc fit parameters if they exist
         if pheader.get("AV_p50"):
