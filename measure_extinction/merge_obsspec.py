@@ -258,13 +258,14 @@ def merge_spex_obsspec(obstable, output_resolution=2000):
     fluxes = obstable["FLUX"].data
     uncs = obstable["ERROR"].data
     npts = np.full((len(obstable["FLUX"])), 1.0)
-
     # take out data points that were flagged by Spextool
-    npts[obstable["FLAG"] == 1.0] = 0.0
+    npts[obstable["FLAG"] == 1.0] = 0
     # take out data points with NaN fluxes
-    npts[np.isnan(fluxes)] = 0.0
+    npts[np.isnan(fluxes)] = 0
     # take out data points with low SNR
-    npts[np.less(fluxes/uncs, 10, where=~np.isnan(fluxes/uncs))] = 0.0
+    npts[np.less(fluxes/uncs, 10, where=~np.isnan(fluxes/uncs))] = 0
+    # take out wavelength regions affected by the atmosphere
+    npts[np.logical_and(2.5e4<waves,waves<2.9e4)] = 0
 
     # determine the wavelength range and calculate the wavelength grid
     if np.max(waves) < 25000:
