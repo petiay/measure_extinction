@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
+from synphot import SpectralElement, SourceSpectrum, Observation
+from measure_extinction.stardata import StarData, BandData
+from synphot.models import Empirical1D
+
 import argparse
 import numpy as np
 import astropy.units as u
 import pkg_resources
-from synphot import SpectralElement, SourceSpectrum, Observation
-from measure_extinction.stardata import StarData, BandData
-from synphot.models import Empirical1D
 import matplotlib.pyplot as plt
-
 
 # function to get photometry from a spectrum
 def get_phot(spec, bands):
@@ -112,14 +112,19 @@ def calc_save_corfac_spex(starname,path):
     # read in the data file (do not use the correction factors at this point)
     star_data = StarData('%s.dat' % starname.lower(), path=path, use_corfac=False)
     star_phot = star_data.data["BAND"]
+
+    # if the LXD scaling factor has been set manually, warn the user and do not recalculate the scaling factors.
+    if star_data.LXD_man:
+        print("The LXD scaling factor has been set manually and the scaling factors (SXD and LXD) will not be recalculated!")
+        return
+
     # check which spectra are available,
-    # and calculate the correction factors for the spectra
+    # and calculate the correction factors for the spectra (if they have not been set manually)
     if "SpeX_SXD" in star_data.data.keys():
         star_spec_SXD = star_data.data["SpeX_SXD"]
         corfac_SXD = calc_corfac(star_phot, star_spec_SXD, ["J", "H", "K"])
     else:
         corfac_SXD = None
-
     if "SpeX_LXD" in star_data.data.keys():
         star_spec_LXD = star_data.data["SpeX_LXD"]
         corfac_LXD = calc_corfac(star_phot, star_spec_LXD, ["IRAC1", "IRAC2", "WISE1", "WISE2", "L", "M"])
@@ -138,7 +143,6 @@ def calc_save_corfac_spex(starname,path):
     else:
          with open(path+'%s.dat' % starname.lower(), "a") as datafile:
              datafile.write("corfac_spex_SXD = "+ str(corfac_SXD) + "\n")
-
     if "SpeX_LXD" in star_data.corfac.keys():
         datafile = open(path+'%s.dat' % starname.lower(), "w")
         for ln, line in enumerate(star_data.datfile_lines):

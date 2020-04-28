@@ -854,6 +854,7 @@ class StarData:
         self.corfac = {}
         self.photonly = photonly
         self.use_corfac = use_corfac
+        self.LXD_man = False
 
         if self.file is not None:
             self.read()
@@ -884,15 +885,11 @@ class StarData:
                 elif cpair[0] in poss_mod_params:
                     self.model_params[cpair[0]] = cpair[1]
                 elif cpair[0] == "corfac_spex_SXD":
-                    if cpair[1] == "None":
-                        self.corfac["SpeX_SXD"] = None
-                    else:
-                        self.corfac["SpeX_SXD"] = float(cpair[1])
+                    self.corfac["SpeX_SXD"] = eval(cpair[1])
                 elif cpair[0] == "corfac_spex_LXD":
-                    if cpair[1] == "None":
-                        self.corfac["SpeX_LXD"] = None
-                    else:
-                        self.corfac["SpeX_LXD"] = float(cpair[1])
+                    self.corfac["SpeX_LXD"] = eval(cpair[1])
+                elif cpair[0] == "LXD_man":
+                    self.LXD_man = eval(cpair[1])
                 elif cpair[0] == "corfac_irs_zerowave":
                     self.corfac["IRS_zerowave"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs_slope":
