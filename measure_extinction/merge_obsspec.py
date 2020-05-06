@@ -269,9 +269,11 @@ def merge_spex_obsspec(obstable, output_resolution=2000):
     npts[np.logical_and(4.09e4<waves,waves<4.58e4)] = 0
 
     # determine the wavelength range and calculate the wavelength grid
-    if np.max(waves) < 25000:
+    if np.max(waves) < 25000: # SXD
         wave_range = [0.8, 2.45] * u.micron
-    else:
+    elif np.max(waves) < 43000: # LXD short
+        wave_range = [1.9, 4.3] * u.micron
+    else: # LXD long
         wave_range = [2.4, 5.5] * u.micron
 
     iwave_range = wave_range.to(u.angstrom).value
