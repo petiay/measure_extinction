@@ -100,7 +100,7 @@ class BandData:
                     colpos = len(line)
                 # if there is both a reference and a unit
                 elif line.find(";") != -1 and line.find("mJy") != -1:
-                    colpos =  min(line.find(";"), line.find("mJy"))
+                    colpos = min(line.find(";"), line.find("mJy"))
                 band_name = line[0:eqpos].strip()
                 self.bands[band_name] = (
                     float(line[eqpos + 1 : pmpos]),
@@ -145,7 +145,9 @@ class BandData:
         # WISE bands. Wavelenghts and zeropoints are taken from http://svo2.cab.inta-csic.es/theory/fps/index.php?mode=browse&gname=WISE.
         _wise_band_names = ["WISE1", "WISE2", "WISE3", "WISE4"]
         _wise_band_waves = np.array([3.3526, 4.6028, 11.5608, 22.0883])
-        _wise_band_zeromag_fluxes = (np.array([8.1787e-12, 2.415e-12, 6.5151e-14, 5.0901e-15]))
+        _wise_band_zeromag_fluxes = np.array(
+            [8.1787e-12, 2.415e-12, 6.5151e-14, 5.0901e-15]
+        )
         # WFPC2 bands
         _wfpc2_band_names = [
             "WFPC2_F170W",

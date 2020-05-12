@@ -443,7 +443,11 @@ class ExtData:
             self.type = "alav"
 
     def get_fitdata(
-        self, req_datasources, remove_uvwind_region=False, remove_lya_region=False
+        self,
+        req_datasources,
+        remove_uvwind_region=False,
+        remove_lya_region=False,
+        remove_irsblue=False,
     ):
         """
         Get the data to use in fitting the extinction curve
@@ -459,6 +463,9 @@ class ExtData:
         remove_lya_region : boolean, optional (default=False)
             remove the Ly-alpha regions from the returned data
 
+        remove_irsblue : boolean, optional (default=False)
+            remove the IRS blue photometry from the returned data
+
         Returns
         -------
         (wave, y, y_unc) : tuple of arrays
@@ -472,6 +479,12 @@ class ExtData:
         nptsdata = []
         for cursrc in req_datasources:
             if cursrc in self.waves.keys():
+                if (cursrc == "BAND") & remove_irsblue:
+                    ibloc = np.logical_and(
+                        14.0 * u.micron <= self.waves[cursrc],
+                        self.waves[cursrc] < 16.0 * u.micron,
+                    )
+                    self.npts[cursrc][ibloc] = 0
                 xdata.append(self.waves[cursrc].to(u.micron).value)
                 ydata.append(self.exts[cursrc])
                 uncdata.append(self.uncs[cursrc])
@@ -731,12 +744,16 @@ class ExtData:
         for curkey in column_keys:
             if pheader.get(curkey):
                 if pheader.get("%s_UNC" % curkey):
-                    self.columns[curkey] = (
-                        float(pheader.get(curkey)),
-                        float(pheader.get("%s_UNC" % curkey)),
+                    tunc = float(pheader.get("%s_UNC" % curkey))
+                elif pheader.get("%s_PUNC" % curkey):
+                    tunc = 0.5 * (
+                        float(pheader.get("%s_PUNC" % curkey))
+                        + float(pheader.get("%s_MUNC" % curkey))
                     )
                 else:
-                    self.columns[curkey] = (float(pheader.get(curkey)), 0.0)
+                    tunc = 0.0
+
+                self.columns[curkey] = (float(pheader.get(curkey)), tunc)
 
         # get the columns p50 +unc -unc fit parameters if they exist
         if pheader.get("AV_p50"):
