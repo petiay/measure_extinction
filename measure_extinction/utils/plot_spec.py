@@ -72,6 +72,7 @@ def plot_spec(starname,path,mlam4,range,pdf):
     # plot or save to a file
     if pdf:
         fig.savefig(outname)
+        plt.close(fig)
     else:
         plt.show()
 
