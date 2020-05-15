@@ -13,7 +13,7 @@ __all__ = ["ExtData", "AverageExtData"]
 
 # globals
 # possible datasets (also extension names in saved FITS file)
-_poss_datasources = ["BAND", "IUE", "STIS", "SpeX_SXD", "SpeX_LXD", "IRS"]
+_poss_datasources = ["BAND", "IUE", "FUSE", "STIS", "SpeX_SXD", "SpeX_LXD", "IRS"]
 
 
 def _rebin(a, rebin_fac):
@@ -215,9 +215,9 @@ class ExtData:
         Calculate the E(lambda-X) for the photometric band data
 
         Separate from the spectral case as the bands in common must
-        be found.  In addition, some of the photometric observations are
-        reported as colors (e.g., B-V) with uncertainies on those colors.
-        As colors are what is needed for the extinction cruve, we want to
+        be found. In addition, some of the photometric observations are
+        reported as colors (e.g., B-V) with uncertainties on those colors.
+        As colors are what is needed for the extinction curve, we want to
         work in those colors to preserve the inheritly lower uncertainties.
 
         Parameters
@@ -234,12 +234,11 @@ class ExtData:
 
         Returns
         -------
-        Updated self.(waves, x, exts, uncs)['BANDS']
+        Updated self.(waves, exts, uncs, npts, names)['BANDS']
         """
         # reference band
         red_rel_band = red.data["BAND"].get_band_mag(rel_band)
         comp_rel_band = comp.data["BAND"].get_band_mag(rel_band)
-
         # possible bands for the band extinction curve
         poss_bands = red.data["BAND"].get_poss_bands()
 
@@ -293,7 +292,7 @@ class ExtData:
 
         Returns
         -------
-        Updated self.(waves, x, exts, uncs)[src]
+        Updated self.(waves, exts, uncs, npts)[src]
         """
         if (src in red.data.keys()) & (src in comp.data.keys()):
             # check that the wavelenth grids are identical
@@ -307,16 +306,12 @@ class ExtData:
 
                 # setup the needed variables
                 self.waves[src] = red.data[src].waves
-                # print(src)
-                # print(self.waves[src])
                 n_waves = len(self.waves[src])
                 self.exts[src] = np.zeros(n_waves)
                 self.uncs[src] = np.zeros(n_waves)
                 self.npts[src] = np.zeros(n_waves)
 
                 # only compute the extinction for good, positive fluxes
-                # print(comp.data[src].npts)
-                # print(comp.data[src].fluxes)
                 (indxs,) = np.where(
                     (red.data[src].npts > 0)
                     & (comp.data[src].npts > 0)
