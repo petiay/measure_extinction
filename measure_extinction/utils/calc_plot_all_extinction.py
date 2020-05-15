@@ -12,23 +12,21 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "--path",
     help="path to the data files",
-    default=pkg_resources.resource_filename('measure_extinction','data/')
+    default=pkg_resources.resource_filename("measure_extinction", "data/"),
 )
 parser.add_argument("--alax", help="plot A(lambda)/A(X)", action="store_true")
 parser.add_argument(
     "--extmodels", help="plot extinction curve models", action="store_true"
 )
-parser.add_argument(
-    "--powerlaw", help="plot NIR powerlaw model", action="store_true"
-)
+parser.add_argument("--powerlaw", help="plot NIR powerlaw model", action="store_true")
 args = parser.parse_args()
 
 # read the list of stars for which to measure the extinction curve
-table = pd.read_table(args.path+"red-comp.list",comment='#')
-stars = table['reddened']
+table = pd.read_table(args.path + "red-comp.list", comment="#")
+stars = table["reddened"]
 
 # calculate and plot the extinction curve for every stars
-for i,star in enumerate(stars):
-    print("reddened star: ",star,"/ comparison star:",table['comparison'][i])
-    calc_extinction(star,table['comparison'][i],args.path)
-    plot_extinction(star,args.path,args.alax,args.extmodels,args.powerlaw,pdf=True)
+for i, star in enumerate(stars):
+    print("reddened star: ", star, "/ comparison star:", table["comparison"][i])
+    calc_extinction(star, table["comparison"][i], args.path)
+    plot_extinction(star, args.path, args.alax, args.extmodels, args.powerlaw, pdf=True)

@@ -23,9 +23,10 @@ def irpowerlaw(x, a, alpha, c):
 def irpowerlaw_18(x, a, c):
     return a * (x ** (-1.8) - c)
 
-def plot_extinction(starname,path,alax,extmodels,powerlaw,pdf):
+
+def plot_extinction(starname, path, alax, extmodels, powerlaw, pdf):
     # read in the extinction curve data
-    extdata = ExtData("%s%s_ext.fits" % (path,starname))
+    extdata = ExtData("%s%s_ext.fits" % (path, starname))
 
     # plotting setup for easier to read plots
     fontsize = 18
@@ -54,7 +55,7 @@ def plot_extinction(starname,path,alax,extmodels,powerlaw,pdf):
     ax.set_xscale("log")
     ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
     if alax:
-        ytype = 'alax'
+        ytype = "alax"
     else:
         ytype = extdata.type
     ax.set_ylabel(extdata._get_ext_ytitle(ytype=ytype), fontsize=1.5 * fontsize)
@@ -70,7 +71,7 @@ def plot_extinction(starname,path,alax,extmodels,powerlaw,pdf):
             if alax:
                 if extdata.type_rel_band != "V":
                     emod = CCM89(cRv)
-                    indx, = np.where(extdata.type_rel_band == extdata.names["BAND"])
+                    (indx,) = np.where(extdata.type_rel_band == extdata.names["BAND"])
                     axav = emod(extdata.waves["BAND"][indx[0]])
                 else:
                     axav = 1.0
@@ -112,12 +113,12 @@ def plot_extinction(starname,path,alax,extmodels,powerlaw,pdf):
         # ax.plot(mod_x, mod_y, "--", label="A(V) = %5.2f" % (popt[0] * popt[1]))
 
     # use the whitespace better
-    #ax.legend()
+    # ax.legend()
     fig.tight_layout()
 
     # plot or save to a file
     if pdf:
-        fig.savefig("%s%s_ext.pdf" % (path,starname))
+        fig.savefig("%s%s_ext.pdf" % (path, starname))
         plt.close(fig)
     else:
         plt.show()
@@ -127,8 +128,14 @@ if __name__ == "__main__":
 
     # commandline parser
     parser = argparse.ArgumentParser()
-    parser.add_argument("starname", help="name of star for which to plot the extinction curve")
-    parser.add_argument("--path", help="path to data files", default=pkg_resources.resource_filename('measure_extinction', 'data/'))
+    parser.add_argument(
+        "starname", help="name of star for which to plot the extinction curve"
+    )
+    parser.add_argument(
+        "--path",
+        help="path to data files",
+        default=pkg_resources.resource_filename("measure_extinction", "data/"),
+    )
     parser.add_argument("--alax", help="plot A(lambda)/A(X)", action="store_true")
     parser.add_argument(
         "--extmodels", help="plot extinction curve models", action="store_true"
@@ -139,4 +146,6 @@ if __name__ == "__main__":
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
 
-    plot_extinction(args.starname,args.path,args.alax,args.extmodels,args.powerlaw,args.pdf)
+    plot_extinction(
+        args.starname, args.path, args.alax, args.extmodels, args.powerlaw, args.pdf
+    )
