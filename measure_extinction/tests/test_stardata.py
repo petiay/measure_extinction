@@ -10,7 +10,7 @@ def test_load_stardata():
     data_path = pkg_resources.resource_filename("measure_extinction", "data/")
 
     # read in the observed data on the star
-    star = StarData("hd283809.dat", path=data_path)
+    star = StarData("hd229238.dat", path=data_path)
 
     assert "BAND" in star.data.keys()
     assert "IUE" in star.data.keys()
@@ -20,10 +20,10 @@ def test_units_stardata():
     # get the location of the data files
     data_path = pkg_resources.resource_filename("measure_extinction", "data/")
 
-    # read in the observed data on the star
-    star = StarData("hd283809.dat", path=data_path)
+    # read in the observed data of the star
+    star = StarData("hd229238.dat", path=data_path)
 
-    # test that the quanties have units
+    # test that the quantities have units
     for cursrc in star.data.keys():
         assert isinstance(star.data[cursrc].waves, u.Quantity)
         assert isinstance(star.data[cursrc].wave_range, u.Quantity)
