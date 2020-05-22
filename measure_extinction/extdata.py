@@ -180,7 +180,7 @@ class ExtData:
 
     uncs : dict of key:E(lambda-v) measurement uncertainties
 
-    npts : dict of key:number of mesurements at each wavelength
+    npts : dict of key:number of measurements at each wavelength
 
     names : dict of key:names of names of each wavelength (if photometric bands)
 
@@ -234,7 +234,7 @@ class ExtData:
 
         Returns
         -------
-        Updated self.(waves, exts, uncs, npts, names)['BANDS']
+        updates self.(waves, exts, uncs, npts, names)['BANDS']
         """
         # reference band
         red_rel_band = red.data["BAND"].get_band_mag(rel_band)
@@ -292,7 +292,7 @@ class ExtData:
 
         Returns
         -------
-        Updated self.(waves, exts, uncs, npts)[src]
+        updates self.(waves, exts, uncs, npts)[src]
         """
         if (src in red.data.keys()) & (src in comp.data.keys()):
             # check that the wavelenth grids are identical
@@ -355,7 +355,7 @@ class ExtData:
 
         Returns
         -------
-        Updated self.ext_(waves, x, exts, uncs)
+        updates self.(waves, exts, uncs, npts, names)
         """
         self.type = "elx"
         self.type_rel_band = rel_band
@@ -377,7 +377,7 @@ class ExtData:
 
         Returns
         -------
-        Updates self.ext_(exts, uncs)
+        Updates self.(exts, uncs)
         """
         if self.type_rel_band != "V":
             warnings.warn("attempt to normalize a non-elv curve with ebv", UserWarning)
@@ -387,7 +387,7 @@ class ExtData:
             sindxs = np.argsort(dwaves)
             bindx = sindxs[0]
             if dwaves[bindx] > 0.02 * u.micron:
-                warnings.warn("no B band mesurement in E(l-V)", UserWarning)
+                warnings.warn("no B band measurement in E(l-V)", UserWarning)
             else:
                 # normalize each portion of the extinction curve
                 ebv = self.exts["BAND"][bindx]
@@ -399,25 +399,25 @@ class ExtData:
     def trans_elv_alav(self, av=None, akav=0.112):
         """
         Transform E(lambda-V) to A(lambda)/A(V) by normalizing to
-        A(V) and adding 1.  Default is to calculate this from the
-        input elx curve.  If A(V) values passed, use that instead.
+        A(V) and adding 1. Default is to calculate A(V) from the
+        input elx curve. If A(V) value passed, use that instead.
 
         Parameters
         ----------
         av : float [default = None]
-            value of A(V) to use - other otherwise calculate it
+            value of A(V) to use - otherwise calculate it
 
         akav : float  [default = 0.112]
            Value of A(K)/A(V)
-           default is from Rieke & Lebosky (1985)
+           default is from Rieke & Lebofsky (1985)
            van de Hulst No. 15 curve has A(K)/A(V) = 0.0885
 
         Returns
         -------
-        Updates self.ext_(exts, uncs)
+        Updates self.(exts, uncs)
         """
         if self.type_rel_band != "V":
-            warnings.warn("attempt to normalize a non-elv curve with av", UserWarning)
+            warnings.warn("attempt to normalize a non-E(lambda-V) curve with A(V)", UserWarning)
         else:
             if av is None:
                 # compute A(V) from E(K-V)
@@ -425,17 +425,18 @@ class ExtData:
                 sindxs = np.argsort(dwaves)
                 kindx = sindxs[0]
                 if dwaves[kindx] > 0.02 * u.micron:
-                    warnings.warn("no K band mesurement in E(l-V)", UserWarning)
+                    warnings.warn("no K band measurement in E(lambda-V)", UserWarning)
                 else:
-                    # normalize each portion of the extinction curve
                     ekv = self.exts["BAND"][kindx]
                     av = ekv / (akav - 1)
+                    self.columns["AV"] = av
 
             for curname in self.exts.keys():
-                self.exts[curname] /= float(av)
-                self.exts[curname] += 1.0
+                self.exts[curname] = (self.exts[curname]/av) + 1
                 self.uncs[curname] /= av
+            # update the extinction curve type
             self.type = "alav"
+
 
     def get_fitdata(
         self,
@@ -450,7 +451,7 @@ class ExtData:
         Parameters
         ----------
         req_datasources : list of str
-            list of data sources (e.g., []'IUE', 'BANDS'])
+            list of data sources (e.g., ['IUE', 'BANDS'])
 
         remove_uvwind_region : boolean, optional (default=False)
             remove the UV wind regions from the returned data
@@ -466,7 +467,7 @@ class ExtData:
         (wave, y, y_unc) : tuple of arrays
             wave is wavelength in microns
             y is extinction (no units)
-            unce is unc on y (no units)
+            y_unc is uncertainty on y (no units)
         """
         xdata = []
         ydata = []
@@ -484,9 +485,6 @@ class ExtData:
                 ydata.append(self.exts[cursrc])
                 uncdata.append(self.uncs[cursrc])
                 nptsdata.append(self.npts[cursrc])
-        #                print(cursrc)
-        #                print(1.0 / self.waves[cursrc])
-        #        exit()
         wave = np.concatenate(xdata) * u.micron
         y = np.concatenate(ydata)
         unc = np.concatenate(uncdata)
@@ -819,7 +817,6 @@ class ExtData:
         """
         if not ytype:
             ytype = self.type
-
         relband = self.type_rel_band.replace("_", "")
         if ytype == "elx":
             return fr"$E(\lambda - {relband})$"
@@ -860,8 +857,8 @@ class ExtData:
         pltax : matplotlib plot object
 
         alax : boolean [False]
+            convert from E(lambda-X) using A(X), if necessary
             plot A(lambda)/A(X)
-            convert from E(lambda-X) using A(X)
 
         yoffset : float
             additive offset for the data
@@ -873,7 +870,7 @@ class ExtData:
             color for all the data plotted
 
         alpha : float
-            tranparancy value (0=transparent, 1=opaque)
+            transparency value (0=transparent, 1=opaque)
 
         annotate_key : string
             annotate the spectrum using the given data key
@@ -888,8 +885,11 @@ class ExtData:
             fontsize for plot
         """
         if alax:
-            av = float(self.columns["AV"][0])
-            if self.type_rel_band != "V":
+            # compute A(V) if it is not available
+            if not "AV" in self.columns.keys():
+                self.trans_elv_alav()
+            av = float(self.columns["AV"])
+            if self.type_rel_band != "V": # not sure if this works (where is RV given?)
                 # use F04 model to convert AV to AX
                 rv = float(self.columns["RV"][0])
                 emod = F04(rv)
@@ -905,7 +905,9 @@ class ExtData:
             x = self.waves[curtype].to(u.micron).value
             y = self.exts[curtype]
             yu = self.uncs[curtype]
-            if alax:
+
+            if alax and self.type == "elx":
+                # convert E(lambda-X) to A(lambda)/A(X)
                 y = (y / ax) + 1.0
                 yu /= ax
 
