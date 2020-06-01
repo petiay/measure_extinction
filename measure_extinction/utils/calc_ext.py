@@ -11,8 +11,8 @@ from measure_extinction.extdata import ExtData
 
 def calc_extinction(redstarname, compstarname, path):
     # read in the observed data for both stars
-    redstarobs = StarData("%s.dat" % redstarname, path=path)
-    compstarobs = StarData("%s.dat" % compstarname, path=path)
+    redstarobs = StarData("%s.dat" % redstarname.lower(), path=path)
+    compstarobs = StarData("%s.dat" % compstarname.lower(), path=path)
 
     # calculate the extinction curve
     extdata = ExtData()
