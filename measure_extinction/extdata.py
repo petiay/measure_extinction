@@ -7,6 +7,9 @@ from astropy.io import fits
 import astropy.units as u
 
 from dust_extinction.parameter_averages import F04
+from astropy.modeling.powerlaws import PowerLaw1D
+from astropy.modeling.fitting import LevMarLSQFitter
+from dust_extinction.conversions import AxAvToExv
 
 __all__ = ["ExtData", "AverageExtData"]
 
@@ -417,26 +420,34 @@ class ExtData:
         Updates self.(exts, uncs)
         """
         if self.type_rel_band != "V":
-            warnings.warn("attempt to normalize a non-E(lambda-V) curve with A(V)", UserWarning)
+            warnings.warn(
+                "attempt to normalize a non-E(lambda-V) curve with A(V)", UserWarning
+            )
         else:
             if av is None:
-                # compute A(V) from E(K-V)
-                dwaves = np.absolute(self.waves["BAND"] - 2.19 * u.micron)
-                sindxs = np.argsort(dwaves)
-                kindx = sindxs[0]
-                if dwaves[kindx] > 0.02 * u.micron:
-                    warnings.warn("no K band measurement in E(lambda-V)", UserWarning)
+                # if SpeX spectrum is available: compute A(V) by fitting the NIR extintion curve with a powerlaw.
+                if "SpeX_SXD" in self.waves.keys() or "SpeX_LXD" in self.waves.keys():
+                    fit_result = self.fit_spex_ext()
+                    self.columns["AV"] = fit_result.Av_1.value
+
+                # if no SpeX spectrum is available: compute A(V) from E(K-V)
                 else:
-                    ekv = self.exts["BAND"][kindx]
-                    av = ekv / (akav - 1)
-                    self.columns["AV"] = av
+                    dwaves = np.absolute(self.waves["BAND"] - 2.19 * u.micron)
+                    sindxs = np.argsort(dwaves)
+                    kindx = sindxs[0]
+                    if dwaves[kindx] > 0.02 * u.micron:
+                        warnings.warn(
+                            "no K band measurement in E(lambda-V)", UserWarning
+                        )
+                    else:
+                        ekv = self.exts["BAND"][kindx]
+                        self.columns["AV"] = ekv / (akav - 1)
 
             for curname in self.exts.keys():
-                self.exts[curname] = (self.exts[curname]/av) + 1
-                self.uncs[curname] /= av
+                self.exts[curname] = (self.exts[curname] / self.columns["AV"]) + 1
+                self.uncs[curname] /= self.columns["AV"]
             # update the extinction curve type
             self.type = "alav"
-
 
     def get_fitdata(
         self,
@@ -889,7 +900,7 @@ class ExtData:
             if not "AV" in self.columns.keys():
                 self.trans_elv_alav()
             av = float(self.columns["AV"])
-            if self.type_rel_band != "V": # not sure if this works (where is RV given?)
+            if self.type_rel_band != "V":  # not sure if this works (where is RV given?)
                 # use F04 model to convert AV to AX
                 rv = float(self.columns["RV"][0])
                 emod = F04(rv)
@@ -950,3 +961,24 @@ class ExtData:
                     rotation=annotate_rotation,
                     fontsize=10,
                 )
+
+    def fit_spex_ext(self):
+        """
+        Fit the observed extinction curve with a powerlaw model, based on the SpeX spectra only.
+
+        Returns
+        -------
+        fit(func, waves, exts) : CompoundModel
+            Fitting results
+        """
+        # only get the SpeX data, and sort the curve from short to long wavelengths
+        (waves, exts, exts_unc) = self.get_fitdata(["SpeX_SXD", "SpeX_LXD"])
+        indx = np.argsort(waves)
+        waves = waves[indx].value
+        exts = exts[indx]
+        exts_unc = exts_unc[indx]
+
+        # fit a powerlaw to the spectrum
+        func = PowerLaw1D() | AxAvToExv()
+        fit = LevMarLSQFitter()
+        return fit(func, waves, exts)
