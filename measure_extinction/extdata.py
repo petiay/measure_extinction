@@ -240,6 +240,12 @@ class ExtData:
         red_rel_band = red.data["BAND"].get_band_mag(rel_band)
         comp_rel_band = comp.data["BAND"].get_band_mag(rel_band)
 
+        # check that the reference band is present
+        if red_rel_band is None:
+            raise ValueError(f"{rel_band} not present in red star data")
+        if comp_rel_band is None:
+            raise ValueError(f"{rel_band} not present in comp star data")
+
         # possible bands for the band extinction curve
         poss_bands = red.data["BAND"].get_poss_bands()
 

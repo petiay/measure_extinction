@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import argparse
 import numpy as np
 import pkg_resources
@@ -38,14 +35,17 @@ if __name__ == "__main__":
     parser.add_argument(
         "--inpath",
         help="path where original data files are stored",
-        default=pkg_resources.resource_filename('measure_extinction',
-                                            'data/Orig')
+        default="/home/kgordon/Python_git/extstar_data/STIS_Data/Orig",
+    )
+    parser.add_argument(
+        "--project",
+        help="project name (used in path)",
+        default="/",
     )
     parser.add_argument(
         "--outpath",
         help="path where merged spectra will be stored",
-        default=pkg_resources.resource_filename('measure_extinction',
-                                                'data/Out')
+        default="/home/kgordon/Python_git/extstar_data/STIS_Data",
     )
     parser.add_argument(
         "--ralph", action="store_true", help="Ralph Bohlin reduced data"
@@ -75,9 +75,10 @@ if __name__ == "__main__":
         )
         stable = [stable]
     else:
-        sfilename = "%s/%s/M31Ext2/%s" % (
+        sfilename = "%s/%s/%s/%s" % (
             args.inpath,
             args.waveregion,
+            args.project,
             args.starname.lower(),
         )
         t1 = read_stis_archive_format(sfilename + "10_x1d.fits")
@@ -96,4 +97,5 @@ if __name__ == "__main__":
     else:
         outname = args.starname.lower()
     stis_opt_file = "%s_stis_%s.fits" % (outname, args.waveregion)
+    print(stis_opt_file)
     rb_stis_opt.write("%s/%s" % (args.outpath, stis_opt_file), overwrite=True)
