@@ -2,7 +2,7 @@
 
 import glob
 
-from make_obsdata_from_model import make_obsdata_from_model
+from measure_extinction.utils.make_obsdata_from_model import make_obsdata_from_model
 
 
 def decode_params(filename):
