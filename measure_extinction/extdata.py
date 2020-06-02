@@ -399,7 +399,42 @@ class ExtData:
                     self.uncs[curname] /= ebv
                 self.type = "elvebv"
 
-    def trans_elv_alav(self, av=None, akav=0.112):
+    def calc_AV(self, akav=0.112):
+        """
+        Calculate A(V) from the observed extinction curve:
+            - fit a powerlaw to the SpeX spectrum, if available
+            - otherwise: extrapolate the K-band extinction
+
+        Parameters
+        ----------
+        akav : float  [default = 0.112]
+           Value of A(K)/A(V)
+           default is from Rieke & Lebofsky (1985)
+           van de Hulst No. 15 curve has A(K)/A(V) = 0.0885
+
+        Returns
+        -------
+        Updates self.columns["AV"]
+        """
+        # if SpeX spectrum is available: compute A(V) by fitting the NIR extintion curve with a powerlaw.
+        if "SpeX_SXD" in self.waves.keys() or "SpeX_LXD" in self.waves.keys():
+            fit_result = self.fit_spex_ext()
+            self.columns["AV"] = fit_result.Av_1.value
+
+        # if no SpeX spectrum is available: compute A(V) from E(K-V)
+        else:
+            dwaves = np.absolute(self.waves["BAND"] - 2.19 * u.micron)
+            sindxs = np.argsort(dwaves)
+            kindx = sindxs[0]
+            if dwaves[kindx] > 0.02 * u.micron:
+                warnings.warn(
+                    "no K band measurement in E(lambda-V)", UserWarning
+                )
+            else:
+                ekv = self.exts["BAND"][kindx]
+                self.columns["AV"] = ekv / (akav - 1)
+
+    def trans_elv_alav(self, av=None):
         """
         Transform E(lambda-V) to A(lambda)/A(V) by normalizing to
         A(V) and adding 1. Default is to calculate A(V) from the
@@ -409,11 +444,6 @@ class ExtData:
         ----------
         av : float [default = None]
             value of A(V) to use - otherwise calculate it
-
-        akav : float  [default = 0.112]
-           Value of A(K)/A(V)
-           default is from Rieke & Lebofsky (1985)
-           van de Hulst No. 15 curve has A(K)/A(V) = 0.0885
 
         Returns
         -------
@@ -425,23 +455,7 @@ class ExtData:
             )
         else:
             if av is None:
-                # if SpeX spectrum is available: compute A(V) by fitting the NIR extintion curve with a powerlaw.
-                if "SpeX_SXD" in self.waves.keys() or "SpeX_LXD" in self.waves.keys():
-                    fit_result = self.fit_spex_ext()
-                    self.columns["AV"] = fit_result.Av_1.value
-
-                # if no SpeX spectrum is available: compute A(V) from E(K-V)
-                else:
-                    dwaves = np.absolute(self.waves["BAND"] - 2.19 * u.micron)
-                    sindxs = np.argsort(dwaves)
-                    kindx = sindxs[0]
-                    if dwaves[kindx] > 0.02 * u.micron:
-                        warnings.warn(
-                            "no K band measurement in E(lambda-V)", UserWarning
-                        )
-                    else:
-                        ekv = self.exts["BAND"][kindx]
-                        self.columns["AV"] = ekv / (akav - 1)
+                self.calc_AV()
 
             for curname in self.exts.keys():
                 self.exts[curname] = (self.exts[curname] / self.columns["AV"]) + 1
@@ -917,7 +931,7 @@ class ExtData:
             y = self.exts[curtype]
             yu = self.uncs[curtype]
 
-            if alax and self.type == "elx":
+            if alax and self.type == "elx": # in the case A(V) was already available and the curve has not been transformed yet
                 # convert E(lambda-X) to A(lambda)/A(X)
                 y = (y / ax) + 1.0
                 yu /= ax
