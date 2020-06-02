@@ -5,7 +5,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import pkg_resources
 import argparse
 import matplotlib.pyplot as plt
-import matplotlib as mpl
 from scipy.optimize import curve_fit
 
 import numpy as np
@@ -16,12 +15,16 @@ from measure_extinction.extdata import ExtData
 from dust_extinction.parameter_averages import CCM89
 
 
-def irpowerlaw(x, a, alpha, c):
-    return a * (x ** (-1.0 * alpha) - c)
+def elx_powerlaw(x, a, alpha, c):
+    return a * x ** -alpha - c
+
+
+def alav_powerlaw(x, a, alpha):
+    return a * x ** -alpha
 
 
 def irpowerlaw_18(x, a, c):
-    return a * (x ** (-1.8) - c)
+    return a * x ** -1.8 - c
 
 
 # function to zoom in on a certain wavelength range
@@ -45,13 +48,13 @@ def plot_extinction(starlist, path, alax, extmodels, powerlaw, onefig, range, pd
     # plotting setup for easier to read plots
     fontsize = 18
     font = {"size": fontsize}
-    mpl.rc("font", **font)
-    mpl.rc("lines", linewidth=1)
-    mpl.rc("axes", linewidth=2)
-    mpl.rc("xtick.major", width=2)
-    mpl.rc("xtick.minor", width=2)
-    mpl.rc("ytick.major", width=2)
-    mpl.rc("ytick.minor", width=2)
+    plt.rc("font", **font)
+    plt.rc("lines", linewidth=1)
+    plt.rc("axes", linewidth=2)
+    plt.rc("xtick.major", width=2)
+    plt.rc("xtick.minor", width=2)
+    plt.rc("ytick.major", width=2)
+    plt.rc("ytick.minor", width=2)
 
     # plot all curves in the same figure
     if onefig:
@@ -152,11 +155,13 @@ def plot_extinction(starlist, path, alax, extmodels, powerlaw, onefig, range, pd
                 zoom(ax, range)
                 outname = outname.replace(".pdf", "_zoom.pdf")
 
-            # plot extinction models
+            # plot Milky Way extinction models of Cardelli, Clayton, and Mathis (1989, ApJ, 345, 245), only possible for wavelengths between 0.1 and 3.33 micron.
             if extmodels:
-                x = np.arange(0.12, 3.0, 0.01) * u.micron
+                x = np.arange(0.1, 3.33, 0.01) * u.micron
                 Rvs = [2.0, 3.1, 4.0, 5.0]
-                for cRv in Rvs:
+                style = ["--", "-", ":", "-."]
+                for i, cRv in enumerate(Rvs):
+                    curve = CCM89(Rv=cRv)
                     if alax:
                         if extdata.type_rel_band != "V":
                             emod = CCM89(cRv)
@@ -166,17 +171,23 @@ def plot_extinction(starlist, path, alax, extmodels, powerlaw, onefig, range, pd
                             axav = emod(extdata.waves["BAND"][indx[0]])
                         else:
                             axav = 1.0
-
-                    t = CCM89(Rv=cRv)
+                        y = curve(x) / axav
+                    else:
+                        # compute A(V)
+                        extdata.calc_AV()
+                        y = (curve(x) - 1) * extdata.columns["AV"]
                     ax.plot(
                         x,
-                        t(x) / axav,
-                        "k--",
-                        linewidth=2,
+                        y,
+                        style[i],
+                        color="k",
+                        alpha=0.7,
+                        linewidth=1,
                         label="R(V) = {:4.2f}".format(cRv),
                     )
+                    ax.legend()
 
-            # plot NIR power law model
+            # fit NIR powerlaw model to the band data between 1 and 40 micron
             if powerlaw:
                 ftype = "BAND"
                 gbool = np.all(
@@ -189,23 +200,25 @@ def plot_extinction(starlist, path, alax, extmodels, powerlaw, onefig, range, pd
                 )
                 xdata = extdata.waves[ftype][gbool].value
                 ydata = extdata.exts[ftype][gbool]
-                func = irpowerlaw
-                # func = irpowerlaw_18
+                if alax:
+                    func = alav_powerlaw
+                    labeltxt = "fit: $%5.2f \lambda ^{-%5.2f}$"
+                else:
+                    func = elx_powerlaw
+                    labeltxt = "fit: $%5.2f \lambda ^{-%5.2f} - %5.2f$"
                 popt, pcov = curve_fit(func, xdata, ydata)
                 ax.plot(
-                    xdata,
-                    func(xdata, *popt),
-                    "-",
-                    label="fit: a=%5.3f, b=%5.3f, c=%5.3f" % tuple(popt),
+                    xdata, func(xdata, *popt), "-", label=labeltxt % tuple(popt),
                 )
-                # ax.plot(
-                #    xdata, func(xdata, *popt), "-", label="fit: a=%5.3f, c=%5.3f" % tuple(popt)
-                # )
 
                 mod_x = np.arange(1.0, 40.0, 0.1)
                 mod_y = func(mod_x, *popt)
-                ax.plot(mod_x, mod_y, "--", label="A(V) = %5.2f" % (popt[0] * popt[2]))
-                # ax.plot(mod_x, mod_y, "--", label="A(V) = %5.2f" % (popt[0] * popt[1]))
+                if alax:
+                    av = extdata.columns["AV"]
+                else:
+                    av = popt[2]
+                ax.plot(mod_x, mod_y, "--", label="A(V) = %5.2f" % av)
+                ax.legend()
 
             # use the whitespace better
             fig.tight_layout()
@@ -236,7 +249,7 @@ if __name__ == "__main__":
         "--extmodels", help="plot extinction curve models", action="store_true"
     )
     parser.add_argument(
-        "--powerlaw", help="plot NIR powerlaw model", action="store_true"
+        "--powerlaw", help="fit and plot NIR powerlaw model", action="store_true"
     )
     parser.add_argument(
         "--onefig",
