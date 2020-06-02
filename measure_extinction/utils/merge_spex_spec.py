@@ -10,7 +10,8 @@ from astropy.table import Table
 
 from measure_extinction.merge_obsspec import merge_spex_obsspec
 
-def merge_spex(starname,inpath,outpath,outname):
+
+def merge_spex(starname, inpath, outpath, outname):
     # check which data are available
     filename_S = "%s/%s_SXD.txt" % (inpath, starname)
     filename_L = "%s/%s_LXD.txt" % (inpath, starname)
@@ -26,20 +27,13 @@ def merge_spex(starname,inpath,outpath,outname):
     # bin and merge the spectra
     for filename in filenames:
         table = Table.read(
-            filename,
-            format="ascii",
-            names=[
-                "WAVELENGTH",
-                "FLUX",
-                "ERROR",
-                "FLAG",
-                ],
-                )
+            filename, format="ascii", names=["WAVELENGTH", "FLUX", "ERROR", "FLAG",],
+        )
         spex_merged = merge_spex_obsspec(table)
         if outname:
             out_name = outname
         else:
-            out_name = os.path.basename(filename).split('.')[0]
+            out_name = os.path.basename(filename).split(".")[0]
         spex_file = "%s_spex.fits" % (out_name)
         spex_merged.write("%s/%s" % (outpath, spex_file), overwrite=True)
 
@@ -52,17 +46,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "--inpath",
         help="path where original SpeX ASCII files are stored",
-        default=pkg_resources.resource_filename('measure_extinction',
-                                            'data/Orig/NIR')
+        default=pkg_resources.resource_filename("measure_extinction", "data/Orig/NIR"),
     )
     parser.add_argument(
         "--outpath",
         help="path where merged SpeX spectra will be stored",
-        default=pkg_resources.resource_filename('measure_extinction',
-                                                'data/Spectra')
+        default=pkg_resources.resource_filename("measure_extinction", "data/Spectra"),
     )
     parser.add_argument("--outname", help="Output filebase")
     args = parser.parse_args()
 
     # merge the spectra
-    merge_spex(args.starname,args.inpath,args.outpath,args.outname)
+    merge_spex(args.starname, args.inpath, args.outpath, args.outname)

@@ -38,14 +38,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--inpath",
         help="path where original data files are stored",
-        default=pkg_resources.resource_filename('measure_extinction',
-                                            'data/Orig')
+        default=pkg_resources.resource_filename("measure_extinction", "data/Orig"),
     )
     parser.add_argument(
         "--outpath",
         help="path where merged spectra will be stored",
-        default=pkg_resources.resource_filename('measure_extinction',
-                                                'data/Out')
+        default=pkg_resources.resource_filename("measure_extinction", "data/Out"),
     )
     parser.add_argument(
         "--ralph", action="store_true", help="Ralph Bohlin reduced data"

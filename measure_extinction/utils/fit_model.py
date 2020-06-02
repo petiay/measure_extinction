@@ -208,7 +208,7 @@ def get_best_fit_params(sampler):
         tmax_lnp = np.max(sampler.lnprobability[k])
         if tmax_lnp > max_lnp:
             max_lnp = tmax_lnp
-            indxs, = np.where(sampler.lnprobability[k] == tmax_lnp)
+            (indxs,) = np.where(sampler.lnprobability[k] == tmax_lnp)
             fit_params_best = sampler.chain[k, indxs[0], :]
 
     ndim = len(fit_params_best)

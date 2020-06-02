@@ -10,15 +10,15 @@ def test_calc_ext():
     # get the location of the data files
     data_path = pkg_resources.resource_filename("measure_extinction", "data/")
 
-    # read in the observed data on the star
-    redstar = StarData("hd283809.dat", path=data_path)
-    compstar = StarData("hd064802.dat", path=data_path)
+    # read in the observed data of the stars
+    redstar = StarData("hd229238.dat", path=data_path)
+    compstar = StarData("hd204172.dat", path=data_path)
 
     # calculate the extinction curve
     ext = ExtData()
     ext.calc_elx(redstar, compstar)
 
-    # test that the quanties have units (or not as appropriate)
+    # test that the quantities have units (or not as appropriate)
     for cursrc in ext.waves.keys():
         assert isinstance(ext.waves[cursrc], u.Quantity)
         assert not isinstance(ext.exts[cursrc], u.Quantity)
@@ -35,9 +35,9 @@ def test_get_fitdata():
 
     data_path = pkg_resources.resource_filename("measure_extinction", "data/")
 
-    # read in the observed data on the star
-    redstar = StarData("hd283809.dat", path=data_path)
-    compstar = StarData("hd064802.dat", path=data_path)
+    # read in the observed data of the stars
+    redstar = StarData("hd229238.dat", path=data_path)
+    compstar = StarData("hd204172.dat", path=data_path)
 
     # calculate the extinction curve
     ext = ExtData()

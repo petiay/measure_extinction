@@ -61,28 +61,28 @@ def rebin_spectrum(wave, flux, resolution, wave_range):
     full_npts = np.zeros((npts), dtype=int)
 
     for k in range(npts):
-        indxs, = np.where((wave >= full_wave_min[k]) & (wave < full_wave_max[k]))
+        (indxs,) = np.where((wave >= full_wave_min[k]) & (wave < full_wave_max[k]))
         n_indxs = len(indxs)
         if n_indxs > 0:
             full_flux[k] = np.sum(flux[indxs])
             full_npts[k] = n_indxs
 
     # divide by the # of points to create the final rebinned spectrum
-    indxs, = np.where(full_npts > 0)
+    (indxs,) = np.where(full_npts > 0)
     if len(indxs):
         full_flux[indxs] = full_flux[indxs] / full_npts[indxs]
 
     # interpolate to fill in missing points in the rebinned spectrum
     #  e.g., the model spectrum is not computed at a high enough resolution
     #        at all the needed wavelengths
-    zindxs, = np.where(full_npts <= 0)
+    (zindxs,) = np.where(full_npts <= 0)
     if len(zindxs):
         ifunc = interp1d(
             full_wave[indxs], full_flux[indxs], kind="linear", bounds_error=False
         )
         full_flux = ifunc(full_wave)
         full_npts[zindxs] = 1
-        nanindxs, = np.where(~np.isfinite(full_flux))
+        (nanindxs,) = np.where(~np.isfinite(full_flux))
         if len(nanindxs):
             full_flux[nanindxs] = 0.0
             full_npts[nanindxs] = 0
@@ -400,19 +400,19 @@ def make_obsdata_from_model(
         ax.plot(wave_r5000 * 1e-4, flux_r5000, "b-")
         ax.plot(bandinfo.waves, bandinfo.fluxes, "ro")
 
-        indxs, = np.where(rb_stis_uv["NPTS"] > 0)
+        (indxs,) = np.where(rb_stis_uv["NPTS"] > 0)
         ax.plot(
             rb_stis_uv["WAVELENGTH"][indxs].to(u.micron),
             rb_stis_uv["FLUX"][indxs],
             "m-",
         )
-        indxs, = np.where(rb_stis_opt["NPTS"] > 0)
+        (indxs,) = np.where(rb_stis_opt["NPTS"] > 0)
         ax.plot(
             rb_stis_opt["WAVELENGTH"][indxs].to(u.micron),
             rb_stis_opt["FLUX"][indxs],
             "g-",
         )
-        indxs, = np.where(rb_lrs["NPTS"] > 0)
+        (indxs,) = np.where(rb_lrs["NPTS"] > 0)
         ax.plot(rb_lrs["WAVELENGTH"][indxs].to(u.micron), rb_lrs["FLUX"][indxs], "c-")
         ax.set_xscale("log")
         ax.set_yscale("log")

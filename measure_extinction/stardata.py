@@ -93,6 +93,7 @@ class BandData:
         for line in lines:
             eqpos = line.find("=")
             pmpos = line.find("+/-")
+            
             if (eqpos >= 0) & (pmpos >= 0) & (line[0] != "#"):
                 # check for reference or unit
                 colpos = max((line.find(";"), line.find("#"), line.find("mJy")))
@@ -829,6 +830,12 @@ class StarData:
 
     corfac : dict of key:correction factors
         key gives the type (e.g., IRS, IRS_slope)
+
+    use_corfac : boolean
+        whether or not to use the correction factors, default = True
+
+    LXD_man : boolean
+        whether or not the LXD scaling factor has been set manually, default = False
     """
 
     def __init__(self, datfile, path="", photonly=False, use_corfac=True):

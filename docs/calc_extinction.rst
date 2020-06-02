@@ -14,22 +14,19 @@ identical in their physical properties, differing only in that one
 is seen through more dust than the other.
 Finding two stars with identical properties is straightforward
 as it just means finding two stars with the same 2D spectral types
-(temperature and luminosity) and the metallicities.
+(temperature and luminosity) and the same metallicities.
 As a result, measuring extinction is a simple matter of dividing
 the observations of the two stars and a small amount of math to convert
-it to magnitudes.  Using observations taken with the same instrumentation
+this to magnitudes. Using observations taken with the same instrumentation
 for both the reddened and comparison star means that only good relative
-calibration is needed.  Instead of using observations of a star with little
-to no reddening, a model stellar atmosphere can be used
+calibration is needed. Instead of using observations of a star with little
+to no reddening, a model stellar atmosphere can also be used
 (e.g., `Fitzpatrick & Massa 2005 <https://ui.adsabs.harvard.edu/abs/2005AJ....130.1127F/abstract>`_).
 This can provide a better match, but it comes at the expense of requiring
 good absolute calibration.
 
 The basic measurement is giving the magnitude excess relative to a
-reference wavelength measurement.
-This use of a reference wavelength is that the distance to a star is rarely
-known to high enough accuracy to directly measure the extinction at a
-single wavelength.
+reference wavelength measurement. The reason for using a reference wavelength is that the distance to a star is rarely known to high enough accuracy to directly measure the extinction at a single wavelength.
 Thus, the basic measurement gives the relative extinction between two
 wavelengths.
 Usually, the V band measurement is used as the reference.
@@ -43,7 +40,7 @@ Thus, the dust extinction at wavelength :math:`\lambda` is:
       = -2.5 \log10 [F_r(\lambda)/F_c(\lambda)] + 2.5 \log10 [F_r(V)/F_c(V)]
 
 where :math:`m(\lambda - V)` is the difference in magnitudes between the flux at
-:math:`\lambda` and the V band, :math:`m(\lambda)` is the magnitude,
+:math:`\lambda` and in the V band, :math:`m(\lambda)` is the magnitude,
 :math:`F(\lambda)` is the flux,
 :math:`r` refers to the reddened star, and :math:`c` refers to the comparison
 star.  Note that since :math:`E(\lambda - V)` is a differential measurement
@@ -101,14 +98,13 @@ Example
 Spectra
 ^^^^^^^
 
-HD 283809 and HD 64802 are two stars with similar spectral types that have
-observed ultraviolet spectra from IUE or HST/STIS and optical/NIR photometry
-from ground-based observations.  These two stars differ in that HD 283809
-is seen through a large column of dust and HD 64802 is seen through
+HD229238 and HD204172 are two stars with similar spectral types that have
+observed UV spectra from IUE, NIR spectra from SpeX, MIR spectra from IRS, optical and NIR photometry from ground-based observations, and NIR/MIR photometry from IRAC, WISE and MIPS. These two stars differ in that HD229238
+is seen through a large column of dust and HD204172 is seen through
 very little.
 
-The DAT file for both stars is given in the data directory for this
-package along with the STIS (HD 283809) and IUE (HD 64802) spectra.
+The data files (.dat) for both stars are given in the data directory for this
+package along with the observed spectra (in Spectra).
 For details of the format of these files, see :ref:`data_formats`.
 Using these files, the spectra of both stars can be plotted by reading in the
 observed data using the :class:`~measure_extinction.stardata.StarData` object
@@ -124,7 +120,7 @@ and then calling its member function plot.
    fig, ax = plt.subplots()
    starobs.plot(ax)
 
-The spectra for both stars are plotted using those data files.  Which star
+The spectra for both stars are plotted using those data files. Which star
 is reddened is clear as it has a non-stellar slope for an early type star
 and clearly shows the 2175 A absorption feature.
 
@@ -140,8 +136,8 @@ and clearly shows the 2175 A absorption feature.
                                                'data/')
 
    # read in the observed data of the stars
-   redstar = StarData('hd283809.dat', path=data_path)
-   compstar = StarData('hd064802.dat', path=data_path)
+   redstar = StarData('hd229238.dat', path=data_path)
+   compstar = StarData('hd204172.dat', path=data_path)
 
    # start the plotting
    fig, ax = plt.subplots()
@@ -151,7 +147,7 @@ and clearly shows the 2175 A absorption feature.
    compstar.plot(ax, pcolor='b')
 
    # finish configuring the plot
-   ax.set_title('HD 283809 (reddened) & HD 64802 (comparison)')
+   ax.set_title('HD229238 (reddened) & HD204172 (comparison)')
    ax.set_yscale('log')
    ax.set_xscale('log')
    ax.set_ylim(1e-17, 1e-9)
@@ -205,8 +201,8 @@ member function plot_ext.
                                                'data/')
 
    # read in the observed data of the stars
-   redstar = StarData('hd283809.dat', path=data_path)
-   compstar = StarData('hd064802.dat', path=data_path)
+   redstar = StarData('hd229238.dat', path=data_path)
+   compstar = StarData('hd204172.dat', path=data_path)
 
    # calculate the extinction curve
    extdata = ExtData()
@@ -219,7 +215,7 @@ member function plot_ext.
    extdata.plot(ax)
 
    # finish configuring the plot
-   ax.set_title('HD 283809/HD 64802 extinction')
+   ax.set_title('HD229238/HD204172 extinction')
    ax.set_xscale('log')
    ax.set_xlabel('$\lambda$ [$\mu m$]')
    ax.set_ylabel('$E(\lambda - V)$ [mag]')
@@ -259,8 +255,8 @@ exists.
                                                'data/')
 
    # read in the observed data on the star
-   redstar = StarData('hd283809.dat', path=data_path)
-   compstar = StarData('hd064802.dat', path=data_path)
+   redstar = StarData('hd229238.dat', path=data_path)
+   compstar = StarData('hd204172.dat', path=data_path)
 
    # calculate the extinction curve
    extdata = ExtData()
@@ -276,7 +272,7 @@ exists.
    extdata.plot(ax)
 
    # finish configuring the plot
-   ax.set_title('HD 283809/HD 64802 extinction')
+   ax.set_title('HD229238/HD204172 extinction')
    ax.set_xscale('log')
    ax.set_xlabel('$\lambda$ [$\mu m$]')
    ax.set_ylabel('$E(\lambda - V)/E(B-V)$')
@@ -288,9 +284,9 @@ exists.
 
    plt.show()
 
-Another common normalization is by |Av|.  This provides an absolute
-normalization instead of the differential normalization provide by
-|Ebv|.  In order to determine |Av|, the |Elv| curve is extrapolated to
+Another common normalization is by |Av|. This provides an absolute
+normalization instead of the differential normalization provided by
+|Ebv|. In order to determine |Av|, the |Elv| curve is extrapolated to
 infinite wavelength as :math:`A(inf) = 0`, thus :math:`E(inf - V) = -A(V)`.
 In general, the longest wavelength easy to measure is K band so
 :math:`E(K - V)` is often the measurement to be extrapolated.
@@ -337,8 +333,8 @@ by setting the parameter `akav` in this member function.
                                                'data/')
 
    # read in the observed data on the star
-   redstar = StarData('hd283809.dat', path=data_path)
-   compstar = StarData('hd064802.dat', path=data_path)
+   redstar = StarData('hd229238.dat', path=data_path)
+   compstar = StarData('hd204172.dat', path=data_path)
 
    # calculate the extinction curve
    extdata = ExtData()
@@ -359,7 +355,7 @@ by setting the parameter `akav` in this member function.
    extdata2.plot(ax, color='g')
 
    # finish configuring the plot
-   ax.set_title('HD 283809/HD 64802 extinction')
+   ax.set_title('HD229238/HD204172 extinction')
    ax.set_xscale('log')
    ax.set_xlabel('$\lambda$ [$\mu m$]')
    ax.set_ylabel('$A(\lambda)/A(V)$')
