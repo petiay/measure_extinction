@@ -427,14 +427,12 @@ class ExtData:
             sindxs = np.argsort(dwaves)
             kindx = sindxs[0]
             if dwaves[kindx] > 0.02 * u.micron:
-                warnings.warn(
-                    "no K band measurement in E(lambda-V)", UserWarning
-                )
+                warnings.warn("no K band measurement in E(lambda-V)", UserWarning)
             else:
                 ekv = self.exts["BAND"][kindx]
                 self.columns["AV"] = ekv / (akav - 1)
 
-    def trans_elv_alav(self, av=None):
+    def trans_elv_alav(self, av=None, akav=0.112):
         """
         Transform E(lambda-V) to A(lambda)/A(V) by normalizing to
         A(V) and adding 1. Default is to calculate A(V) from the
@@ -444,6 +442,11 @@ class ExtData:
         ----------
         av : float [default = None]
             value of A(V) to use - otherwise calculate it
+
+        akav : float  [default = 0.112]
+           Value of A(K)/A(V), only needed if A(V) has to be calculated from the K-band extinction
+           default is from Rieke & Lebofsky (1985)
+           van de Hulst No. 15 curve has A(K)/A(V) = 0.0885
 
         Returns
         -------
@@ -455,7 +458,7 @@ class ExtData:
             )
         else:
             if av is None:
-                self.calc_AV()
+                self.calc_AV(akav=akav)
 
             for curname in self.exts.keys():
                 self.exts[curname] = (self.exts[curname] / self.columns["AV"]) + 1
@@ -931,7 +934,9 @@ class ExtData:
             y = self.exts[curtype]
             yu = self.uncs[curtype]
 
-            if alax and self.type == "elx": # in the case A(V) was already available and the curve has not been transformed yet
+            if (
+                alax and self.type == "elx"
+            ):  # in the case A(V) was already available and the curve has not been transformed yet
                 # convert E(lambda-X) to A(lambda)/A(X)
                 y = (y / ax) + 1.0
                 yu /= ax
