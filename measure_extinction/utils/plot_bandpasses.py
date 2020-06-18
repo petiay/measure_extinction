@@ -1,4 +1,3 @@
-from astropy.table import Table
 from matplotlib import pyplot as plt
 import pkg_resources
 from synphot import SpectralElement
@@ -6,7 +5,7 @@ from synphot import SpectralElement
 
 def plot_bandpasses(bands):
     # create the figure
-    fig = plt.figure(figsize=(15, 5))
+    plt.figure(figsize=(15, 5))
 
     # plot all response curves
     for band in bands:
@@ -17,7 +16,7 @@ def plot_bandpasses(bands):
             wavelengths = bp.waveset
         plt.plot(wavelengths, bp(bp.waveset), label=band)
 
-    plt.xlabel("$\lambda$ [$\AA$]", size=15)
+    plt.xlabel(r"$\lambda$ [$\AA$]", size=15)
     plt.ylabel("transmission", size=15)
     plt.legend(ncol=2, loc=1)
     plt.show()

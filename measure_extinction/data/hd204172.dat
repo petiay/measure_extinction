@@ -6,8 +6,8 @@ J = 6.085 +/- 0.021 ; JHK ref = IRSA 2MASS All-Sky Point Source Catalog
 H = 6.080 +/- 0.045
 K = 6.141 +/- 0.018
 IUE = Spectra/hd204172_iue.fits
-SpeX_SXD = Spectra/hd204172_SXD_spex.fits
-SpeX_LXD = Spectra/hd204172_LXD_spex.fits
+SpeX_SXD = Spectra/hd204172_sxd_spex.fits
+SpeX_LXD = Spectra/hd204172_lxd_spex.fits
 IRS = Spectra/hd204172_irs.fits
 sptype = B0Ib
 dered_FM = -1.70  1.25  2.00  0.60  4.59  0.80

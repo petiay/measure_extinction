@@ -27,7 +27,7 @@ def merge_spex(starname, inpath, outpath, outname):
     # bin and merge the spectra
     for filename in filenames:
         table = Table.read(
-            filename, format="ascii", names=["WAVELENGTH", "FLUX", "ERROR", "FLAG",],
+            filename, format="ascii", names=["WAVELENGTH", "FLUX", "ERROR", "FLAG"],
         )
         spex_merged = merge_spex_obsspec(table)
         if outname:

@@ -202,10 +202,10 @@ def plot_extinction(starlist, path, alax, extmodels, powerlaw, onefig, range, pd
                 ydata = extdata.exts[ftype][gbool]
                 if alax:
                     func = alav_powerlaw
-                    labeltxt = "fit: $%5.2f \lambda ^{-%5.2f}$"
+                    labeltxt = r"fit: $%5.2f \lambda ^{-%5.2f}$"
                 else:
                     func = elx_powerlaw
-                    labeltxt = "fit: $%5.2f \lambda ^{-%5.2f} - %5.2f$"
+                    labeltxt = r"fit: $%5.2f \lambda ^{-%5.2f} - %5.2f$"
                 popt, pcov = curve_fit(func, xdata, ydata)
                 ax.plot(
                     xdata, func(xdata, *popt), "-", label=labeltxt % tuple(popt),

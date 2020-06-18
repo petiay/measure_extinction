@@ -21,7 +21,7 @@ standard stars.  This means that better spectral matching is possible, but
 with the cost of now being dependent on the instrumental calibration of the
 reddened star observation.  A good reference for using models as standards
 is
-`Fitzpatrick & Massa (2005) <https://ui.adsabs.harvard.edu//#abs/2005AJ....130.1127F/abstract>`_.
+`Fitzpatrick & Massa (2005) <https://ui.adsabs.harvard.edu/abs/2005AJ....130.1127F/abstract>`_.
 
 In summary:
 
@@ -46,7 +46,7 @@ The
 `Ostar <http://tlusty.oca.eu/Tlusty2002/tlusty-frames-OS02.html>`_ and
 `Bstar <http://tlusty.oca.eu/Tlusty2002/tlusty-frames-BS06.html>`_
 grids of Tlusty stellar atmosphere models
-(`Hubeny & Lanz 1995 <https://ui.adsabs.harvard.edu//#abs/1995ApJ...439..875H/abstract>`_)
+(`Hubeny & Lanz 1995 <https://ui.adsabs.harvard.edu/abs/1995ApJ...439..875H/abstract>`_)
 provide good standards, especially of hot, early type stars often used
 in extinction studies as they are bright in the ultraviolet.
 
