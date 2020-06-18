@@ -4,8 +4,12 @@ import numpy as np
 from astropy.table import Table, Column
 import astropy.units as u
 
-__all__ = ["merge_iue_obsspec", "merge_stis_obsspec", "merge_irs_obsspec",
-           "merge_spex_obsspec"]
+__all__ = [
+    "merge_iue_obsspec",
+    "merge_stis_obsspec",
+    "merge_irs_obsspec",
+    "merge_spex_obsspec",
+]
 
 
 def _wavegrid(resolution, wave_range):
@@ -82,7 +86,7 @@ def merge_iue_obsspec(obstables, output_resolution=500):
         cfluxes = ctable["FLUX"].data
         cnpts = ctable["NPTS"].data
         for k in range(n_waves):
-            indxs, = np.where(
+            (indxs,) = np.where(
                 (cwaves >= full_wave_min[k]) & (cwaves < full_wave_max[k]) & (cnpts > 0)
             )
             if len(indxs) > 0:
@@ -92,7 +96,7 @@ def merge_iue_obsspec(obstables, output_resolution=500):
                 full_npts[k] += len(indxs)
 
     # divide by the net weights
-    indxs, = np.where(full_npts > 0)
+    (indxs,) = np.where(full_npts > 0)
     if len(indxs) > 0:
         full_flux[indxs] /= full_unc[indxs]
         full_unc[indxs] = np.sqrt(1.0 / full_unc[indxs])
@@ -151,7 +155,7 @@ def merge_stis_obsspec(obstables, waveregion="UV", output_resolution=1000):
         cfluxes = ctable["FLUX"].data
         cnpts = ctable["NPTS"].data
         for k in range(n_waves):
-            indxs, = np.where(
+            (indxs,) = np.where(
                 (cwaves >= full_wave_min[k]) & (cwaves < full_wave_max[k]) & (cnpts > 0)
             )
             if len(indxs) > 0:
@@ -161,7 +165,7 @@ def merge_stis_obsspec(obstables, waveregion="UV", output_resolution=1000):
                 full_npts[k] += len(indxs)
 
     # divide by the net weights
-    indxs, = np.where(full_npts > 0)
+    (indxs,) = np.where(full_npts > 0)
     if len(indxs) > 0:
         full_flux[indxs] /= full_unc[indxs]
         full_unc[indxs] = np.sqrt(1.0 / full_unc[indxs])
@@ -210,7 +214,7 @@ def merge_irs_obsspec(obstables, output_resolution=150):
         cfluxes = ctable["FLUX"].data
         cnpts = ctable["NPTS"].data
         for k in range(n_waves):
-            indxs, = np.where(
+            (indxs,) = np.where(
                 (cwaves >= full_wave_min[k]) & (cwaves < full_wave_max[k]) & (cnpts > 0)
             )
             if len(indxs) > 0:
@@ -220,7 +224,7 @@ def merge_irs_obsspec(obstables, output_resolution=150):
                 full_npts[k] += len(indxs)
 
     # divide by the net weights
-    indxs, = np.where(full_npts > 0)
+    (indxs,) = np.where(full_npts > 0)
     if len(indxs) > 0:
         full_flux[indxs] /= full_unc[indxs]
         full_unc[indxs] = np.sqrt(1.0 / full_unc[indxs])
@@ -263,15 +267,15 @@ def merge_spex_obsspec(obstable, output_resolution=2000):
     # take out data points with NaN fluxes
     npts[np.isnan(fluxes)] = 0
     # take out data points with low SNR
-    npts[np.less(fluxes/uncs, 5, where=~np.isnan(fluxes/uncs))] = 0
+    npts[np.less(fluxes / uncs, 5, where=~np.isnan(fluxes / uncs))] = 0
     # take out wavelength regions affected by the atmosphere
-    npts[np.logical_and(2.52e4<waves,waves<2.92e4)] = 0
-    npts[np.logical_and(4.09e4<waves,waves<4.58e4)] = 0
+    npts[np.logical_and(2.52e4 < waves, waves < 2.92e4)] = 0
+    npts[np.logical_and(4.09e4 < waves, waves < 4.58e4)] = 0
 
     # determine the wavelength range and calculate the wavelength grid
-    if np.max(waves) < 25000: # SXD
+    if np.max(waves) < 25000:  # SXD
         wave_range = [0.8, 2.45] * u.micron
-    else: # LXD (this includes both LXD 1.9 and LXD 2.3 modes, to make sure all LXD spectra have the same wavelength grid, independent of the original observing mode)
+    else:  # LXD (this includes both LXD 1.9 and LXD 2.3 modes, to make sure all LXD spectra have the same wavelength grid, independent of the original observing mode)
         wave_range = [1.9, 5.5] * u.micron
 
     iwave_range = wave_range.to(u.angstrom).value
@@ -285,7 +289,7 @@ def merge_spex_obsspec(obstable, output_resolution=2000):
 
     # fill the arrays
     for k in range(n_waves):
-        indxs, = np.where(
+        (indxs,) = np.where(
             (waves >= full_wave_min[k]) & (waves < full_wave_max[k]) & (npts > 0)
         )
         if len(indxs) > 0:
@@ -295,7 +299,7 @@ def merge_spex_obsspec(obstable, output_resolution=2000):
             full_npts[k] = len(indxs)
 
     # divide by the net weights
-    indxs, = np.where(full_npts > 0)
+    (indxs,) = np.where(full_npts > 0)
     if len(indxs) > 0:
         full_flux[indxs] /= full_unc[indxs]
         full_unc[indxs] = np.sqrt(1.0 / full_unc[indxs])

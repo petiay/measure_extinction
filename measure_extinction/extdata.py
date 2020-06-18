@@ -851,7 +851,7 @@ class ExtData:
         elif ytype == "alax":
             return fr"$A(\lambda)/A({relband})$"
         elif ytype == "elv":
-            return fr"$E(\lambda - V)$"
+            return r"$E(\lambda - V)$"
         elif ytype == "elvebv":
             return r"$E(\lambda - V)/E(B - V)$"
         elif ytype == "alav":
@@ -914,7 +914,7 @@ class ExtData:
         """
         if alax:
             # compute A(V) if it is not available
-            if not "AV" in self.columns.keys():
+            if "AV" not in self.columns.keys():
                 self.trans_elv_alav()
             av = float(self.columns["AV"])
             if self.type_rel_band != "V":  # not sure if this works (where is RV given?)

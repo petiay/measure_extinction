@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
 from synphot import SpectralElement, SourceSpectrum, Observation
-from measure_extinction.stardata import StarData, BandData
+from measure_extinction.stardata import StarData
 from synphot.models import Empirical1D
 
 import argparse
 import numpy as np
 import astropy.units as u
 import pkg_resources
-import matplotlib.pyplot as plt
+
 
 # function to get photometry from a spectrum
 def get_phot(spec, bands):

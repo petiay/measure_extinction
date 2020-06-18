@@ -9,7 +9,6 @@ import matplotlib as mpl
 import numpy as np
 
 from measure_extinction.stardata import StarData
-from measure_extinction.utils.helpers import get_full_starfile
 
 
 def plot_spec(starname, path, mlam4, range, pdf):

@@ -93,7 +93,7 @@ class BandData:
         for line in lines:
             eqpos = line.find("=")
             pmpos = line.find("+/-")
-            
+
             if (eqpos >= 0) & (pmpos >= 0) & (line[0] != "#"):
                 # check for reference or unit
                 colpos = max((line.find(";"), line.find("#"), line.find("mJy")))
