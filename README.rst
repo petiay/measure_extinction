@@ -5,14 +5,13 @@ Measure Extinction
    :target: http://measure-extinction.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
 
-.. image:: https://travis-ci.org/karllark/measure_extinction.svg?branch=master
-   :target: https://travis-ci.org/karllark/measure_extinction
-   :alt: CI Testing Status
+.. image:: https://github.com/karllark/measure_extinction/workflows/Python%20Tests/badge.svg
+  :target: https://github.com/karllark/measure_extinction/actions/
+  :alt: Test Status
 
-.. image:: https://coveralls.io/repos/github/karllark/measure_extinction/badge.svg?branch=master
-   :target: https://coveralls.io/github/karllark/measure_extinction?branch=master
-   :alt: Test Coverage Status
-
+.. image:: https://codecov.io/gh/karllark/measure_extinction/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/karllark/measure_extinction
+  :alt: Test Coverage Status
 
 .. image:: http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat
     :target: http://www.astropy.org
@@ -28,17 +27,18 @@ Using readthedocs: <http://measure-extinction.readthedocs.io>
 Contributors
 ------------
 
-Karl Gordon
+Karl Gordon and Marjorie Decleir
 
 
 License
 -------
 
-This project is Copyright (c) Karl Gordon and licensed under
+This project is Copyright (c) Karl Gordon and Marjorie Decleir and licensed under
 the terms of the BSD 3-Clause license. This package is based upon
 the `Astropy package template <https://github.com/astropy/package-template>`_
-which is licensed under the BSD 3-clause licence. See the licenses folder for
+which is licensed under the BSD 3-clause license. See the licenses folder for
 more information.
+
 
 
 Contributing
