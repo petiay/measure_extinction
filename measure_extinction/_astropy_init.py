@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
-__all__ = ['__version__', '__githash__']
+__all__ = ['__version__']
 
 # this indicates whether or not we are in the package's setup.py
 try:
@@ -13,10 +13,6 @@ try:
     from .version import version as __version__
 except ImportError:
     __version__ = ''
-try:
-    from .version import githash as __githash__
-except ImportError:
-    __githash__ = ''
 
 
 if not _ASTROPY_SETUP_:  # noqa
@@ -47,8 +43,8 @@ if not _ASTROPY_SETUP_:  # noqa
                 try:
                     update_default_config(__package__, config_dir)
                 except ConfigurationDefaultMissingError as e:
-                    wmsg = (e.args[0]
-                            + " Cannot install default profile. If you are "
+                    wmsg = (e.args[0] +
+                            " Cannot install default profile. If you are "
                             "importing from source, this is expected.")
                     warn(ConfigurationDefaultMissingWarning(wmsg))
                     del e
