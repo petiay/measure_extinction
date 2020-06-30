@@ -13,8 +13,8 @@ from measure_extinction.merge_obsspec import merge_spex_obsspec
 
 def merge_spex(starname, inpath, outpath, outname):
     # check which data are available
-    filename_S = "%s/%s_SXD.txt" % (inpath, starname)
-    filename_L = "%s/%s_LXD.txt" % (inpath, starname)
+    filename_S = "%s/%s_sxd.txt" % (inpath, starname.lower())
+    filename_L = "%s/%s_lxd.txt" % (inpath, starname.lower())
     if not os.path.isfile(filename_S):
         filenames = [filename_L]
         if not os.path.isfile(filename_L):
