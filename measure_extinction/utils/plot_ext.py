@@ -87,7 +87,7 @@ def plot_extinction(starlist, path, alax, extmodels, powerlaw, onefig, range, pd
 
         for i, star in enumerate(sorted_starlist):
             # read in the extinction curve data
-            extdata = ExtData("%s%s_ext.fits" % (path, star))
+            extdata = ExtData("%s%s_ext.fits" % (path, star.lower()))
 
             # plot the extinction curve
             extdata.plot(ax, alax=alax, color=colors[i], alpha=0.5)
@@ -133,7 +133,7 @@ def plot_extinction(starlist, path, alax, extmodels, powerlaw, onefig, range, pd
             fig, ax = plt.subplots(figsize=(13, 10))
 
             # read in the extinction curve data
-            extdata = ExtData("%s%s_ext.fits" % (path, star))
+            extdata = ExtData("%s%s_ext.fits" % (path, star.lower()))
 
             # plot the extinction curve
             extdata.plot(ax, alax=alax)
@@ -148,7 +148,7 @@ def plot_extinction(starlist, path, alax, extmodels, powerlaw, onefig, range, pd
             ax.tick_params("both", length=10, width=2, which="major")
             ax.tick_params("both", length=5, width=1, which="minor")
             ax.set_title(star, fontsize=50)
-            outname = "%s%s_ext_%s.pdf" % (path, star, extdata.type)
+            outname = "%s%s_ext_%s.pdf" % (path, star.lower(), extdata.type)
 
             # zoom in on region
             if range is not None:
