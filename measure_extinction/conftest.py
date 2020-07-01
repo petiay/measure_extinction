@@ -37,7 +37,7 @@ def pytest_configure(config):
 
 # Uncomment the last two lines in this block to treat all DeprecationWarnings as
 # exceptions. For Astropy v2.0 or later, there are 2 additional keywords,
-# as follow (although default should work for most cases).
+# as follows (although default should work for most cases).
 # To ignore some packages that produce deprecation warnings on import
 # (in addition to 'compiler', 'scipy', 'pygments', 'ipykernel', and
 # 'setuptools'), add:
