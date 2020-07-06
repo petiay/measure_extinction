@@ -44,13 +44,13 @@ def plot_spec(starname, path, mlam4, range, pdf):
             r"$F(\lambda)\ \lambda^4$ [$ergs\ cm^{-2}\ s\ \AA\ \mu m^4$]",
             fontsize=1.5 * fontsize,
         )
-        outname = path + starname + "_spec_mlam4.pdf"
+        outname = path + starname.lower() + "_spec_mlam4.pdf"
     else:
         ax.set_ylabel(
             r"$F(\lambda)$ [$ergs\ cm^{-2}\ s\ \AA$]", fontsize=1.5 * fontsize
         )
-        outname = path + starname + "_spec.pdf"
-    ax.set_title(starname, fontsize=50)
+        outname = path + starname.lower() + "_spec.pdf"
+    ax.set_title(starname.upper(), fontsize=50)
     ax.tick_params("both", length=10, width=2, which="major")
     ax.tick_params("both", length=5, width=1, which="minor")
 
