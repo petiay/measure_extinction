@@ -65,7 +65,7 @@ fixes, code, or documentation (no git or GitHub experience necessary):
 
 * `Developer Documentation <https://docs.astropy.org/en/stable/#developer-documentation>`_
 
-For the complete list of contributors please see the `dust_extinction
+For the complete list of contributors please see the `measure_extinction
 contributors page on Github
 <https://github.com/karllark/measure_extinction/graphs/contributors>`_.
 
