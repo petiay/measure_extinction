@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import pkg_resources
 import argparse
+import warnings
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
@@ -23,8 +24,78 @@ def alav_powerlaw(x, a, alpha):
     return a * x ** -alpha
 
 
-def irpowerlaw_18(x, a, c):
-    return a * x ** -1.8 - c
+# this function is currently not used
+# def irpowerlaw_18(x, a, c):
+#    return a * x ** -1.8 - c
+
+# function to plot Milky Way extinction curve models of Cardelli, Clayton, and Mathis (1989, ApJ, 345, 245), only possible for wavelengths between 0.1 and 3.33 micron.
+def plot_extmodels(extdata, alax):
+    x = np.arange(0.1, 3.33, 0.01) * u.micron
+    Rvs = [2.0, 3.1, 4.0, 5.0]
+    style = ["--", "-", ":", "-."]
+    for i, cRv in enumerate(Rvs):
+        curve = CCM89(Rv=cRv)
+        if alax:
+            if extdata.type_rel_band != "V":
+                emod = CCM89(cRv)
+                (indx,) = np.where(extdata.type_rel_band == extdata.names["BAND"])
+                axav = emod(extdata.waves["BAND"][indx[0]])
+            else:
+                axav = 1.0
+            y = curve(x) / axav
+        else:
+            # compute A(V)
+            extdata.calc_AV()
+            # convert the model curve from A(lambda)/A(V) to E(lambda-V), using the computed A(V) of the data.
+            y = (curve(x) - 1) * extdata.columns["AV"]
+        plt.plot(
+            x,
+            y,
+            style[i],
+            color="k",
+            alpha=0.7,
+            linewidth=1,
+            label="R(V) = {:4.2f}".format(cRv),
+        )
+        plt.legend()
+
+
+# function to fit and plot a NIR powerlaw model to the band data between 1 and 40 micron
+def plot_powerlaw(extdata, alax):
+    # retrieve the band data to be fitted
+    ftype = "BAND"
+    gbool = np.all(
+        [
+            (extdata.npts[ftype] > 0),
+            (extdata.waves[ftype] > 1.0 * u.micron),
+            (extdata.waves[ftype] < 40.0 * u.micron),
+        ],
+        axis=0,
+    )
+    xdata = extdata.waves[ftype][gbool].value
+    ydata = extdata.exts[ftype][gbool]
+    # fit the data points with a powerlaw function
+    if alax:
+        func = alav_powerlaw
+        labeltxt = r"fit: $%5.2f \lambda ^{-%5.2f}$"
+    else:
+        func = elx_powerlaw
+        labeltxt = r"fit: $%5.2f \lambda ^{-%5.2f} - %5.2f$"
+    popt, pcov = curve_fit(func, xdata, ydata)
+    # plot the fitted curve
+    plt.plot(
+        xdata, func(xdata, *popt), "-", label=labeltxt % tuple(popt),
+    )
+
+    # plot the model line from 1 to 40 micron
+    mod_x = np.arange(1.0, 40.0, 0.1)
+    mod_y = func(mod_x, *popt)
+    if alax:
+        av = extdata.columns["AV"]
+    else:
+        av = popt[2]
+    plt.plot(mod_x, mod_y, "--", label="A(V) = %5.2f" % av)
+    plt.legend()
 
 
 # function to zoom in on a certain wavelength range
@@ -102,6 +173,10 @@ def plot_extinction(starlist, path, alax, extmodels, powerlaw, onefig, range, pd
                 fontsize=0.7 * fontsize,
             )
 
+            # fit and plot a NIR powerlaw model if requested
+            if powerlaw:
+                plot_powerlaw(extdata, alax)
+
         # finish configuring the plot
         ax.set_yscale("linear")
         ax.set_xscale("log")
@@ -114,10 +189,20 @@ def plot_extinction(starlist, path, alax, extmodels, powerlaw, onefig, range, pd
         outname = "%sall_ext_%s.pdf" % (path, extdata.type)
         plt.margins(x=0.1)
 
-        # zoom in on region
+        # zoom in on region if requested
         if range is not None:
             zoom(ax, range)
             outname = outname.replace(".pdf", "_zoom.pdf")
+
+        # overplot Milky Way extinction curve models if requested
+        if extmodels:
+            if alax:
+                plot_extmodels(extdata, alax)
+            else:
+                warnings.warn(
+                    "Overplotting Milky Way extinction curve models on a figure with multiple observed extinction curves in E(lambda-V) units is disabled, because the model curves in these units are different for every star, and would overload the plot. Please, do one of the following if you want to overplot Milky Way extinction curve models: 1) Use the flag --alax to plot ALL curves in A(lambda)/A(V) units, OR 2) Plot all curves separately by removing the flag --onefig.",
+                    stacklevel=2,
+                )
 
         # use the whitespace better
         fig.tight_layout()
@@ -150,75 +235,18 @@ def plot_extinction(starlist, path, alax, extmodels, powerlaw, onefig, range, pd
             ax.set_title(star, fontsize=50)
             outname = "%s%s_ext_%s.pdf" % (path, star.lower(), extdata.type)
 
-            # zoom in on region
+            # zoom in on region if requested
             if range is not None:
                 zoom(ax, range)
                 outname = outname.replace(".pdf", "_zoom.pdf")
 
-            # plot Milky Way extinction models of Cardelli, Clayton, and Mathis (1989, ApJ, 345, 245), only possible for wavelengths between 0.1 and 3.33 micron.
+            # plot Milky Way extinction models if requested
             if extmodels:
-                x = np.arange(0.1, 3.33, 0.01) * u.micron
-                Rvs = [2.0, 3.1, 4.0, 5.0]
-                style = ["--", "-", ":", "-."]
-                for i, cRv in enumerate(Rvs):
-                    curve = CCM89(Rv=cRv)
-                    if alax:
-                        if extdata.type_rel_band != "V":
-                            emod = CCM89(cRv)
-                            (indx,) = np.where(
-                                extdata.type_rel_band == extdata.names["BAND"]
-                            )
-                            axav = emod(extdata.waves["BAND"][indx[0]])
-                        else:
-                            axav = 1.0
-                        y = curve(x) / axav
-                    else:
-                        # compute A(V)
-                        extdata.calc_AV()
-                        y = (curve(x) - 1) * extdata.columns["AV"]
-                    ax.plot(
-                        x,
-                        y,
-                        style[i],
-                        color="k",
-                        alpha=0.7,
-                        linewidth=1,
-                        label="R(V) = {:4.2f}".format(cRv),
-                    )
-                    ax.legend()
+                plot_extmodels(extdata, alax)
 
-            # fit NIR powerlaw model to the band data between 1 and 40 micron
+            # fit and plot a NIR powerlaw model if requested
             if powerlaw:
-                ftype = "BAND"
-                gbool = np.all(
-                    [
-                        (extdata.npts[ftype] > 0),
-                        (extdata.waves[ftype] > 1.0 * u.micron),
-                        (extdata.waves[ftype] < 40.0 * u.micron),
-                    ],
-                    axis=0,
-                )
-                xdata = extdata.waves[ftype][gbool].value
-                ydata = extdata.exts[ftype][gbool]
-                if alax:
-                    func = alav_powerlaw
-                    labeltxt = r"fit: $%5.2f \lambda ^{-%5.2f}$"
-                else:
-                    func = elx_powerlaw
-                    labeltxt = r"fit: $%5.2f \lambda ^{-%5.2f} - %5.2f$"
-                popt, pcov = curve_fit(func, xdata, ydata)
-                ax.plot(
-                    xdata, func(xdata, *popt), "-", label=labeltxt % tuple(popt),
-                )
-
-                mod_x = np.arange(1.0, 40.0, 0.1)
-                mod_y = func(mod_x, *popt)
-                if alax:
-                    av = extdata.columns["AV"]
-                else:
-                    av = popt[2]
-                ax.plot(mod_x, mod_y, "--", label="A(V) = %5.2f" % av)
-                ax.legend()
+                plot_powerlaw(extdata, alax)
 
             # use the whitespace better
             fig.tight_layout()
@@ -267,7 +295,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     plot_extinction(
-        args.starlist,
+        np.array(
+            args.starlist
+        ),  # convert the type of "starlist" from list to numpy array (to enable sorting later on)
         args.path,
         args.alax,
         args.extmodels,

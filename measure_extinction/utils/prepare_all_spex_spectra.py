@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     # do the different steps for all the stars
     for star in stars:
-        print(star)
+        print(star.upper())
         merge_spex(star, args.inpath, args.spex_path, outname=None)
         calc_save_corfac_spex(
             star, os.path.dirname(os.path.normpath(args.spex_path)) + "/"
