@@ -5,7 +5,7 @@
 
 from measure_extinction.utils.merge_spex_spec import merge_spex
 from measure_extinction.utils.scale_spex_spec import calc_save_corfac_spex
-from measure_extinction.utils.plot_spec import plot_spec
+from measure_extinction.utils.plot_spec import plot_spectra
 
 import numpy as np
 import argparse
@@ -58,7 +58,7 @@ if __name__ == "__main__":
             star, os.path.dirname(os.path.normpath(args.spex_path)) + "/"
         )
 
-    plot_spec(
+    plot_spectra(
         np.array(stars),
         os.path.dirname(os.path.normpath(args.spex_path)) + "/",
         args.mlam4,

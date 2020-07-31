@@ -44,7 +44,7 @@ def zoom(ax, range):
     ax.set_ylim(ymin * 0.95, ymax * 1.05)
 
 
-def plot_spec(starlist, path, mlam4, onefig, range, pdf):
+def plot_spectra(starlist, path, mlam4, onefig, range, pdf):
     """
     Plot the observed band and spectral data
 
@@ -244,7 +244,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # plot the spectrum
-    plot_spec(
+    plot_spectra(
         np.array(
             args.starlist
         ),  # convert the type of "starlist" from list to numpy array (to enable sorting later on)
