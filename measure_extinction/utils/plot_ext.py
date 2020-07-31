@@ -28,8 +28,23 @@ def alav_powerlaw(x, a, alpha):
 # def irpowerlaw_18(x, a, c):
 #    return a * x ** -1.8 - c
 
-# function to plot Milky Way extinction curve models of Cardelli, Clayton, and Mathis (1989, ApJ, 345, 245), only possible for wavelengths between 0.1 and 3.33 micron.
+
 def plot_extmodels(extdata, alax):
+    """
+    Plot Milky Way extinction curve models of Cardelli, Clayton, and Mathis (1989, ApJ, 345, 245), only possible for wavelengths between 0.1 and 3.33 micron
+
+    Parameters
+    ----------
+    extdata : ExtData
+        Extinction data under consideration
+
+    alax : boolean
+        Whether or not to plot A(lambda)/A(X) instead of E(lambda-X)
+
+    Returns
+    -------
+    Overplots extinction curve models
+    """
     x = np.arange(0.1, 3.33, 0.01) * u.micron
     Rvs = [2.0, 3.1, 4.0, 5.0]
     style = ["--", "-", ":", "-."]
@@ -60,8 +75,22 @@ def plot_extmodels(extdata, alax):
         plt.legend()
 
 
-# function to fit and plot a NIR powerlaw model to the band data between 1 and 40 micron
 def plot_powerlaw(extdata, alax):
+    """
+    Fit and plot a NIR powerlaw model to the band data between 1 and 40 micron
+
+    Parameters
+    ----------
+    extdata : ExtData
+        Extinction data under consideration
+
+    alax : boolean
+        Whether or not to plot A(lambda)/A(X) instead of E(lambda-X)
+
+    Returns
+    -------
+    Overplots a fitted NIR powerlaw model
+    """
     # retrieve the band data to be fitted
     ftype = "BAND"
     gbool = np.all(
@@ -98,24 +127,74 @@ def plot_powerlaw(extdata, alax):
     plt.legend()
 
 
-# function to zoom in on a certain wavelength range
 def zoom(ax, range):
+    """
+    Zoom in on the requested wavelength range by setting the axes limits to this range
+
+    Parameters
+    ----------
+    ax : AxesSubplot
+        Axes of plot for which new limits need to be set
+
+    range : list
+        Wavelength range to be plotted (in micron) - [min,max]
+
+    Returns
+    -------
+    Sets the axes limits to the requested range
+    """
+    # set the x axis limits
     ax.set_xlim(range)
 
-    # calculate the appropriate y limits
+    # calculate the appropriate y axis limits
     ymin, ymax = np.inf, -np.inf
     for line in ax.get_lines():
         x_data = line.get_xdata()
-        y_data = line.get_ydata()[np.logical_and(x_data > range[0], x_data < range[1])]
+        y_data = line.get_ydata()[
+            np.logical_and(x_data >= range[0], x_data <= range[1])
+        ]
         if y_data.size != 0 and np.nanmin(y_data) < ymin:
             ymin = np.nanmin(y_data)
         if y_data.size != 0 and np.nanmax(y_data) > ymax:
             ymax = np.nanmax(y_data)
-        h = ymax - ymin
+    h = ymax - ymin
     ax.set_ylim(ymin - 0.05 * h, ymax + 0.05 * h)
 
 
 def plot_extinction(starlist, path, alax, extmodels, powerlaw, onefig, range, pdf):
+    """
+    Plot the extinction curve(s)
+
+    Parameters
+    ----------
+    starlist : numpy.ndarray
+        Array of stars for which to plot the extinction curve
+
+    path : string
+        Path to the data files
+
+    alax : boolean
+        Whether or not to plot A(lambda)/A(X) instead of E(lambda-X)
+
+    extmodels: boolean
+        Whether or not to overplot Milky Way extinction curve models
+
+    powerlaw: boolean
+        Whether or not to fit and overplot a NIR powerlaw model
+
+    onefig : boolean
+        Whether or not to plot all curves in the same figure
+
+    range : list
+        Wavelength range to be plotted (in micron) - [min,max]
+
+    pdf : boolean
+        Whether or not to save the figure as a pdf file
+
+    Returns
+    -------
+    Figure(s) with extinction curve(s)
+    """
     # plotting setup for easier to read plots
     fontsize = 18
     font = {"size": fontsize}
@@ -134,65 +213,46 @@ def plot_extinction(starlist, path, alax, extmodels, powerlaw, onefig, range, pd
         colors = plt.cm.jet(np.linspace(0, 1, len(starlist)))
 
         # sort the stars according to their extinction value at the longest wavelength
-        max_yvals = np.zeros(len(starlist))
         max_waves = np.zeros(len(starlist))
+        max_exts = np.zeros(len(starlist))
         for i, star in enumerate(starlist):
             # read in the extinction curve data
             extdata = ExtData("%s%s_ext.fits" % (path, star))
             if alax:
                 extdata.trans_elv_alav()
             # find the extinction value at the longest wavelength
-            (wave, y, y_unc) = extdata.get_fitdata(
+            (waves, exts, ext_uncs) = extdata.get_fitdata(
                 ["BAND", "SpeX_SXD", "SpeX_LXD", "IRS"]
             )
             if range is not None:
-                max_waves[i] = wave.value[wave.value < range[1]][0]
-                max_yvals[i] = y[wave.value < range[1]][0]
+                max_waves[i] = waves.value[waves.value < range[1]][0]
+                max_exts[i] = exts[waves.value < range[1]][0]
             else:
-                max_yvals[i] = y[0]
-                max_waves[i] = wave.value[0]
-        sort_id = np.argsort(max_yvals)
+                max_waves[i] = waves.value[0]
+                max_exts[i] = exts[0]
+        sort_id = np.argsort(max_exts)
         sorted_starlist = starlist[sort_id]
-        max_yvals = max_yvals[sort_id]
         max_waves = max_waves[sort_id]
+        max_exts = max_exts[sort_id]
 
         for i, star in enumerate(sorted_starlist):
-            # read in the extinction curve data
+            # read in and plot the extinction curve data
             extdata = ExtData("%s%s_ext.fits" % (path, star.lower()))
-
-            # plot the extinction curve
             extdata.plot(ax, alax=alax, color=colors[i], alpha=0.5)
 
             # add the name of the star
             ax.text(
                 max_waves[i] * 1.1,
-                max_yvals[i],
+                max_exts[i],
                 star,
                 color=colors[i],
-                alpha=0.5,
+                alpha=0.7,
                 fontsize=0.7 * fontsize,
             )
 
             # fit and plot a NIR powerlaw model if requested
             if powerlaw:
                 plot_powerlaw(extdata, alax)
-
-        # finish configuring the plot
-        ax.set_yscale("linear")
-        ax.set_xscale("log")
-        ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
-        ax.set_ylabel(
-            extdata._get_ext_ytitle(ytype=extdata.type), fontsize=1.5 * fontsize
-        )
-        ax.tick_params("both", length=10, width=2, which="major")
-        ax.tick_params("both", length=5, width=1, which="minor")
-        outname = "%sall_ext_%s.pdf" % (path, extdata.type)
-        plt.margins(x=0.1)
-
-        # zoom in on region if requested
-        if range is not None:
-            zoom(ax, range)
-            outname = outname.replace(".pdf", "_zoom.pdf")
 
         # overplot Milky Way extinction curve models if requested
         if extmodels:
@@ -204,11 +264,34 @@ def plot_extinction(starlist, path, alax, extmodels, powerlaw, onefig, range, pd
                     stacklevel=2,
                 )
 
+        # define the output name
+        outname = "%sall_ext_%s.pdf" % (path, extdata.type)
+
+        # zoom in on region if requested
+        if range is not None:
+            zoom(ax, range)
+            outname = outname.replace(".pdf", "_zoom.pdf")
+
+        # finish configuring the plot
+        ax.set_yscale("linear")
+        ax.set_xscale("log")
+        ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
+        ax.set_ylabel(
+            extdata._get_ext_ytitle(ytype=extdata.type), fontsize=1.5 * fontsize
+        )
+        ax.tick_params("both", length=10, width=2, which="major")
+        ax.tick_params("both", length=5, width=1, which="minor")
+
+        # make the right margin a bit larger
+        plt.margins(x=0.1)
+
         # use the whitespace better
         fig.tight_layout()
 
+        # show the figure or save it to a pdf file
         if pdf:
             fig.savefig(outname)
+            plt.close()
         else:
             plt.show()
 
@@ -217,11 +300,28 @@ def plot_extinction(starlist, path, alax, extmodels, powerlaw, onefig, range, pd
             # setup the plot
             fig, ax = plt.subplots(figsize=(13, 10))
 
-            # read in the extinction curve data
+            # read in and plot the extinction curve data
             extdata = ExtData("%s%s_ext.fits" % (path, star.lower()))
-
-            # plot the extinction curve
             extdata.plot(ax, alax=alax)
+
+            # set the title of the plot
+            ax.set_title(star, fontsize=50)
+
+            # define the output name
+            outname = "%s%s_ext_%s.pdf" % (path, star.lower(), extdata.type)
+
+            # fit and plot a NIR powerlaw model if requested
+            if powerlaw:
+                plot_powerlaw(extdata, alax)
+
+            # plot Milky Way extinction models if requested
+            if extmodels:
+                plot_extmodels(extdata, alax)
+
+            # zoom in on region if requested
+            if range is not None:
+                zoom(ax, range)
+                outname = outname.replace(".pdf", "_zoom.pdf")
 
             # finish configuring the plot
             ax.set_yscale("linear")
@@ -232,25 +332,11 @@ def plot_extinction(starlist, path, alax, extmodels, powerlaw, onefig, range, pd
             )
             ax.tick_params("both", length=10, width=2, which="major")
             ax.tick_params("both", length=5, width=1, which="minor")
-            ax.set_title(star, fontsize=50)
-            outname = "%s%s_ext_%s.pdf" % (path, star.lower(), extdata.type)
-
-            # zoom in on region if requested
-            if range is not None:
-                zoom(ax, range)
-                outname = outname.replace(".pdf", "_zoom.pdf")
-
-            # plot Milky Way extinction models if requested
-            if extmodels:
-                plot_extmodels(extdata, alax)
-
-            # fit and plot a NIR powerlaw model if requested
-            if powerlaw:
-                plot_powerlaw(extdata, alax)
 
             # use the whitespace better
             fig.tight_layout()
 
+            # show the figure or save it to a pdf file
             if pdf:
                 fig.savefig(outname)
                 plt.close()
@@ -269,7 +355,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--path",
-        help="path to data files",
+        help="path to the data files",
         default=pkg_resources.resource_filename("measure_extinction", "data/"),
     )
     parser.add_argument("--alax", help="plot A(lambda)/A(X)", action="store_true")
