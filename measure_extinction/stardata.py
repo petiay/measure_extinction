@@ -826,7 +826,7 @@ class StarData:
         empty dict if observed data
 
     data : dict of key:BandData or SpecData
-        key gives the type of data (e.g., BANDS, IUE, IRS)
+        key gives the type of data (e.g., BAND, IUE, IRS)
 
     corfac : dict of key:correction factors
         key gives the type (e.g., IRS, IRS_slope)
@@ -999,6 +999,64 @@ class StarData:
                 if colpos == 0:
                     colpos = len(line)
                 return (line[0 : eqpos - 1].strip(), line[eqpos + 1 : colpos].strip())
+
+    def get_data(self, req_datasources):
+        """
+        Get the data in a simple format
+
+        Parameters
+        ----------
+        req_datasources : list of str
+            list of data sources (e.g., ['IUE', 'BAND'])
+
+        Returns
+        -------
+        (waves, fluxes, uncs) : tuple of arrays
+            arrays are sorted from short to long wavelengths
+            waves is wavelengths in microns
+            fluxes is fluxes in erg/cm2/s/A
+            uncs is uncertainties on flux in erg/cm2/s/A
+        """
+        fluxunit = u.erg / ((u.cm ** 2) * u.s * u.angstrom)
+        wavedata = []
+        fluxdata = []
+        uncdata = []
+        nptsdata = []
+        for data_source in req_datasources:
+            if data_source in self.data.keys():
+                wavedata.append(self.data[data_source].waves.to(u.micron).value)
+                fluxdata.append(
+                    self.data[data_source]
+                    .fluxes.to(
+                        fluxunit,
+                        equivalencies=u.spectral_density(self.data[data_source].waves),
+                    )
+                    .value
+                )
+                uncdata.append(
+                    self.data[data_source]
+                    .uncs.to(
+                        fluxunit,
+                        equivalencies=u.spectral_density(self.data[data_source].waves),
+                    )
+                    .value
+                )
+                nptsdata.append(self.data[data_source].npts)
+        waves = np.concatenate(wavedata)
+        fluxes = np.concatenate(fluxdata)
+        uncs = np.concatenate(uncdata)
+        npts = np.concatenate(nptsdata)
+
+        # sort the arrays from short to long wavelengths
+        # at the same time, remove points with no data
+        (gindxs,) = np.where(npts > 0)
+        sindxs = np.argsort(waves[gindxs])
+        gindxs = gindxs[sindxs]
+        waves = waves[gindxs]
+        fluxes = fluxes[gindxs]
+        uncs = uncs[gindxs]
+
+        return (waves, fluxes, uncs)
 
     def plot(
         self,
