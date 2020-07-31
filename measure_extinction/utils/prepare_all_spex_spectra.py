@@ -7,6 +7,7 @@ from measure_extinction.utils.merge_spex_spec import merge_spex
 from measure_extinction.utils.scale_spex_spec import calc_save_corfac_spex
 from measure_extinction.utils.plot_spec import plot_spec
 
+import numpy as np
 import argparse
 import pkg_resources
 import glob
@@ -27,6 +28,11 @@ if __name__ == "__main__":
         default=pkg_resources.resource_filename("measure_extinction", "data/Spectra"),
     )
     parser.add_argument("--mlam4", help="plot lambda^4*F(lambda)", action="store_true")
+    parser.add_argument(
+        "--onefig",
+        help="whether or not to plot all spectra in the same figure",
+        action="store_true",
+    )
     parser.add_argument(
         "--range",
         nargs="+",
@@ -51,10 +57,12 @@ if __name__ == "__main__":
         calc_save_corfac_spex(
             star, os.path.dirname(os.path.normpath(args.spex_path)) + "/"
         )
-        plot_spec(
-            star,
-            os.path.dirname(os.path.normpath(args.spex_path)) + "/",
-            args.mlam4,
-            args.range,
-            pdf=True,
-        )
+
+    plot_spec(
+        np.array(stars),
+        os.path.dirname(os.path.normpath(args.spex_path)) + "/",
+        args.mlam4,
+        args.onefig,
+        args.range,
+        pdf=True,
+    )
