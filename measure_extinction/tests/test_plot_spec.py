@@ -12,19 +12,41 @@ def test_plot_spectra():
 
     starlist = ["HD229238", "HD204172"]
 
-    # plot the spectrum with the default settings
+    # plot the spectra with the default settings
     plot_spectra(
-        np.array(
-            starlist
-        ),  # convert the type of "starlist" from list to numpy array (to enable sorting later on)
+        np.array(starlist), data_path, mlam4=False, onefig=False, range=None, pdf=True,
+    )
+
+    # plot the spectra as lambda^4 * F(lambda) (i.e. mlam4=True)
+    plot_spectra(
+        np.array(starlist), data_path, mlam4=True, onefig=False, range=None, pdf=True,
+    )
+
+    # plot the spectra and zoom in on a specific wavelength region (i.e. range=[0.7,6])
+    plot_spectra(
+        np.array(starlist),
         data_path,
         mlam4=False,
         onefig=False,
-        range=None,
+        range=[0.7, 6],
         pdf=True,
     )
 
-    # check if the expected pdf file has been created
+    # check if the expected pdf files have been created
     for star in starlist:
         if not os.path.isfile(data_path + star + "_spec.pdf"):
-            warnings.warn("No pdf file has been created,", stacklevel=2)
+            warnings.warn(
+                "Plotting the spectra with the default settings has failed,",
+                stacklevel=2,
+            )
+
+        if not os.path.isfile(data_path + star + "_spec_mlam4.pdf"):
+            warnings.warn(
+                "Plotting the spectra in lambda^4*F(lambda) has failed,", stacklevel=2
+            )
+
+        if not os.path.isfile(data_path + star + "_spec_zoom.pdf"):
+            warnings.warn(
+                "Plotting the spectra in a specific wavelength range has failed,",
+                stacklevel=2,
+            )
