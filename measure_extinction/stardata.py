@@ -1000,7 +1000,7 @@ class StarData:
                     colpos = len(line)
                 return (line[0 : eqpos - 1].strip(), line[eqpos + 1 : colpos].strip())
 
-    def get_data(self, req_datasources):
+    def get_flat_data_arrays(self, req_datasources):
         """
         Get the data in a simple format
 

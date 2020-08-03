@@ -100,7 +100,7 @@ def plot_spectra(starlist, path, mlam4, onefig, range, pdf):
             starobs = StarData("%s.dat" % star.lower(), path=path, use_corfac=True)
 
             # find the flux at the longest wavelength
-            (waves, fluxes, flux_uncs) = starobs.get_data(
+            (waves, fluxes, flux_uncs) = starobs.get_flat_data_arrays(
                 ["BAND", "SpeX_SXD", "SpeX_LXD", "IRS"]
             )
             if range is not None:
