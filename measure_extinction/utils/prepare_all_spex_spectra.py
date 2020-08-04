@@ -5,8 +5,9 @@
 
 from measure_extinction.utils.merge_spex_spec import merge_spex
 from measure_extinction.utils.scale_spex_spec import calc_save_corfac_spex
-from measure_extinction.utils.plot_spec import plot_spec
+from measure_extinction.utils.plot_spec import plot_spectra
 
+import numpy as np
 import argparse
 import pkg_resources
 import glob
@@ -28,6 +29,11 @@ if __name__ == "__main__":
     )
     parser.add_argument("--mlam4", help="plot lambda^4*F(lambda)", action="store_true")
     parser.add_argument(
+        "--onefig",
+        help="whether or not to plot all spectra in the same figure",
+        action="store_true",
+    )
+    parser.add_argument(
         "--range",
         nargs="+",
         help="wavelength range to be plotted (in micron)",
@@ -46,15 +52,17 @@ if __name__ == "__main__":
 
     # do the different steps for all the stars
     for star in stars:
-        print(star)
+        print(star.upper())
         merge_spex(star, args.inpath, args.spex_path, outname=None)
         calc_save_corfac_spex(
             star, os.path.dirname(os.path.normpath(args.spex_path)) + "/"
         )
-        plot_spec(
-            star,
-            os.path.dirname(os.path.normpath(args.spex_path)) + "/",
-            args.mlam4,
-            args.range,
-            pdf=True,
-        )
+
+    plot_spectra(
+        np.array(stars),
+        os.path.dirname(os.path.normpath(args.spex_path)) + "/",
+        args.mlam4,
+        args.onefig,
+        args.range,
+        pdf=True,
+    )

@@ -177,7 +177,7 @@ class ExtData:
         tuples are measurement, uncertainty
 
     waves : dict of key:wavelengths
-        key is BANDS, IUE, IRS, etc.
+        key is BAND, IUE, IRS, etc.
 
     ext : dict of key:E(lambda-v) measurements
 
@@ -237,7 +237,7 @@ class ExtData:
 
         Returns
         -------
-        updates self.(waves, exts, uncs, npts, names)['BANDS']
+        updates self.(waves, exts, uncs, npts, names)['BAND']
         """
         # reference band
         red_rel_band = red.data["BAND"].get_band_mag(rel_band)
@@ -402,7 +402,7 @@ class ExtData:
     def calc_AV(self, akav=0.112):
         """
         Calculate A(V) from the observed extinction curve:
-            - fit a powerlaw to the SpeX spectrum, if available
+            - fit a powerlaw to the SpeX extinction curve, if available
             - otherwise: extrapolate the K-band extinction
 
         Parameters
@@ -416,7 +416,7 @@ class ExtData:
         -------
         Updates self.columns["AV"]
         """
-        # if SpeX spectrum is available: compute A(V) by fitting the NIR extintion curve with a powerlaw.
+        # if SpeX extinction curve is available: compute A(V) by fitting the NIR extintion curve with a powerlaw.
         if "SpeX_SXD" in self.waves.keys() or "SpeX_LXD" in self.waves.keys():
             fit_result = self.fit_spex_ext()
             self.columns["AV"] = fit_result.Av_1.value
@@ -436,7 +436,7 @@ class ExtData:
         """
         Transform E(lambda-V) to A(lambda)/A(V) by normalizing to
         A(V) and adding 1. Default is to calculate A(V) from the
-        input elx curve. If A(V) value passed, use that instead.
+        input elx curve. If A(V) value is passed, use that one instead.
 
         Parameters
         ----------
@@ -479,7 +479,7 @@ class ExtData:
         Parameters
         ----------
         req_datasources : list of str
-            list of data sources (e.g., ['IUE', 'BANDS'])
+            list of data sources (e.g., ['IUE', 'BAND'])
 
         remove_uvwind_region : boolean, optional (default=False)
             remove the UV wind regions from the returned data
