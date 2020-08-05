@@ -21,7 +21,7 @@ def zoom(ax, range):
     ax : AxesSubplot
         Axes of plot for which new limits need to be set
 
-    range : list
+    range : list of 2 floats
         Wavelength range to be plotted (in micron) - [min,max]
 
     Returns
@@ -45,7 +45,9 @@ def zoom(ax, range):
     ax.set_ylim(ymin * 0.95, ymax * 1.05)
 
 
-def plot_multi_spectra(starlist, path, mlam4, range, pdf, outname="all_spec.pdf"):
+def plot_multi_spectra(
+    starlist, path, mlam4, range, norm_range, spread, pdf, outname="all_spec.pdf"
+):
     """
     Plot the observed band and spectral data of multiple stars in the same plot
 
@@ -60,8 +62,14 @@ def plot_multi_spectra(starlist, path, mlam4, range, pdf, outname="all_spec.pdf"
     mlam4 : boolean
         Whether or not to multiply the flux F(lambda) by lambda^4 to remove the Rayleigh-Jeans slope
 
-    range : list
+    range : list of 2 floats
         Wavelength range to be plotted (in micron) - [min,max]
+
+    norm_range : list of 2 floats
+        Wavelength range to use to normalize the data - [min,max]
+
+    spread : boolean
+        Whether or not to spread the spectra out by adding a vertical offset to each spectrum
 
     pdf : boolean
         Whether or not to save the figure as a pdf file
@@ -115,17 +123,30 @@ def plot_multi_spectra(starlist, path, mlam4, range, pdf, outname="all_spec.pdf"
     for i, star in enumerate(sorted_starlist):
         # read in and plot all bands and spectra for this star
         starobs = StarData("%s.dat" % star.lower(), path=path, use_corfac=True)
-        starobs.plot(ax, pcolor=colors[i], mlam4=mlam4)
+        ylabel = r"$F(\lambda)$ [$ergs\ cm^{-2}\ s^{-1}\ \AA^{-1}$]"
+        # spread out the spectra if requested
+        if spread:
+            yoffset = 0.5 * i
+        else:
+            yoffset = 0
+        starobs.plot(
+            ax,
+            pcolor=colors[i],
+            norm_wave_range=norm_range * u.micron,
+            mlam4=mlam4,
+            yoffset=yoffset,
+            yoffset_type="add",
+        )
 
         # add the name of the star
-        ax.text(
-            max_waves[i] * 1.1,
-            max_fluxes[i],
-            star,
-            color=colors[i],
-            alpha=0.7,
-            fontsize=fontsize,
-        )
+        # ax.text(
+        #     max_waves[i] * 1.1,
+        #     max_fluxes[i] + yoffset,
+        #     star,
+        #     color=colors[i],
+        #     alpha=0.7,
+        #     fontsize=fontsize,
+        # )
 
     # zoom in on region if requested
     if range is not None:
@@ -133,20 +154,20 @@ def plot_multi_spectra(starlist, path, mlam4, range, pdf, outname="all_spec.pdf"
         outname = outname.replace(".pdf", "_zoom.pdf")
 
     # finish configuring the plot
-    ax.set_yscale("log")
+    if norm_range is None:
+        ax.set_yscale("log")
     ax.set_xscale("log")
     ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
     if mlam4:
-        ax.set_ylabel(
-            r"$F(\lambda)\ \lambda^4$ [$ergs\ cm^{-2}\ s^{-1}\ \AA^{-1}\ \mu m^4$]",
-            fontsize=1.5 * fontsize,
-        )
+        ylabel = r"$F(\lambda)\ \lambda^4$ [$ergs\ cm^{-2}\ s^{-1}\ \AA^{-1}\ \mu m^4$]"
         outname = outname.replace("spec", "spec_mlam4")
     else:
-        ax.set_ylabel(
-            r"$F(\lambda)$ [$ergs\ cm^{-2}\ s^{-1}\ \AA^{-1}$]",
-            fontsize=1.5 * fontsize,
-        )
+        ylabel = r"$F(\lambda)$ [$ergs\ cm^{-2}\ s^{-1}\ \AA^{-1}$]"
+    if spread:
+        ylabel = ylabel + " + offset"
+    ax.set_ylabel(
+        ylabel, fontsize=1.5 * fontsize,
+    )
     ax.tick_params("both", length=10, width=2, which="major")
     ax.tick_params("both", length=5, width=1, which="minor")
 
@@ -175,7 +196,7 @@ def plot_spectrum(star, path, mlam4, range, pdf):
     mlam4 : boolean
         Whether or not to multiply the flux F(lambda) by lambda^4 to remove the Rayleigh-Jeans slope
 
-    range : list
+    range : list of 2 floats
         Wavelength range to be plotted (in micron) - [min,max]
 
     pdf : boolean
@@ -242,7 +263,6 @@ def plot_spectrum(star, path, mlam4, range, pdf):
 
 
 if __name__ == "__main__":
-
     # commandline parser
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -268,7 +288,16 @@ if __name__ == "__main__":
         type=float,
         default=None,
     )
-
+    parser.add_argument(
+        "--norm_range",
+        nargs="+",
+        help="wavelength range to use to normalize the spectrum (in micron)",
+        type=float,
+        default=None,
+    )
+    parser.add_argument(
+        "--spread", help="spread the spectra out over the figure", action="store_true",
+    )
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
 
@@ -280,6 +309,8 @@ if __name__ == "__main__":
             args.path,
             args.mlam4,
             args.range,
+            args.norm_range,
+            args.spread,
             args.pdf,
         )
     else:

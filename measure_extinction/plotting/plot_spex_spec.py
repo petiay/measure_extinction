@@ -39,6 +39,8 @@ def plot_comp_spectra():
         path,
         mlam4=True,
         range=[0.75, 6],
+        norm_range=[1, 1.1],
+        spread=True,
         pdf=True,
         outname="comp_stars.pdf",
     )
