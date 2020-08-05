@@ -966,7 +966,7 @@ class ExtData:
             # compute A(V) if it is not available
             if "AV" not in self.columns.keys():
                 self.trans_elv_alav()
-            av = float(self.columns["AV"])
+            av = float(self.columns["AV"][0])
             if self.type_rel_band != "V":  # not sure if this works (where is RV given?)
                 # use F04 model to convert AV to AX
                 rv = float(self.columns["RV"][0])
