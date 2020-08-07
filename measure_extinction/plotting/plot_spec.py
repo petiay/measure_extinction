@@ -104,8 +104,13 @@ def plot_multi_spectra(
         starobs = StarData("%s.dat" % star.lower(), path=path, use_corfac=True)
 
         # spread out the spectra if requested
+        # add extra whitespace when the luminosity class changes from main sequence to giant
+        if "V" not in starobs.sptype:
+            extra_off = 1
+        else:
+            extra_off = 0
         if spread:
-            yoffset = 0.5 * i
+            yoffset = extra_off + 0.5 * i
         else:
             yoffset = 0
 

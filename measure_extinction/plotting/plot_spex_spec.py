@@ -13,29 +13,29 @@ from measure_extinction.plotting.plot_spec import plot_multi_spectra
 
 
 def plot_comp_spectra():
-    # define the path and the names of the comparison stars
+    # define the path and the names of the comparison stars (first the main sequence stars and then the giant stars, sorted by spectral type from B9 to O0)
     path = "/Users/mdecleir/Documents/NIR_ext/Data/"
     stars = [
-        "HD164794",
-        "HD047839",
-        "HD214680",
-        "HD036512",
-        "HD188209",
-        "HD204172",
-        "HD034816",
-        "HD091316",
-        "HD003360",
-        "HD031726",
-        "HD051283",
-        "HD042560",
-        "HD032630",
         "HD034759",
+        "HD032630",
+        "HD042560",
+        "HD031726",
+        "HD003360",
+        "HD034816",
+        "HD036512",
+        "HD214680",
+        "HD047839",
+        "HD164794",
         "HD078316",
+        "HD051283",
+        "HD091316",
+        "HD204172",
+        "HD188209",
     ]
 
     # plot the spectra
     plot_multi_spectra(
-        np.array(stars),
+        stars,
         path,
         mlam4=True,
         range=[0.75, 6],
