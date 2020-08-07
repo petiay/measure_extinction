@@ -2,13 +2,6 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import pkg_resources
-import argparse
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-import numpy as np
-import astropy.units as u
-
 from measure_extinction.plotting.plot_spec import plot_multi_spectra
 
 
