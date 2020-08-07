@@ -7,7 +7,6 @@ from measure_extinction.utils.merge_spex_spec import merge_spex
 from measure_extinction.utils.scale_spex_spec import calc_save_corfac_spex
 from measure_extinction.plotting.plot_spec import plot_multi_spectra, plot_spectrum
 
-import numpy as np
 import argparse
 import pkg_resources
 import glob
