@@ -1071,6 +1071,7 @@ class StarData:
         annotate_text=None,
         annotate_rotation=0.0,
         annotate_yoffset=0.0,
+        annotate_color="k",
         legend_key=None,
         fontsize=None,
     ):
@@ -1088,17 +1089,32 @@ class StarData:
             min/max wavelength range to use to normalize data
 
         mlam4 : boolean
-            plot the data multiplied by lamda^4
+            plot the data multiplied by lambda^4
             removes the Rayleigh-Jeans slope
 
         yoffset : float
-            multiplicative offset for the data
+            multiplicative or additive offset for the data
 
         yoffset_type : str
             yoffset type, "multiply" or "add", default is "multiply"
 
         annotate_key : string
-            annotate the spectrum using the given data key
+            type of data for which to annotate text (e.g. "SpeX_LXD")
+
+        annotate_wave_range : list of 2 floats
+            min/max wavelength range for the annotation of the text
+
+        annotate_text : string
+            text to annotate
+
+        annotate_rotation : float
+            annotation angle [default=0.0]
+
+        annotate_yoffset : float
+            y-offset for the annotated text [default=0.0]
+
+        annotate_color : string
+            color of the annotated text [default="k"]
 
         legend_key : string
             legend the spectrum using the given data key
@@ -1160,7 +1176,7 @@ class StarData:
 
         # plot the bands and all spectra for this star
         for curtype in self.data.keys():
-            # replace fluxes by NaNs for wavelength regions that need to be excluded from the plot
+            # replace fluxes by NaNs for wavelength regions that need to be excluded from the plot, to avoid separate regions being connected artificially
             self.data[curtype].fluxes[self.data[curtype].npts == 0] = np.nan
             if mlam4:
                 ymult = np.power(self.data[curtype].waves.value, 4.0)
@@ -1218,7 +1234,6 @@ class StarData:
 
             if curtype == annotate_key:
                 # annotate the spectra
-                # ann_wave_range = np.array([max_gwave-5.0, max_gwave-1.0])
                 waves = self.data[curtype].waves
                 ann_indxs = np.where(
                     (waves >= annotate_wave_range[0])
@@ -1231,6 +1246,7 @@ class StarData:
                     ann_xval,
                     ann_val,
                     annotate_text,
-                    horizontalalignment="right",
+                    color=annotate_color,
+                    horizontalalignment="left",
                     rotation=annotate_rotation,
                 )

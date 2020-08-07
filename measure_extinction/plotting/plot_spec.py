@@ -53,8 +53,8 @@ def plot_multi_spectra(
 
     Parameters
     ----------
-    starlist : numpy.ndarray
-        Array of stars for which to plot the spectrum
+    starlist : list of strings
+        List of stars for which to plot the spectrum
 
     path : string
         Path to the data files
@@ -66,7 +66,7 @@ def plot_multi_spectra(
         Wavelength range to be plotted (in micron) - [min,max]
 
     norm_range : list of 2 floats
-        Wavelength range to use to normalize the data - [min,max]
+        Wavelength range to use to normalize the data (in micron)- [min,max]
 
     spread : boolean
         Whether or not to spread the spectra out by adding a vertical offset to each spectrum
@@ -96,57 +96,46 @@ def plot_multi_spectra(
     fig, ax = plt.subplots(figsize=(15, 20))
     colors = plt.cm.jet(np.linspace(0, 1, len(starlist)))
 
-    # sort the stars according to their flux value at the longest wavelength
-    max_waves = np.zeros(len(starlist))
-    max_fluxes = np.zeros(len(starlist))
+    if norm_range is not None:
+        norm_range = norm_range * u.micron
+
     for i, star in enumerate(starlist):
-        # read in the band and spectral data for this star
-        starobs = StarData("%s.dat" % star.lower(), path=path, use_corfac=True)
-
-        # find the flux at the longest wavelength
-        (waves, fluxes, flux_uncs) = starobs.get_flat_data_arrays(
-            ["BAND", "SpeX_SXD", "SpeX_LXD", "IRS"]
-        )
-        if range is not None:
-            max_waves[i] = waves[waves < range[1]][-1]
-            max_fluxes[i] = fluxes[waves < range[1]][-1]
-        else:
-            max_waves[i] = waves[-1]
-            max_fluxes[i] = fluxes[-1]
-    if mlam4:
-        max_fluxes = max_fluxes * max_waves ** 4
-    sort_id = np.argsort(max_fluxes)
-    sorted_starlist = starlist[sort_id]
-    max_waves = max_waves[sort_id]
-    max_fluxes = max_fluxes[sort_id]
-
-    for i, star in enumerate(sorted_starlist):
         # read in and plot all bands and spectra for this star
         starobs = StarData("%s.dat" % star.lower(), path=path, use_corfac=True)
-        ylabel = r"$F(\lambda)$ [$ergs\ cm^{-2}\ s^{-1}\ \AA^{-1}$]"
+
         # spread out the spectra if requested
         if spread:
             yoffset = 0.5 * i
         else:
             yoffset = 0
+
+        # determine where to add the name of the star and its spectral type
+        # find the shortest plotted wavelength
+        (waves, fluxes, flux_uncs) = starobs.get_flat_data_arrays(starobs.data.keys())
+        if range is not None:
+            waves = waves[waves >= range[0]]
+        min_wave = waves[0]
+
+        # find out which data type corresponds with this wavelength
+        for data_type in starobs.data.keys():
+            used_waves = starobs.data[data_type].waves[starobs.data[data_type].npts > 0]
+            if min_wave in used_waves.value:
+                ann_key = data_type
+        ann_range = [min_wave, min_wave] * u.micron
+        ann_offset = 0.25
         starobs.plot(
             ax,
             pcolor=colors[i],
-            norm_wave_range=norm_range * u.micron,
+            norm_wave_range=norm_range,
             mlam4=mlam4,
             yoffset=yoffset,
             yoffset_type="add",
+            annotate_key=ann_key,
+            annotate_wave_range=ann_range,
+            annotate_text=star.upper() + "  " + starobs.sptype,
+            annotate_yoffset=ann_offset,
+            annotate_color=colors[i],
         )
-
-        # add the name of the star
-        # ax.text(
-        #     max_waves[i] * 1.1,
-        #     max_fluxes[i] + yoffset,
-        #     star,
-        #     color=colors[i],
-        #     alpha=0.7,
-        #     fontsize=fontsize,
-        # )
 
     # zoom in on region if requested
     if range is not None:
@@ -154,7 +143,7 @@ def plot_multi_spectra(
         outname = outname.replace(".pdf", "_zoom.pdf")
 
     # finish configuring the plot
-    if norm_range is None:
+    if not spread:
         ax.set_yscale("log")
     ax.set_xscale("log")
     ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
@@ -181,7 +170,7 @@ def plot_multi_spectra(
         plt.show()
 
 
-def plot_spectrum(star, path, mlam4, range, pdf):
+def plot_spectrum(star, path, mlam4, range, norm_range, pdf):
     """
     Plot the observed band and spectral data of a star
 
@@ -198,6 +187,9 @@ def plot_spectrum(star, path, mlam4, range, pdf):
 
     range : list of 2 floats
         Wavelength range to be plotted (in micron) - [min,max]
+
+    norm_range : list of 2 floats
+        Wavelength range to use to normalize the data (in micron)- [min,max]
 
     pdf : boolean
         Whether or not to save the figure as a pdf file
@@ -221,10 +213,12 @@ def plot_spectrum(star, path, mlam4, range, pdf):
 
     # read in and plot all bands and spectra for this star
     starobs = StarData("%s.dat" % star.lower(), path=path, use_corfac=True)
-    starobs.plot(ax, mlam4=mlam4)
+    if norm_range is not None:
+        norm_range = norm_range * u.micron
+    starobs.plot(ax, norm_wave_range=norm_range, mlam4=mlam4)
 
     # set the title of the plot
-    ax.set_title(star, fontsize=50)
+    ax.set_title(star.upper(), fontsize=50)
 
     # define the output name
     outname = star.lower() + "_spec.pdf"
@@ -258,6 +252,7 @@ def plot_spectrum(star, path, mlam4, range, pdf):
     # show the figure or save it to a pdf file
     if pdf:
         fig.savefig(path + outname)
+        plt.close()
     else:
         plt.show()
 
@@ -296,16 +291,16 @@ if __name__ == "__main__":
         default=None,
     )
     parser.add_argument(
-        "--spread", help="spread the spectra out over the figure", action="store_true",
+        "--spread",
+        help="spread the spectra out over the figure; can only be used in combination with --onefig",
+        action="store_true",
     )
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
 
     if args.onefig:
         plot_multi_spectra(
-            np.array(
-                args.starlist
-            ),  # convert the type of "starlist" from list to numpy array (to enable sorting later on)
+            args.starlist,
             args.path,
             args.mlam4,
             args.range,
@@ -314,5 +309,11 @@ if __name__ == "__main__":
             args.pdf,
         )
     else:
+        if args.spread:
+            parser.error(
+                "The flag --spread can only be used in combination with the flag --onefig. It only makes sense to spread out the spectra if there is more than one spectrum in the same plot."
+            )
         for star in args.starlist:
-            plot_spectrum(star, args.path, args.mlam4, args.range, args.pdf)
+            plot_spectrum(
+                star, args.path, args.mlam4, args.range, args.norm_range, args.pdf
+            )
