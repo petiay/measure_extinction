@@ -104,7 +104,7 @@ def plot_multi_spectra(
     mpl.rc("ytick.minor", width=2)
 
     # setup the plot
-    fig, ax = plt.subplots(figsize=(15, 20))
+    fig, ax = plt.subplots(figsize=(15, len(starlist) * 1.25))
     colors = plt.cm.jet(np.linspace(0, 1, len(starlist)))
 
     if norm_range is not None:
@@ -121,7 +121,7 @@ def plot_multi_spectra(
         else:
             extra_off = 0
         if spread:
-            yoffset = extra_off + 0.5 * i
+            yoffset = extra_off + i
         else:
             yoffset = 0
 
