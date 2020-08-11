@@ -40,5 +40,51 @@ def plot_comp_spectra():
     )
 
 
+def plot_red_spectra():
+    # define the path and the names of the reddened stars (first the main sequence stars and then the giant stars, sorted by spectral type from B9 to O0)
+    path = "/Users/mdecleir/Documents/NIR_ext/Data/"
+    stars = [
+        "HD038087",
+        "HD156247",
+        "HD294264",
+        "HD283809",
+        "HD052721",
+        "HD029309",
+        "HD013338",
+        "HD014422",
+        "BD+56d524",
+        "HD037061",
+        "HD014250",
+        "HD037023",
+        "HD185418",
+        "HD037020",
+        "HD206773",
+        "HD204827",
+        "HD034921",
+        "HD166734",
+        "HD037022",
+        "HD017505",
+        "HD029647",
+        "HD183143",
+        "HD014956",
+        "HD229238",
+        "HD192660",
+    ]
+
+    # plot the spectra
+    plot_multi_spectra(
+        stars,
+        path,
+        mlam4=True,
+        range=[0.75, 6],
+        norm_range=[1, 1.1],
+        spread=True,
+        exclude=["IRS", "STIS_Opt"],
+        pdf=True,
+        outname="red_stars.pdf",
+    )
+
+
 if __name__ == "__main__":
     plot_comp_spectra()
+    plot_red_spectra()
