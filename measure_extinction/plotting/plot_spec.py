@@ -46,7 +46,15 @@ def zoom(ax, range):
 
 
 def plot_multi_spectra(
-    starlist, path, mlam4, range, norm_range, spread, pdf, outname="all_spec.pdf"
+    starlist,
+    path,
+    mlam4,
+    range,
+    norm_range,
+    spread,
+    exclude,
+    pdf,
+    outname="all_spec.pdf",
 ):
     """
     Plot the observed band and spectral data of multiple stars in the same plot
@@ -70,6 +78,9 @@ def plot_multi_spectra(
 
     spread : boolean
         Whether or not to spread the spectra out by adding a vertical offset to each spectrum
+
+    exclude : list of strings
+        Which data type(s) to exclude from the plotting (e.g., IRS)
 
     pdf : boolean
         Whether or not to save the figure as a pdf file
@@ -133,6 +144,7 @@ def plot_multi_spectra(
             pcolor=colors[i],
             norm_wave_range=norm_range,
             mlam4=mlam4,
+            exclude=exclude,
             yoffset=yoffset,
             yoffset_type="add",
             annotate_key=ann_key,
@@ -175,7 +187,7 @@ def plot_multi_spectra(
         plt.show()
 
 
-def plot_spectrum(star, path, mlam4, range, norm_range, pdf):
+def plot_spectrum(star, path, mlam4, range, norm_range, exclude, pdf):
     """
     Plot the observed band and spectral data of a star
 
@@ -195,6 +207,9 @@ def plot_spectrum(star, path, mlam4, range, norm_range, pdf):
 
     norm_range : list of 2 floats
         Wavelength range to use to normalize the data (in micron)- [min,max]
+
+    exclude : list of strings
+        Which data type(s) to exclude from the plotting (e.g., IRS)
 
     pdf : boolean
         Whether or not to save the figure as a pdf file
@@ -220,7 +235,7 @@ def plot_spectrum(star, path, mlam4, range, norm_range, pdf):
     starobs = StarData("%s.dat" % star.lower(), path=path, use_corfac=True)
     if norm_range is not None:
         norm_range = norm_range * u.micron
-    starobs.plot(ax, norm_wave_range=norm_range, mlam4=mlam4)
+    starobs.plot(ax, norm_wave_range=norm_range, mlam4=mlam4, exclude=exclude)
 
     # set the title of the plot
     ax.set_title(star.upper(), fontsize=50)
@@ -300,6 +315,13 @@ if __name__ == "__main__":
         help="spread the spectra out over the figure; can only be used in combination with --onefig",
         action="store_true",
     )
+    parser.add_argument(
+        "--exclude",
+        nargs="+",
+        help="data type(s) to exclude from the plotting",
+        type=str,
+        default=[],
+    )
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
 
@@ -311,6 +333,7 @@ if __name__ == "__main__":
             args.range,
             args.norm_range,
             args.spread,
+            args.exclude,
             args.pdf,
         )
     else:
@@ -320,5 +343,11 @@ if __name__ == "__main__":
             )
         for star in args.starlist:
             plot_spectrum(
-                star, args.path, args.mlam4, args.range, args.norm_range, args.pdf
+                star,
+                args.path,
+                args.mlam4,
+                args.range,
+                args.norm_range,
+                args.exclude,
+                args.pdf,
             )

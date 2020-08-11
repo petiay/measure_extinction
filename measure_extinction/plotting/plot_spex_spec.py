@@ -34,6 +34,7 @@ def plot_comp_spectra():
         range=[0.75, 6],
         norm_range=[1, 1.1],
         spread=True,
+        exclude=["IRS"],
         pdf=True,
         outname="comp_stars.pdf",
     )

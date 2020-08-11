@@ -30,7 +30,7 @@ class BandData:
     Attributes:
 
     type : string
-        desciptive string of type of data (currently always 'BAND')
+        descriptive string of type of data (currently always BAND)
 
     waves : array of floats
         wavelengths
@@ -65,7 +65,7 @@ class BandData:
         Parameters
         ----------
         type: string
-            desciptive string of type of data (currently always 'BAND')
+            descriptive string of type of data (currently always BAND)
         """
         self.type = type
         self.n_bands = 0
@@ -560,7 +560,7 @@ class SpecData:
         Parameters
         ----------
         type: string
-            desciptive string of type of data (e.g., IUE, FUSE, IRS)
+            descriptive string of type of data (e.g., IUE, FUSE, IRS)
         """
         self.type = type
         self.n_waves = 0
@@ -1064,6 +1064,7 @@ class StarData:
         pcolor=None,
         norm_wave_range=None,
         mlam4=False,
+        exclude=[],
         yoffset=None,
         yoffset_type="multiply",
         annotate_key=None,
@@ -1092,6 +1093,9 @@ class StarData:
             plot the data multiplied by lambda^4
             removes the Rayleigh-Jeans slope
 
+        exclude : list of strings
+            Which data type(s) to exclude from the plotting (e.g., IRS) [default=[]]
+
         yoffset : float
             multiplicative or additive offset for the data
 
@@ -1099,7 +1103,7 @@ class StarData:
             yoffset type, "multiply" or "add", default is "multiply"
 
         annotate_key : string
-            type of data for which to annotate text (e.g. "SpeX_LXD")
+            type of data for which to annotate text (e.g., SpeX_LXD)
 
         annotate_wave_range : list of 2 floats
             min/max wavelength range for the annotation of the text
@@ -1174,8 +1178,8 @@ class StarData:
         else:
             normval = 1.0
 
-        # plot the bands and all spectra for this star
-        for curtype in self.data.keys():
+        # plot all band and spectral data for this star, unless specifically excluded from the plot
+        for curtype in self.data.keys() - exclude:
             # replace fluxes by NaNs for wavelength regions that need to be excluded from the plot, to avoid separate regions being connected artificially
             self.data[curtype].fluxes[self.data[curtype].npts == 0] = np.nan
             if mlam4:

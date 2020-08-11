@@ -49,6 +49,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--spread", help="spread the spectra out over the figure", action="store_true",
     )
+    parser.add_argument(
+        "--exclude",
+        nargs="+",
+        help="data type(s) to exclude from the plotting",
+        type=str,
+        default=[],
+    )
 
     args = parser.parse_args()
 
@@ -74,6 +81,7 @@ if __name__ == "__main__":
             args.range,
             args.norm_range,
             args.spread,
+            args.exclude,
             pdf=True,
         )
     else:
@@ -88,5 +96,6 @@ if __name__ == "__main__":
                 args.mlam4,
                 args.range,
                 args.norm_range,
+                args.exclude,
                 pdf=True,
             )
