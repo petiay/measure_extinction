@@ -48,12 +48,12 @@ def zoom(ax, range):
 def plot_multi_spectra(
     starlist,
     path,
-    mlam4,
-    range,
-    norm_range,
-    spread,
-    exclude,
-    pdf,
+    mlam4=False,
+    range=None,
+    norm_range=None,
+    spread=False,
+    exclude=[],
+    pdf=False,
     outname="all_spec.pdf",
 ):
     """
@@ -68,25 +68,25 @@ def plot_multi_spectra(
         Path to the data files
 
     mlam4 : boolean
-        Whether or not to multiply the flux F(lambda) by lambda^4 to remove the Rayleigh-Jeans slope
+        Whether or not to multiply the flux F(lambda) by lambda^4 to remove the Rayleigh-Jeans slope [default=False]
 
     range : list of 2 floats
-        Wavelength range to be plotted (in micron) - [min,max]
+        Wavelength range to be plotted (in micron) - [min,max] [default=None]
 
     norm_range : list of 2 floats
-        Wavelength range to use to normalize the data (in micron)- [min,max]
+        Wavelength range to use to normalize the data (in micron)- [min,max] [default=None]
 
     spread : boolean
-        Whether or not to spread the spectra out by adding a vertical offset to each spectrum
+        Whether or not to spread the spectra out by adding a vertical offset to each spectrum [default=False]
 
     exclude : list of strings
-        Which data type(s) to exclude from the plotting (e.g., IRS)
+        Which data type(s) to exclude from the plotting (e.g., IRS) [default=[]]
 
     pdf : boolean
-        Whether or not to save the figure as a pdf file
+        Whether or not to save the figure as a pdf file [default=False]
 
-    outname : string [default="all_spec.pdf"]
-        Name for the output pdf file
+    outname : string
+        Name for the output pdf file [default="all_spec.pdf"]
 
     Returns
     -------
@@ -187,7 +187,9 @@ def plot_multi_spectra(
         plt.show()
 
 
-def plot_spectrum(star, path, mlam4, range, norm_range, exclude, pdf):
+def plot_spectrum(
+    star, path, mlam4=False, range=None, norm_range=None, exclude=[], pdf=False
+):
     """
     Plot the observed band and spectral data of a star
 
@@ -200,19 +202,19 @@ def plot_spectrum(star, path, mlam4, range, norm_range, exclude, pdf):
         Path to the data files
 
     mlam4 : boolean
-        Whether or not to multiply the flux F(lambda) by lambda^4 to remove the Rayleigh-Jeans slope
+        Whether or not to multiply the flux F(lambda) by lambda^4 to remove the Rayleigh-Jeans slope [default=False]
 
     range : list of 2 floats
-        Wavelength range to be plotted (in micron) - [min,max]
+        Wavelength range to be plotted (in micron) - [min,max] [default=None]
 
     norm_range : list of 2 floats
-        Wavelength range to use to normalize the data (in micron)- [min,max]
+        Wavelength range to use to normalize the data (in micron)- [min,max] [default=None]
 
     exclude : list of strings
-        Which data type(s) to exclude from the plotting (e.g., IRS)
+        Which data type(s) to exclude from the plotting (e.g., IRS) [default=[]]
 
     pdf : boolean
-        Whether or not to save the figure as a pdf file
+        Whether or not to save the figure as a pdf file [default=False]
 
     Returns
     -------
