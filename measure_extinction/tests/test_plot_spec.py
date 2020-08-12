@@ -3,7 +3,7 @@ import os
 import numpy as np
 import warnings
 
-from measure_extinction.utils.plot_spec import plot_spectra
+from measure_extinction.plotting.plot_spec import plot_multi_spectra, plot_spectrum
 
 
 def test_plot_spectra():
@@ -12,41 +12,43 @@ def test_plot_spectra():
 
     starlist = ["HD229238", "HD204172"]
 
-    # plot the spectra with the default settings
-    plot_spectra(
-        np.array(starlist), data_path, mlam4=False, onefig=False, range=None, pdf=True,
-    )
-
-    # plot the spectra as lambda^4 * F(lambda) (i.e. mlam4=True)
-    plot_spectra(
-        np.array(starlist), data_path, mlam4=True, onefig=False, range=None, pdf=True,
-    )
-
-    # plot the spectra and zoom in on a specific wavelength region (i.e. range=[0.7,6])
-    plot_spectra(
-        np.array(starlist),
-        data_path,
-        mlam4=False,
-        onefig=False,
-        range=[0.7, 6],
-        pdf=True,
-    )
-
-    # check if the expected pdf files have been created
+    # plot the spectra in separate figures
     for star in starlist:
+        # with the default settings
+        plot_spectrum(
+            star, data_path, pdf=True,
+        )
+
+        # as lambda^4 * F(lambda) (i.e. mlam4=True)
+        plot_spectrum(
+            star, data_path, mlam4=True, pdf=True,
+        )
+
+        # zoom in on a specific wavelength region (i.e. range=[0.7,6])
+        plot_spectrum(
+            star, data_path, range=[0.7, 6], pdf=True,
+        )
+
         if not os.path.isfile(data_path + star + "_spec.pdf"):
             warnings.warn(
-                "Plotting the spectra with the default settings has failed,",
+                "Plotting the spectrum for star "
+                + star
+                + " with the default settings has failed.",
                 stacklevel=2,
             )
 
         if not os.path.isfile(data_path + star + "_spec_mlam4.pdf"):
             warnings.warn(
-                "Plotting the spectra in lambda^4*F(lambda) has failed,", stacklevel=2
+                "Plotting the spectrum for star "
+                + star
+                + " in lambda^4*F(lambda) has failed.",
+                stacklevel=2,
             )
 
         if not os.path.isfile(data_path + star + "_spec_zoom.pdf"):
             warnings.warn(
-                "Plotting the spectra in a specific wavelength range has failed,",
+                "Plotting the spectrum for star "
+                + star
+                + " in a specific wavelength range has failed.",
                 stacklevel=2,
             )
