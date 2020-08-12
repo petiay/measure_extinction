@@ -105,7 +105,7 @@ def plot_multi_spectra(
 
     # setup the plot
     fig, ax = plt.subplots(figsize=(15, len(starlist) * 1.25))
-    colors = plt.cm.jet(np.linspace(0, 1, len(starlist)))
+    colors = plt.get_cmap("tab10")
 
     if norm_range is not None:
         norm_range = norm_range * u.micron
@@ -141,7 +141,7 @@ def plot_multi_spectra(
         ann_offset = 0.25
         starobs.plot(
             ax,
-            pcolor=colors[i],
+            pcolor=colors(i % 10),
             norm_wave_range=norm_range,
             mlam4=mlam4,
             exclude=exclude,
@@ -151,7 +151,7 @@ def plot_multi_spectra(
             annotate_wave_range=ann_range,
             annotate_text=star.upper() + "  " + starobs.sptype,
             annotate_yoffset=ann_offset,
-            annotate_color=colors[i],
+            annotate_color=colors(i % 10),
         )
 
     # zoom in on region if requested
