@@ -1178,8 +1178,11 @@ class StarData:
         else:
             normval = 1.0
 
-        # plot all band and spectral data for this star, unless specifically excluded from the plot
-        for curtype in self.data.keys() - exclude:
+        # plot all band and spectral data for this star
+        for curtype in self.data.keys():
+            # do not plot the excluded data type(s)
+            if curtype in exclude:
+                continue
             # replace fluxes by NaNs for wavelength regions that need to be excluded from the plot, to avoid separate regions being connected artificially
             self.data[curtype].fluxes[self.data[curtype].npts == 0] = np.nan
             if mlam4:
