@@ -990,7 +990,7 @@ class ExtData:
         fit(func, waves, exts) : CompoundModel
             Fitting results
         """
-        # only get the SpeX data, and sort the curve from short to long wavelengths
+        # get the SpeX data, and sort the curve from short to long wavelengths
         (waves, exts, exts_unc) = self.get_fitdata(["SpeX_SXD", "SpeX_LXD"])
         indx = np.argsort(waves)
         waves = waves[indx].value
@@ -998,6 +998,6 @@ class ExtData:
         exts_unc = exts_unc[indx]
 
         # fit a powerlaw to the spectrum
-        func = PowerLaw1D() | AxAvToExv()
+        func = PowerLaw1D(fixed={"x_0": True}) | AxAvToExv(bounds={"Av": (0.0, 10.0)})
         fit = LevMarLSQFitter()
         return fit(func, waves, exts)
