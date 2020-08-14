@@ -116,24 +116,26 @@ def plot_multi_spectra(
 
         # spread out the spectra if requested
         # add extra whitespace when the luminosity class changes from main sequence to giant
-        if "V" not in starobs.sptype:
-            extra_off = 1
-        else:
-            extra_off = 0
         if spread:
+            extra_off = 0
+            if "V" not in starobs.sptype:
+                extra_off = 2
             yoffset = extra_off + i
         else:
             yoffset = 0
-
         # determine where to add the name of the star and its spectral type
         # find the shortest plotted wavelength
-        (waves, fluxes, flux_uncs) = starobs.get_flat_data_arrays(starobs.data.keys())
+        (waves, fluxes, flux_uncs) = starobs.get_flat_data_arrays(
+            starobs.data.keys() - exclude
+        )
         if range is not None:
             waves = waves[waves >= range[0]]
         min_wave = waves[0]
 
         # find out which data type corresponds with this wavelength
         for data_type in starobs.data.keys():
+            if data_type in exclude:
+                continue
             used_waves = starobs.data[data_type].waves[starobs.data[data_type].npts > 0]
             if min_wave in used_waves.value:
                 ann_key = data_type
