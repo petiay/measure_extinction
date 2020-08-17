@@ -5,9 +5,8 @@
 
 from measure_extinction.utils.merge_spex_spec import merge_spex
 from measure_extinction.utils.scale_spex_spec import calc_save_corfac_spex
-from measure_extinction.utils.plot_spec import plot_spectra
+from measure_extinction.plotting.plot_spec import plot_multi_spectra, plot_spectrum
 
-import numpy as np
 import argparse
 import pkg_resources
 import glob
@@ -40,6 +39,23 @@ if __name__ == "__main__":
         type=float,
         default=None,
     )
+    parser.add_argument(
+        "--norm_range",
+        nargs="+",
+        help="wavelength range to use to normalize the spectrum (in micron)",
+        type=float,
+        default=None,
+    )
+    parser.add_argument(
+        "--spread", help="spread the spectra out over the figure", action="store_true",
+    )
+    parser.add_argument(
+        "--exclude",
+        nargs="+",
+        help="data type(s) to exclude from the plotting",
+        type=str,
+        default=[],
+    )
 
     args = parser.parse_args()
 
@@ -57,12 +73,29 @@ if __name__ == "__main__":
         calc_save_corfac_spex(
             star, os.path.dirname(os.path.normpath(args.spex_path)) + "/"
         )
-
-    plot_spectra(
-        np.array(stars),
-        os.path.dirname(os.path.normpath(args.spex_path)) + "/",
-        args.mlam4,
-        args.onefig,
-        args.range,
-        pdf=True,
-    )
+    if args.onefig:
+        plot_multi_spectra(
+            stars,
+            os.path.dirname(os.path.normpath(args.spex_path)) + "/",
+            args.mlam4,
+            args.range,
+            args.norm_range,
+            args.spread,
+            args.exclude,
+            pdf=True,
+        )
+    else:
+        if args.spread:
+            parser.error(
+                "The flag --spread can only be used in combination with the flag --onefig. It only makes sense to spread out the spectra if there is more than one spectrum in the same plot."
+            )
+        for star in stars:
+            plot_spectrum(
+                star,
+                os.path.dirname(os.path.normpath(args.spex_path)) + "/",
+                args.mlam4,
+                args.range,
+                args.norm_range,
+                args.exclude,
+                pdf=True,
+            )

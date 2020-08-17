@@ -269,13 +269,15 @@ def merge_spex_obsspec(obstable, output_resolution=2000):
     # take out data points with low SNR
     npts[np.less(fluxes / uncs, 5, where=~np.isnan(fluxes / uncs))] = 0
     # take out wavelength regions affected by the atmosphere
-    npts[np.logical_and(2.52e4 < waves, waves < 2.92e4)] = 0
-    npts[np.logical_and(4.09e4 < waves, waves < 4.58e4)] = 0
+    npts[np.logical_and(1.35e4 < waves, waves < 1.41e4)] = 0
+    npts[np.logical_and(1.81e4 < waves, waves < 1.94e4)] = 0
+    npts[np.logical_and(2.52e4 < waves, waves < 2.86e4)] = 0
+    npts[np.logical_and(4.18e4 < waves, waves < 4.56e4)] = 0
 
     # determine the wavelength range and calculate the wavelength grid
     if np.max(waves) < 25000:  # SXD
         wave_range = [0.8, 2.45] * u.micron
-    else:  # LXD (this includes both LXD 1.9 and LXD 2.3 modes, to make sure all LXD spectra have the same wavelength grid, independent of the original observing mode)
+    else:  # LXD (this includes all 3 LXD modes: 1.9, 2.1 and 2.3, to make sure all LXD spectra have the same wavelength grid, independent of the original observing mode)
         wave_range = [1.9, 5.5] * u.micron
 
     iwave_range = wave_range.to(u.angstrom).value
