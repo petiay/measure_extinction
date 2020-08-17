@@ -1,6 +1,7 @@
 import pkg_resources
 
 import astropy.units as u
+import numpy as np
 
 from measure_extinction.stardata import StarData
 from measure_extinction.extdata import ExtData
@@ -57,3 +58,24 @@ def test_get_fitdata():
         assert isinstance(wave, u.Quantity)
         assert not isinstance(y, u.Quantity)
         assert not isinstance(unc, u.Quantity)
+
+
+def test_calc_AV_RV():
+    # get the location of the data files
+    data_path = pkg_resources.resource_filename("measure_extinction", "data/")
+
+    # read in the observed data of the stars
+    redstar = StarData("hd229238.dat", path=data_path)
+    compstar = StarData("hd204172.dat", path=data_path)
+
+    # calculate the extinction curve
+    ext = ExtData()
+    ext.calc_elx(redstar, compstar)
+
+    # calculate A(V)
+    ext.calc_AV()
+    np.testing.assert_almost_equal(ext.columns["AV"], 2.602830957847473)
+
+    # calculate R(V)
+    ext.calc_RV()
+    np.testing.assert_almost_equal(ext.columns["RV"], 2.6559499569872163)

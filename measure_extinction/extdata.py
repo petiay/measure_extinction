@@ -424,13 +424,41 @@ class ExtData:
         # if no SpeX spectrum is available: compute A(V) from E(K-V)
         else:
             dwaves = np.absolute(self.waves["BAND"] - 2.19 * u.micron)
-            sindxs = np.argsort(dwaves)
-            kindx = sindxs[0]
+            kindx = dwaves.argmin()
             if dwaves[kindx] > 0.02 * u.micron:
-                warnings.warn("no K band measurement in E(lambda-V)", UserWarning)
+                warnings.warn(
+                    "No K band measurement available in E(lambda-V)!", stacklevel=2
+                )
             else:
                 ekv = self.exts["BAND"][kindx]
                 self.columns["AV"] = ekv / (akav - 1)
+
+    def calc_RV(self):
+        """
+        Calculate R(V) from the observed extinction curve
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        Updates self.columns["RV"]
+        """
+        # obtain or calculate A(V)
+        if "AV" not in self.columns.keys():
+            self.calc_AV()
+        av = self.columns["AV"]
+
+        # obtain E(B-V)
+        dwaves = np.absolute(self.waves["BAND"] - 0.438 * u.micron)
+        bindx = dwaves.argmin()
+        if dwaves[bindx] > 0.02 * u.micron:
+            warnings.warn(
+                "No B band measurement available in E(lambda-V)!", stacklevel=2
+            )
+        else:
+            ebv = self.exts["BAND"][bindx]
+            self.columns["RV"] = av / ebv
 
     def trans_elv_alav(self, av=None, akav=0.112):
         """
