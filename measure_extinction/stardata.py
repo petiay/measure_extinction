@@ -30,7 +30,7 @@ class BandData:
     Attributes:
 
     type : string
-        desciptive string of type of data (currently always 'BAND')
+        descriptive string of type of data (currently always BAND)
 
     waves : array of floats
         wavelengths
@@ -65,7 +65,7 @@ class BandData:
         Parameters
         ----------
         type: string
-            desciptive string of type of data (currently always 'BAND')
+            descriptive string of type of data (currently always BAND)
         """
         self.type = type
         self.n_bands = 0
@@ -560,7 +560,7 @@ class SpecData:
         Parameters
         ----------
         type: string
-            desciptive string of type of data (e.g., IUE, FUSE, IRS)
+            descriptive string of type of data (e.g., IUE, FUSE, IRS)
         """
         self.type = type
         self.n_waves = 0
@@ -1064,6 +1064,7 @@ class StarData:
         pcolor=None,
         norm_wave_range=None,
         mlam4=False,
+        exclude=[],
         yoffset=None,
         yoffset_type="multiply",
         annotate_key=None,
@@ -1071,6 +1072,7 @@ class StarData:
         annotate_text=None,
         annotate_rotation=0.0,
         annotate_yoffset=0.0,
+        annotate_color="k",
         legend_key=None,
         fontsize=None,
     ):
@@ -1088,17 +1090,35 @@ class StarData:
             min/max wavelength range to use to normalize data
 
         mlam4 : boolean
-            plot the data multiplied by lamda^4
+            plot the data multiplied by lambda^4
             removes the Rayleigh-Jeans slope
 
+        exclude : list of strings
+            Which data type(s) to exclude from the plotting (e.g., IRS) [default=[]]
+
         yoffset : float
-            multiplicative offset for the data
+            multiplicative or additive offset for the data
 
         yoffset_type : str
             yoffset type, "multiply" or "add", default is "multiply"
 
         annotate_key : string
-            annotate the spectrum using the given data key
+            type of data for which to annotate text (e.g., SpeX_LXD)
+
+        annotate_wave_range : list of 2 floats
+            min/max wavelength range for the annotation of the text
+
+        annotate_text : string
+            text to annotate
+
+        annotate_rotation : float
+            annotation angle [default=0.0]
+
+        annotate_yoffset : float
+            y-offset for the annotated text [default=0.0]
+
+        annotate_color : string
+            color of the annotated text [default="k"]
 
         legend_key : string
             legend the spectrum using the given data key
@@ -1158,9 +1178,12 @@ class StarData:
         else:
             normval = 1.0
 
-        # plot the bands and all spectra for this star
+        # plot all band and spectral data for this star
         for curtype in self.data.keys():
-            # replace fluxes by NaNs for wavelength regions that need to be excluded from the plot
+            # do not plot the excluded data type(s)
+            if curtype in exclude:
+                continue
+            # replace fluxes by NaNs for wavelength regions that need to be excluded from the plot, to avoid separate regions being connected artificially
             self.data[curtype].fluxes[self.data[curtype].npts == 0] = np.nan
             if mlam4:
                 ymult = np.power(self.data[curtype].waves.value, 4.0)
@@ -1218,7 +1241,6 @@ class StarData:
 
             if curtype == annotate_key:
                 # annotate the spectra
-                # ann_wave_range = np.array([max_gwave-5.0, max_gwave-1.0])
                 waves = self.data[curtype].waves
                 ann_indxs = np.where(
                     (waves >= annotate_wave_range[0])
@@ -1231,6 +1253,7 @@ class StarData:
                     ann_xval,
                     ann_val,
                     annotate_text,
-                    horizontalalignment="right",
+                    color=annotate_color,
+                    horizontalalignment="left",
                     rotation=annotate_rotation,
                 )
