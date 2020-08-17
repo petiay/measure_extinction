@@ -423,8 +423,9 @@ class ExtData:
 
         # if no SpeX spectrum is available: compute A(V) from E(K-V)
         else:
-            kindx = np.where(self.waves["BAND"] == 2.19 * u.micron)[0][0]
-            if not kindx:
+            dwaves = np.absolute(self.waves["BAND"] - 2.19 * u.micron)
+            kindx = dwaves.argmin()
+            if dwaves[kindx] > 0.02 * u.micron:
                 warnings.warn(
                     "No K band measurement available in E(lambda-V)!", stacklevel=2
                 )
@@ -449,8 +450,9 @@ class ExtData:
         av = self.columns["AV"]
 
         # obtain E(B-V)
-        bindx = np.where(self.waves["BAND"] == 0.438 * u.micron)[0][0]
-        if not bindx:
+        dwaves = np.absolute(self.waves["BAND"] - 0.438 * u.micron)
+        bindx = dwaves.argmin()
+        if dwaves[bindx] > 0.02 * u.micron:
             warnings.warn(
                 "No B band measurement available in E(lambda-V)!", stacklevel=2
             )
