@@ -77,6 +77,25 @@ def _hierarch_keywords(names):
     return new_names
 
 
+def _get_column_val(column):
+    """
+
+    Parameters
+    ----------
+    column : float or tuple
+        gives the column or (column, unc) or (column, punc, munc)
+
+    Returns
+    -------
+    column: float
+        column value
+    """
+    if isinstance(column, tuple):
+        return float(column)
+    else:
+        return float(column)
+
+
 def AverageExtData(extdatas, alav=None):
     """
     Generate the average extinction curve from a list of ExtData objects
@@ -101,8 +120,9 @@ def AverageExtData(extdatas, alav=None):
                 y = cext.exts[src][gindxs]
                 yu = cext.uncs[src][gindxs]
                 if alav is not None:
-                    y = (y / float(cext.columns["AV"][0])) + 1.0
-                    yu /= float(cext.columns["AV"][0])
+                    av = _get_column_val(cext.colunns["AV"])
+                    y = (y / av) + 1.0
+                    yu /= av
                 aveext.exts[src][gindxs] += y
                 aveext.uncs[src][gindxs] += np.square(yu)
                 aveext.npts[src][gindxs] += cext.npts[src][gindxs]
@@ -126,8 +146,9 @@ def AverageExtData(extdatas, alav=None):
             y = cext.exts[src][k]
             yu = cext.uncs[src][k]
             if alav is not None:
-                y = (y / float(cext.columns["AV"][0])) + 1.0
-                yu /= float(cext.columns["AV"][0])
+                av = _get_column_val(cext.columns["AV"])
+                y = (y / av) + 1.0
+                yu /= av
             cwavev = cwave.to(u.micron).value
             cband = cext.names[src][k]
             if cband in pwaves.keys():
@@ -489,8 +510,9 @@ class ExtData:
                 self.calc_AV(akav=akav)
 
             for curname in self.exts.keys():
-                self.exts[curname] = (self.exts[curname] / self.columns["AV"][0]) + 1
-                self.uncs[curname] /= self.columns["AV"][0]
+                av = _get_column_val(self.columns["AV"])
+                self.exts[curname] = (self.exts[curname] / av) + 1
+                self.uncs[curname] /= av
             # update the extinction curve type
             self.type = "alav"
 
@@ -965,10 +987,10 @@ class ExtData:
             # compute A(V) if it is not available
             if "AV" not in self.columns.keys():
                 self.trans_elv_alav()
-            av = float(self.columns["AV"][0])
+            av = _get_column_val(self.columns["AV"])
             if self.type_rel_band != "V":  # not sure if this works (where is RV given?)
                 # use F04 model to convert AV to AX
-                rv = float(self.columns["RV"][0])
+                rv = _get_column_val(self.columns["RV"])
                 emod = F04(rv)
                 (indx,) = np.where(self.type_rel_band == self.names["BAND"])
                 axav = emod(self.waves["BAND"][indx[0]])
