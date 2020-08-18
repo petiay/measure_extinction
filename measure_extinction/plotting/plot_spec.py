@@ -118,8 +118,8 @@ def plot_multi_spectra(
         if spread:
             extra_off = 0
             if "V" not in starobs.sptype:
-                extra_off = 2
-            yoffset = extra_off + i
+                extra_off = 1
+            yoffset = extra_off + 0.5 * i
         else:
             yoffset = 0
 
