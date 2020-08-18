@@ -5,7 +5,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import pkg_resources
 import argparse
 import matplotlib.pyplot as plt
-import matplotlib as mpl
 import numpy as np
 import astropy.units as u
 
@@ -67,26 +66,26 @@ def plot_multi_spectra(
     path : string
         Path to the data files
 
-    mlam4 : boolean
-        Whether or not to multiply the flux F(lambda) by lambda^4 to remove the Rayleigh-Jeans slope [default=False]
+    mlam4 : boolean [default=False]
+        Whether or not to multiply the flux F(lambda) by lambda^4 to remove the Rayleigh-Jeans slope
 
-    range : list of 2 floats
-        Wavelength range to be plotted (in micron) - [min,max] [default=None]
+    range : list of 2 floats [default=None]
+        Wavelength range to be plotted (in micron) - [min,max]
 
-    norm_range : list of 2 floats
-        Wavelength range to use to normalize the data (in micron)- [min,max] [default=None]
+    norm_range : list of 2 floats [default=None]
+        Wavelength range to use to normalize the data (in micron)- [min,max]
 
-    spread : boolean
-        Whether or not to spread the spectra out by adding a vertical offset to each spectrum [default=False]
+    spread : boolean [default=False]
+        Whether or not to spread the spectra out by adding a vertical offset to each spectrum
 
-    exclude : list of strings
-        Which data type(s) to exclude from the plotting (e.g., IRS) [default=[]]
+    exclude : list of strings [default=[]]
+        List of data type(s) to exclude from the plot (e.g., IRS)
 
-    pdf : boolean
-        Whether or not to save the figure as a pdf file [default=False]
+    pdf : boolean [default=False]
+        Whether or not to save the figure as a pdf file
 
-    outname : string
-        Name for the output pdf file [default="all_spec.pdf"]
+    outname : string [default="all_spec.pdf"]
+        Name for the output pdf file
 
     Returns
     -------
@@ -95,13 +94,13 @@ def plot_multi_spectra(
     # plotting setup for easier to read plots
     fontsize = 18
     font = {"size": fontsize}
-    mpl.rc("font", **font)
-    mpl.rc("lines", linewidth=1)
-    mpl.rc("axes", linewidth=2)
-    mpl.rc("xtick.major", width=2)
-    mpl.rc("xtick.minor", width=2)
-    mpl.rc("ytick.major", width=2)
-    mpl.rc("ytick.minor", width=2)
+    plt.rc("font", **font)
+    plt.rc("lines", linewidth=1)
+    plt.rc("axes", linewidth=2)
+    plt.rc("xtick.major", width=2)
+    plt.rc("xtick.minor", width=2)
+    plt.rc("ytick.major", width=2)
+    plt.rc("ytick.minor", width=2)
 
     # setup the plot
     fig, ax = plt.subplots(figsize=(15, len(starlist) * 1.25))
@@ -111,7 +110,7 @@ def plot_multi_spectra(
         norm_range = norm_range * u.micron
 
     for i, star in enumerate(starlist):
-        # read in and plot all bands and spectra for this star
+        # read in all bands and spectra for this star
         starobs = StarData("%s.dat" % star.lower(), path=path, use_corfac=True)
 
         # spread out the spectra if requested
@@ -123,6 +122,7 @@ def plot_multi_spectra(
             yoffset = extra_off + i
         else:
             yoffset = 0
+
         # determine where to add the name of the star and its spectral type
         # find the shortest plotted wavelength
         (waves, fluxes, flux_uncs) = starobs.get_flat_data_arrays(
@@ -131,7 +131,6 @@ def plot_multi_spectra(
         if range is not None:
             waves = waves[waves >= range[0]]
         min_wave = waves[0]
-
         # find out which data type corresponds with this wavelength
         for data_type in starobs.data.keys():
             if data_type in exclude:
@@ -140,7 +139,8 @@ def plot_multi_spectra(
             if min_wave in used_waves.value:
                 ann_key = data_type
         ann_range = [min_wave, min_wave] * u.micron
-        ann_offset = 0.25
+
+        # plot the spectrum
         starobs.plot(
             ax,
             pcolor=colors(i % 10),
@@ -152,11 +152,11 @@ def plot_multi_spectra(
             annotate_key=ann_key,
             annotate_wave_range=ann_range,
             annotate_text=star.upper() + "  " + starobs.sptype,
-            annotate_yoffset=ann_offset,
+            annotate_yoffset=0.25,
             annotate_color=colors(i % 10),
         )
 
-    # zoom in on region if requested
+    # zoom in on a specific region if requested
     if range is not None:
         zoom(ax, range)
         outname = outname.replace(".pdf", "_zoom.pdf")
@@ -203,37 +203,36 @@ def plot_spectrum(
     path : string
         Path to the data files
 
-    mlam4 : boolean
-        Whether or not to multiply the flux F(lambda) by lambda^4 to remove the Rayleigh-Jeans slope [default=False]
+    mlam4 : boolean [default=False]
+        Whether or not to multiply the flux F(lambda) by lambda^4 to remove the Rayleigh-Jeans slope
 
-    range : list of 2 floats
-        Wavelength range to be plotted (in micron) - [min,max] [default=None]
+    range : list of 2 floats [default=None]
+        Wavelength range to be plotted (in micron) - [min,max]
 
-    norm_range : list of 2 floats
-        Wavelength range to use to normalize the data (in micron)- [min,max] [default=None]
+    norm_range : list of 2 floats [default=None]
+        Wavelength range to use to normalize the data (in micron)- [min,max]
 
-    exclude : list of strings
-        Which data type(s) to exclude from the plotting (e.g., IRS) [default=[]]
+    exclude : list of strings [default=[]]
+        List of data type(s) to exclude from the plot (e.g., IRS)
 
-    pdf : boolean
-        Whether or not to save the figure as a pdf file [default=False]
+    pdf : boolean [default=False]
+        Whether or not to save the figure as a pdf file
 
     Returns
     -------
     Figure with band data points and spectrum
     """
-
     # setup the plot
     fig, ax = plt.subplots(figsize=(13, 10))
     fontsize = 18
     font = {"size": fontsize}
-    mpl.rc("font", **font)
-    mpl.rc("lines", linewidth=1)
-    mpl.rc("axes", linewidth=2)
-    mpl.rc("xtick.major", width=2)
-    mpl.rc("xtick.minor", width=2)
-    mpl.rc("ytick.major", width=2)
-    mpl.rc("ytick.minor", width=2)
+    plt.rc("font", **font)
+    plt.rc("lines", linewidth=1)
+    plt.rc("axes", linewidth=2)
+    plt.rc("xtick.major", width=2)
+    plt.rc("xtick.minor", width=2)
+    plt.rc("ytick.major", width=2)
+    plt.rc("ytick.minor", width=2)
 
     # read in and plot all bands and spectra for this star
     starobs = StarData("%s.dat" % star.lower(), path=path, use_corfac=True)
@@ -322,14 +321,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--exclude",
         nargs="+",
-        help="data type(s) to exclude from the plotting",
+        help="data type(s) to be excluded from the plot",
         type=str,
         default=[],
     )
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
 
-    if args.onefig:
+    if args.onefig:  # plot all spectra in the same figure
         plot_multi_spectra(
             args.starlist,
             args.path,
@@ -340,7 +339,7 @@ if __name__ == "__main__":
             args.exclude,
             args.pdf,
         )
-    else:
+    else:  # plot all spectra separately
         if args.spread:
             parser.error(
                 "The flag --spread can only be used in combination with the flag --onefig. It only makes sense to spread out the spectra if there is more than one spectrum in the same plot."
