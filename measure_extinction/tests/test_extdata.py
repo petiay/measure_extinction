@@ -74,8 +74,8 @@ def test_calc_AV_RV():
 
     # calculate A(V)
     ext.calc_AV()
-    np.testing.assert_almost_equal(ext.columns["AV"], 2.602830957847473)
+    np.testing.assert_almost_equal(ext.columns["AV"], 2.602358887577842)
 
     # calculate R(V)
     ext.calc_RV()
-    np.testing.assert_almost_equal(ext.columns["RV"], 2.6559499569872163)
+    np.testing.assert_almost_equal(ext.columns["RV"], 2.65546825263045)
