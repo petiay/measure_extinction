@@ -196,7 +196,7 @@ class ExtData:
         Parameters
         ----------
         filename : string, optional [default=None]
-            Full filename to a save extinction curve
+            Full filename to a saved extinction curve
         """
         self.type = ""
         self.type_rel_band = ""
@@ -564,7 +564,6 @@ class ExtData:
         wave = wave[gindxs]
         y = y[gindxs]
         unc = unc[gindxs]
-
         return (wave, y, unc)
 
     def save(
@@ -893,14 +892,16 @@ class ExtData:
         color=None,
         alpha=None,
         alax=False,
+        exclude=[],
         normval=1.0,
         yoffset=0.0,
         rebin_fac=None,
         annotate_key=None,
         annotate_wave_range=None,
+        annotate_text=None,
         annotate_rotation=0.0,
         annotate_yoffset=0.0,
-        annotate_text=None,
+        annotate_color="k",
         legend_key=None,
         legend_label=None,
         fontsize=None,
@@ -912,32 +913,53 @@ class ExtData:
         ----------
         pltax : matplotlib plot object
 
-        alax : boolean [False]
+        color : matplotlib color [default=None]
+            color to use for all the data
+
+        alpha : float [default=None]
+            transparency value (0=transparent, 1=opaque)
+
+        alax : boolean [default=False]
             convert from E(lambda-X) using A(X), if necessary
             plot A(lambda)/A(X)
 
-        yoffset : float
+        exclude : list of strings [default=[]]
+            List of data type(s) to exclude from the plot (e.g., IRS)
+
+        normval : float [default=1.0]
+            Normalization value
+
+        yoffset : float [default=0.0]
             additive offset for the data
 
-        rebin_fac : int
+        rebin_fac : int [default=None]
             factor by which to rebin spectra
 
-        color : matplotlib color
-            color for all the data plotted
+        annotate_key : string [default=None]
+            type of data for which to annotate text (e.g., SpeX_LXD)
 
-        alpha : float
-            transparency value (0=transparent, 1=opaque)
+        annotate_wave_range : list of 2 floats [default=None]
+            min/max wavelength range for the annotation of the text
 
-        annotate_key : string
-            annotate the spectrum using the given data key
+        annotate_text : string [default=None]
+            text to annotate
 
-        legend_key : string
+        annotate_rotation : float [default=0.0]
+            annotation angle
+
+        annotate_yoffset : float [default=0.0]
+            y-offset for the annotated text
+
+        annotate_color : string [default="k"]
+            color of the annotated text
+
+        legend_key : string [default=None]
             legend the spectrum using the given data key
 
-        legend_label : string
+        legend_label : string [default=None]
             label to use for legend
 
-        fontsize : int
+        fontsize : int [default=None]
             fontsize for plot
         """
         if alax:
@@ -956,6 +978,9 @@ class ExtData:
             ax = axav * av
 
         for curtype in self.waves.keys():
+            # do not plot the excluded data type(s)
+            if curtype in exclude:
+                continue
             # replace extinction values by NaNs for wavelength regions that need to be excluded from the plot
             self.exts[curtype][self.npts[curtype] == 0] = np.nan
             x = self.waves[curtype].to(u.micron).value
@@ -1004,9 +1029,10 @@ class ExtData:
                     ann_xval,
                     ann_val,
                     annotate_text,
-                    horizontalalignment="right",
+                    color=annotate_color,
+                    horizontalalignment="left",
                     rotation=annotate_rotation,
-                    fontsize=10,
+                    fontsize=fontsize,
                 )
 
     def fit_spex_ext(self):
