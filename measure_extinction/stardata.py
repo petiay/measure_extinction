@@ -1011,7 +1011,7 @@ class StarData:
 
         Returns
         -------
-        (waves, fluxes, uncs) : tuple of arrays
+        (waves, fluxes, uncs) : tuple of numpy.ndarrays
             arrays are sorted from short to long wavelengths
             waves is wavelengths in microns
             fluxes is fluxes in erg/cm2/s/A
@@ -1083,47 +1083,46 @@ class StarData:
         ----------
         ax : matplotlib plot object
 
-        pcolor : matplotlib color
+        pcolor : matplotlib color [default=None]
             color to use for all the data
 
-        norm_wave_range : list of 2 floats
+        norm_wave_range : list of 2 floats [default=None]
             min/max wavelength range to use to normalize data
 
-        mlam4 : boolean
-            plot the data multiplied by lambda^4
-            removes the Rayleigh-Jeans slope
+        mlam4 : boolean [default=False]
+            plot the data multiplied by lambda^4 to remove the Rayleigh-Jeans slope
 
-        exclude : list of strings
-            Which data type(s) to exclude from the plotting (e.g., IRS) [default=[]]
+        exclude : list of strings [default=[]]
+            Which data type(s) to exclude from the plot (e.g., IRS)
 
-        yoffset : float
+        yoffset : float [default=None]
             multiplicative or additive offset for the data
 
-        yoffset_type : str
-            yoffset type, "multiply" or "add", default is "multiply"
+        yoffset_type : str [default="multiply"]
+            yoffset type: "multiply" or "add"
 
-        annotate_key : string
+        annotate_key : string [default=None]
             type of data for which to annotate text (e.g., SpeX_LXD)
 
-        annotate_wave_range : list of 2 floats
+        annotate_wave_range : list of 2 floats [default=None]
             min/max wavelength range for the annotation of the text
 
-        annotate_text : string
+        annotate_text : string [default=None]
             text to annotate
 
-        annotate_rotation : float
-            annotation angle [default=0.0]
+        annotate_rotation : float [default=0.0]
+            annotation angle
 
-        annotate_yoffset : float
-            y-offset for the annotated text [default=0.0]
+        annotate_yoffset : float [default=0.0]
+            y-offset for the annotated text
 
-        annotate_color : string
-            color of the annotated text [default="k"]
+        annotate_color : string [default="k"]
+            color of the annotated text
 
-        legend_key : string
+        legend_key : string [default=None]
             legend the spectrum using the given data key
 
-        fontsize : int
+        fontsize : int [default=None]
             fontsize for plot
         """
         fluxunit = u.erg / ((u.cm ** 2) * u.s * u.angstrom)
