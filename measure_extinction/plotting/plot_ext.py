@@ -184,23 +184,23 @@ def plot_multi_extinction(
     alax : boolean [default=False]
         Whether or not to plot A(lambda)/A(X) instead of E(lambda-X)
 
-    extmodels: boolean
-        Whether or not to overplot Milky Way extinction curve models [default=False]
+    extmodels: boolean [default=False]
+        Whether or not to overplot Milky Way extinction curve models
 
-    powerlaw: boolean
-        Whether or not to fit and overplot a NIR powerlaw model [default=False]
+    powerlaw: boolean [default=False]
+        Whether or not to fit and overplot a NIR powerlaw model
 
-    range : list of 2 floats
-        Wavelength range to be plotted (in micron) - [min,max] [default=None]
+    range : list of 2 floats [default=None]
+        Wavelength range to be plotted (in micron) - [min,max]
 
-    spread : boolean
-        Whether or not to spread the extinction curves out by adding a vertical offset to each curve [default=False]
+    spread : boolean [default=False]
+        Whether or not to spread the extinction curves out by adding a vertical offset to each curve
 
-    exclude : list of strings
-        Which data type(s) to exclude from the plot (e.g., IRS) [default=[]]
+    exclude : list of strings [default=[]]
+        List of data type(s) to exclude from the plot (e.g., IRS)
 
-    pdf : boolean
-        Whether or not to save the figure as a pdf file [default=False]
+    pdf : boolean [default=False]
+        Whether or not to save the figure as a pdf file
 
     Returns
     -------
@@ -227,7 +227,7 @@ def plot_multi_extinction(
 
         # spread out the curves if requested
         if spread:
-            yoffset = i
+            yoffset = 0.3 * i
         else:
             yoffset = 0
 
@@ -257,7 +257,7 @@ def plot_multi_extinction(
             annotate_key=ann_key,
             annotate_wave_range=ann_range,
             annotate_text=star,
-            annotate_yoffset=0.25,
+            annotate_yoffset=0.05,
             annotate_color=colors(i % 10),
         )
 
@@ -289,9 +289,6 @@ def plot_multi_extinction(
     ax.set_ylabel(extdata._get_ext_ytitle(ytype=extdata.type), fontsize=1.5 * fontsize)
     ax.tick_params("both", length=10, width=2, which="major")
     ax.tick_params("both", length=5, width=1, which="minor")
-
-    # make the right margin a bit larger
-    plt.margins(x=0.1)
 
     # use the whitespace better
     fig.tight_layout()
@@ -337,7 +334,7 @@ def plot_extinction(
         Wavelength range to be plotted (in micron) - [min,max]
 
     exclude : list of strings [default=[]]
-        Which data type(s) to exclude from the plot (e.g., IRS)
+        List of data type(s) to exclude from the plot (e.g., IRS)
 
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
