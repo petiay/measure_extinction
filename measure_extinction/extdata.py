@@ -91,7 +91,7 @@ def _get_column_val(column):
         column value
     """
     if isinstance(column, tuple):
-        return float(column)
+        return float(column[0])
     else:
         return float(column)
 
