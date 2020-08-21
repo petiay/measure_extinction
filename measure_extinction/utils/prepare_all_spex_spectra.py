@@ -52,7 +52,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--exclude",
         nargs="+",
-        help="data type(s) to exclude from the plotting",
+        help="data type(s) to be excluded from the plot",
         type=str,
         default=[],
     )
@@ -73,7 +73,7 @@ if __name__ == "__main__":
         calc_save_corfac_spex(
             star, os.path.dirname(os.path.normpath(args.spex_path)) + "/"
         )
-    if args.onefig:
+    if args.onefig:  # plot all spectra in the same figure
         plot_multi_spectra(
             stars,
             os.path.dirname(os.path.normpath(args.spex_path)) + "/",
@@ -84,7 +84,7 @@ if __name__ == "__main__":
             args.exclude,
             pdf=True,
         )
-    else:
+    else:  # plot all spectra separately
         if args.spread:
             parser.error(
                 "The flag --spread can only be used in combination with the flag --onefig. It only makes sense to spread out the spectra if there is more than one spectrum in the same plot."
