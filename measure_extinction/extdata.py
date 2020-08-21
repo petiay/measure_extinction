@@ -120,7 +120,7 @@ def AverageExtData(extdatas, alav=None):
                 y = cext.exts[src][gindxs]
                 yu = cext.uncs[src][gindxs]
                 if alav is not None:
-                    av = _get_column_val(cext.colunns["AV"])
+                    av = _get_column_val(cext.columns["AV"])
                     y = (y / av) + 1.0
                     yu /= av
                 aveext.exts[src][gindxs] += y
