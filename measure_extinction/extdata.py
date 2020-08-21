@@ -1035,9 +1035,22 @@ class ExtData:
                     fontsize=fontsize,
                 )
 
-    def fit_spex_ext(self):
+    def fit_spex_ext(
+        self, amp_bounds=(-10.0, 10.0), index_bounds=(0.0, 5.0), AV_bounds=(0.0, 10.0)
+    ):
         """
         Fit the observed extinction curve with a powerlaw model, based on the SpeX spectra only.
+
+        Parameters
+        ----------
+        index_bounds : tuple [default=(0.0,5.0)]
+            Powerlaw index bounds to be used in the fitting
+
+        amp_bounds : tuple [default=(-10.0,10.0)]
+            Model amplitude bounds to be used in the fitting
+
+        AV_bounds : tuple [default=(0.0,10.0)]
+            A(V) bounds to be used in the fitting
 
         Returns
         -------
@@ -1052,6 +1065,8 @@ class ExtData:
         exts_unc = exts_unc[indx]
 
         # fit a powerlaw to the spectrum
-        func = PowerLaw1D(fixed={"x_0": True}) | AxAvToExv(bounds={"Av": (0.0, 10.0)})
+        func = PowerLaw1D(
+            fixed={"x_0": True}, bounds={"amplitude": amp_bounds, "alpha": index_bounds}
+        ) | AxAvToExv(bounds={"Av": AV_bounds})
         fit = LevMarLSQFitter()
         return fit(func, waves, exts)
