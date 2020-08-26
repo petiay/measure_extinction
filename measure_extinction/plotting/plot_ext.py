@@ -8,6 +8,7 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 import astropy.units as u
+import pandas as pd
 
 from scipy.optimize import curve_fit
 from measure_extinction.extdata import ExtData
@@ -125,6 +126,45 @@ def plot_powerlaw(extdata, alax):
     plt.legend()
 
 
+def plot_HI(path, ax):
+    """
+    Indicate the HI-lines on the plot (currently only HI-lines between 0.8 and 5.5 micron are available)
+
+    Parameters
+    ----------
+    ax : AxesSubplot
+        Axes of plot for which to add the HI-lines
+
+    Returns
+    -------
+    Indicates HI-lines on the plot
+    """
+    # read in HI-lines
+    table = pd.read_table(path + "HI_lines.list", sep="\s+", comment="#")
+    # group lines by series
+    series_groups = table.groupby("n'")
+    colors = {
+        3: "tab:blue",
+        4: "tab:orange",
+        5: "tab:green",
+        6: "tab:red",
+        7: "tab:purple",
+    }
+    series_names = {3: "Pa", 4: "Br", 5: "Pf", 6: "Hu", 7: "7"}
+    for name, series in series_groups:
+        # plot the lines
+        for wave in series.wavelength:
+            ax.axvline(wave, color=colors[name], lw=0.05, alpha=0.4)
+        # add the name of the series
+        ax.text(
+            series.wavelength.mean(),
+            0.04,
+            series_names[name],
+            transform=ax.get_xaxis_transform(),
+            color=colors[name],
+        ).set_clip_on(True)
+
+
 def zoom(ax, range):
     """
     Zoom in on the requested wavelength range by setting the axes limits to this range
@@ -148,6 +188,9 @@ def zoom(ax, range):
     ymin, ymax = np.inf, -np.inf
     for line in ax.get_lines():
         x_data = line.get_xdata()
+        # skip the plotted HI-lines to calculate the y axis limits (because those have y_data in axes coordinates)
+        if x_data[0] == x_data[1]:
+            continue
         y_data = line.get_ydata()[
             np.logical_and(x_data >= range[0], x_data <= range[1])
         ]
@@ -165,6 +208,7 @@ def plot_multi_extinction(
     alax=False,
     extmodels=False,
     powerlaw=False,
+    HI_lines=False,
     range=None,
     spread=False,
     exclude=[],
@@ -189,6 +233,9 @@ def plot_multi_extinction(
 
     powerlaw: boolean [default=False]
         Whether or not to fit and overplot a NIR powerlaw model
+
+    HI_lines : boolean [default=False]
+        Whether or not to indicate the HI-lines in the plot
 
     range : list of 2 floats [default=None]
         Wavelength range to be plotted (in micron) - [min,max]
@@ -217,7 +264,7 @@ def plot_multi_extinction(
     plt.rc("ytick.major", width=2)
     plt.rc("ytick.minor", width=2)
 
-    # setup the plot
+    # create the plot
     fig, ax = plt.subplots(figsize=(15, len(starlist) * 1.25))
     colors = plt.get_cmap("tab10")
 
@@ -278,6 +325,10 @@ def plot_multi_extinction(
     # define the output name
     outname = "all_ext_%s.pdf" % (extdata.type)
 
+    # plot HI-lines if requested
+    if HI_lines:
+        plot_HI(path, ax)
+
     # zoom in on a specific region if requested
     if range is not None:
         zoom(ax, range)
@@ -306,6 +357,7 @@ def plot_extinction(
     alax=False,
     extmodels=False,
     powerlaw=False,
+    HI_lines=False,
     range=None,
     exclude=[],
     pdf=False,
@@ -330,6 +382,9 @@ def plot_extinction(
     powerlaw: boolean [default=False]
         Whether or not to fit and overplot a NIR powerlaw model
 
+    HI_lines : boolean [default=False]
+        Whether or not to indicate the HI-lines in the plot
+
     range : list of 2 floats [default=None]
         Wavelength range to be plotted (in micron) - [min,max]
 
@@ -343,9 +398,7 @@ def plot_extinction(
     -------
     Figure with extinction curve
     """
-
-    # setup the plot
-    fig, ax = plt.subplots(figsize=(13, 10))
+    # plotting setup for easier to read plots
     fontsize = 18
     font = {"size": fontsize}
     plt.rc("font", **font)
@@ -356,12 +409,12 @@ def plot_extinction(
     plt.rc("ytick.major", width=2)
     plt.rc("ytick.minor", width=2)
 
+    # create the plot
+    fig, ax = plt.subplots(figsize=(13, 10))
+
     # read in and plot the extinction curve data for this star
     extdata = ExtData("%s%s_ext.fits" % (path, star.lower()))
     extdata.plot(ax, alax=alax, exclude=exclude)
-
-    # set the title of the plot
-    ax.set_title(star, fontsize=50)
 
     # define the output name
     outname = "%s_ext_%s.pdf" % (star.lower(), extdata.type)
@@ -374,6 +427,10 @@ def plot_extinction(
     if extmodels:
         plot_extmodels(extdata, alax)
 
+    # plot HI-lines if requested
+    if HI_lines:
+        plot_HI(path, ax)
+
     # zoom in on a specific region if requested
     if range is not None:
         zoom(ax, range)
@@ -381,6 +438,7 @@ def plot_extinction(
 
     # finish configuring the plot
     ax.set_xscale("log")
+    ax.set_title(star, fontsize=50)
     ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
     ax.set_ylabel(extdata._get_ext_ytitle(ytype=extdata.type), fontsize=1.5 * fontsize)
     ax.tick_params("both", length=10, width=2, which="major")
@@ -417,6 +475,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--powerlaw", help="fit and plot NIR powerlaw model", action="store_true"
     )
+    parser.add_argument("--HI_lines", help="indicate the HI-lines", action="store_true")
     parser.add_argument(
         "--onefig",
         help="whether or not to plot all curves in the same figure",
@@ -451,6 +510,7 @@ if __name__ == "__main__":
             args.alax,
             args.extmodels,
             args.powerlaw,
+            args.HI_lines,
             args.range,
             args.spread,
             args.exclude,
@@ -468,6 +528,7 @@ if __name__ == "__main__":
                 args.alax,
                 args.extmodels,
                 args.powerlaw,
+                args.HI_lines,
                 args.range,
                 args.exclude,
                 args.pdf,
