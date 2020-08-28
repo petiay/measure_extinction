@@ -128,7 +128,7 @@ def plot_powerlaw(extdata, alax):
 
 def plot_HI(path, ax):
     """
-    Indicate the HI-lines on the plot (currently only HI-lines between 0.8 and 5.5 micron are available)
+    Indicate the HI-lines on the plot (between 912A and 10 micron)
 
     Parameters
     ----------
