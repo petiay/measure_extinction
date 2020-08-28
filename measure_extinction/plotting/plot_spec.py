@@ -29,25 +29,30 @@ def plot_HI(path, ax):
     table = pd.read_table(path + "HI_lines.list", sep=r"\s+", comment="#")
     # group lines by series
     series_groups = table.groupby("n'")
-    colors = {
-        3: "tab:blue",
-        4: "tab:orange",
-        5: "tab:green",
-        6: "tab:red",
-        7: "tab:purple",
+    colors = plt.get_cmap("tab10")
+    series_names = {
+        1: "Ly",
+        2: "Ba",
+        3: "Pa",
+        4: "Br",
+        5: "Pf",
+        6: "Hu",
+        7: "7",
+        8: "8",
+        9: "9",
+        10: "10",
     }
-    series_names = {3: "Pa", 4: "Br", 5: "Pf", 6: "Hu", 7: "7"}
     for name, series in series_groups:
         # plot the lines
         for wave in series.wavelength:
-            ax.axvline(wave, color=colors[name], lw=0.05, alpha=0.4)
+            ax.axvline(wave, color=colors(name - 1), lw=0.05, alpha=0.4)
         # add the name of the series
         ax.text(
             series.wavelength.mean(),
             0.04,
             series_names[name],
             transform=ax.get_xaxis_transform(),
-            color=colors[name],
+            color=colors(name - 1),
         ).set_clip_on(True)
 
 
