@@ -140,7 +140,7 @@ def plot_HI(path, ax):
     Indicates HI-lines on the plot
     """
     # read in HI-lines
-    table = pd.read_table(path + "HI_lines.list", sep="\s+", comment="#")
+    table = pd.read_table(path + "HI_lines.list", sep=r"\s+", comment="#")
     # group lines by series
     series_groups = table.groupby("n'")
     colors = {
