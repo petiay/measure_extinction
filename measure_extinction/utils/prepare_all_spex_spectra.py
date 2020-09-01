@@ -27,6 +27,7 @@ if __name__ == "__main__":
         default=pkg_resources.resource_filename("measure_extinction", "data/Spectra"),
     )
     parser.add_argument("--mlam4", help="plot lambda^4*F(lambda)", action="store_true")
+    parser.add_argument("--HI_lines", help="indicate the HI-lines", action="store_true")
     parser.add_argument(
         "--onefig",
         help="whether or not to plot all spectra in the same figure",
@@ -73,11 +74,13 @@ if __name__ == "__main__":
         calc_save_corfac_spex(
             star, os.path.dirname(os.path.normpath(args.spex_path)) + "/"
         )
+
     if args.onefig:  # plot all spectra in the same figure
         plot_multi_spectra(
             stars,
             os.path.dirname(os.path.normpath(args.spex_path)) + "/",
             args.mlam4,
+            args.HI_lines,
             args.range,
             args.norm_range,
             args.spread,
@@ -94,6 +97,7 @@ if __name__ == "__main__":
                 star,
                 os.path.dirname(os.path.normpath(args.spex_path)) + "/",
                 args.mlam4,
+                args.HI_lines,
                 args.range,
                 args.norm_range,
                 args.exclude,

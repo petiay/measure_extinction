@@ -20,11 +20,22 @@ def test_plot_extinction():
     # zoomed in on a specific wavelength region (i.e. range=[0.7,6])
     plot_extinction(star, data_path, range=[0.7, 6], pdf=True)
 
+    # test several other plotting options
+    # note: verifying the existence of the pdf file with the plot is not sufficient to ensure that the different plotting options work as expected. However, these tests at least make sure that the corresponding functions run without errors.
+
+    # with band data excluded from the plot
+    plot_extinction(star, data_path, exclude="BAND", pdf=True)
+
+    # with HI-lines indicated
+    plot_extinction(star, data_path, HI_lines=True, pdf=True)
+
     # in one figure, although this is actually only relevant if there is more than one curve.
     stars = ["HD229238"]
     plot_multi_extinction(stars, data_path, pdf=True)
     plot_multi_extinction(stars, data_path, alax=True, pdf=True)
     plot_multi_extinction(stars, data_path, range=[0.7, 6], pdf=True)
+    plot_multi_extinction(stars, data_path, exclude="BAND", pdf=True)
+    plot_multi_extinction(stars, data_path, HI_lines=True, pdf=True)
 
     # check if the expected pdf files were created
     if not os.path.isfile(data_path + star + "_ext_elx.pdf"):
@@ -74,7 +85,3 @@ def test_plot_extinction():
             + " in one figure in a specific wavelength range has failed.",
             stacklevel=2,
         )
-
-
-if __name__ == "__main__":
-    test_plot_extinction()
