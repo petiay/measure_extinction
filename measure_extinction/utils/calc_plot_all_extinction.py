@@ -24,6 +24,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--powerlaw", help="plot NIR powerlaw model", action="store_true"
     )
+    parser.add_argument("--HI_lines", help="indicate the HI-lines", action="store_true")
     parser.add_argument(
         "--onefig",
         help="whether or not to plot all curves in the same figure",
@@ -64,6 +65,7 @@ if __name__ == "__main__":
             args.alax,
             args.extmodels,
             args.powerlaw,
+            args.HI_lines,
             args.range,
             args.spread,
             args.exclude,
@@ -81,6 +83,7 @@ if __name__ == "__main__":
                 args.alax,
                 args.extmodels,
                 args.powerlaw,
+                args.HI_lines,
                 args.range,
                 args.exclude,
                 pdf=True,

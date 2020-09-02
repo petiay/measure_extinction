@@ -7,8 +7,53 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import astropy.units as u
+import pandas as pd
 
 from measure_extinction.stardata import StarData
+
+
+def plot_HI(path, ax):
+    """
+    Indicate the HI-lines on the plot (between 912A and 10 micron)
+
+    Parameters
+    ----------
+    ax : AxesSubplot
+        Axes of plot for which to add the HI-lines
+
+    Returns
+    -------
+    Indicates HI-lines on the plot
+    """
+    # read in HI-lines
+    table = pd.read_table(path + "HI_lines.list", sep=r"\s+", comment="#")
+    # group lines by series
+    series_groups = table.groupby("n'")
+    colors = plt.get_cmap("tab10")
+    series_names = {
+        1: "Ly",
+        2: "Ba",
+        3: "Pa",
+        4: "Br",
+        5: "Pf",
+        6: "Hu",
+        7: "7",
+        8: "8",
+        9: "9",
+        10: "10",
+    }
+    for name, series in series_groups:
+        # plot the lines
+        for wave in series.wavelength:
+            ax.axvline(wave, color=colors(name - 1), lw=0.05, alpha=0.4)
+        # add the name of the series
+        ax.text(
+            series.wavelength.mean(),
+            0.04,
+            series_names[name],
+            transform=ax.get_xaxis_transform(),
+            color=colors(name - 1),
+        ).set_clip_on(True)
 
 
 def zoom(ax, range):
@@ -34,6 +79,9 @@ def zoom(ax, range):
     ymin, ymax = np.inf, -np.inf
     for line in ax.get_lines():
         x_data = line.get_xdata()
+        # skip the plotted HI-lines to calculate the y axis limits (because those have y_data in axes coordinates)
+        if x_data[0] == x_data[1]:
+            continue
         y_data = line.get_ydata()[
             np.logical_and(x_data >= range[0], x_data <= range[1])
         ]
@@ -48,6 +96,7 @@ def plot_multi_spectra(
     starlist,
     path,
     mlam4=False,
+    HI_lines=False,
     range=None,
     norm_range=None,
     spread=False,
@@ -68,6 +117,9 @@ def plot_multi_spectra(
 
     mlam4 : boolean [default=False]
         Whether or not to multiply the flux F(lambda) by lambda^4 to remove the Rayleigh-Jeans slope
+
+    HI_lines : boolean [default=False]
+        Whether or not to indicate the HI-lines in the plot
 
     range : list of 2 floats [default=None]
         Wavelength range to be plotted (in micron) - [min,max]
@@ -102,7 +154,7 @@ def plot_multi_spectra(
     plt.rc("ytick.major", width=2)
     plt.rc("ytick.minor", width=2)
 
-    # setup the plot
+    # create the plot
     fig, ax = plt.subplots(figsize=(15, len(starlist) * 1.25))
     colors = plt.get_cmap("tab10")
 
@@ -156,6 +208,10 @@ def plot_multi_spectra(
             annotate_color=colors(i % 10),
         )
 
+    # plot HI-lines if requested
+    if HI_lines:
+        plot_HI(path, ax)
+
     # zoom in on a specific region if requested
     if range is not None:
         zoom(ax, range)
@@ -179,18 +235,22 @@ def plot_multi_spectra(
     ax.tick_params("both", length=10, width=2, which="major")
     ax.tick_params("both", length=5, width=1, which="minor")
 
-    # use the whitespace better
-    fig.tight_layout()
-
     # show the figure or save it to a pdf file
     if pdf:
-        fig.savefig(path + outname)
+        fig.savefig(path + outname, bbox_inches="tight")
     else:
         plt.show()
 
 
 def plot_spectrum(
-    star, path, mlam4=False, range=None, norm_range=None, exclude=[], pdf=False
+    star,
+    path,
+    mlam4=False,
+    HI_lines=False,
+    range=None,
+    norm_range=None,
+    exclude=[],
+    pdf=False,
 ):
     """
     Plot the observed band and spectral data of a star
@@ -205,6 +265,9 @@ def plot_spectrum(
 
     mlam4 : boolean [default=False]
         Whether or not to multiply the flux F(lambda) by lambda^4 to remove the Rayleigh-Jeans slope
+
+    HI_lines : boolean [default=False]
+        Whether or not to indicate the HI-lines in the plot
 
     range : list of 2 floats [default=None]
         Wavelength range to be plotted (in micron) - [min,max]
@@ -222,8 +285,7 @@ def plot_spectrum(
     -------
     Figure with band data points and spectrum
     """
-    # setup the plot
-    fig, ax = plt.subplots(figsize=(13, 10))
+    # plotting setup for easier to read plots
     fontsize = 18
     font = {"size": fontsize}
     plt.rc("font", **font)
@@ -234,14 +296,18 @@ def plot_spectrum(
     plt.rc("ytick.major", width=2)
     plt.rc("ytick.minor", width=2)
 
+    # create the plot
+    fig, ax = plt.subplots(figsize=(13, 10))
+
     # read in and plot all bands and spectra for this star
     starobs = StarData("%s.dat" % star.lower(), path=path, use_corfac=True)
     if norm_range is not None:
         norm_range = norm_range * u.micron
     starobs.plot(ax, norm_wave_range=norm_range, mlam4=mlam4, exclude=exclude)
 
-    # set the title of the plot
-    ax.set_title(star.upper(), fontsize=50)
+    # plot HI-lines if requested
+    if HI_lines:
+        plot_HI(path, ax)
 
     # define the output name
     outname = star.lower() + "_spec.pdf"
@@ -252,8 +318,9 @@ def plot_spectrum(
         outname = outname.replace(".pdf", "_zoom.pdf")
 
     # finish configuring the plot
-    ax.set_yscale("log")
     ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_title(star.upper(), fontsize=50)
     ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
     if mlam4:
         ax.set_ylabel(
@@ -294,6 +361,7 @@ if __name__ == "__main__":
         default=pkg_resources.resource_filename("measure_extinction", "data/"),
     )
     parser.add_argument("--mlam4", help="plot lambda^4*F(lambda)", action="store_true")
+    parser.add_argument("--HI_lines", help="indicate the HI-lines", action="store_true")
     parser.add_argument(
         "--onefig",
         help="whether or not to plot all spectra in the same figure",
@@ -333,6 +401,7 @@ if __name__ == "__main__":
             args.starlist,
             args.path,
             args.mlam4,
+            args.HI_lines,
             args.range,
             args.norm_range,
             args.spread,
@@ -349,6 +418,7 @@ if __name__ == "__main__":
                 star,
                 args.path,
                 args.mlam4,
+                args.HI_lines,
                 args.range,
                 args.norm_range,
                 args.exclude,

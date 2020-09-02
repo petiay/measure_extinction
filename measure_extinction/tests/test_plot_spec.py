@@ -46,6 +46,15 @@ def test_plot_spectra():
                 stacklevel=2,
             )
 
+        # test several other plotting options
+        # note: verifying the existence of the pdf file with the plot is not sufficient to ensure that the different plotting options work as expected. However, these tests at least make sure that the corresponding functions run without errors.
+
+        # with band data excluded from the plot
+        plot_spectrum(star, data_path, exclude="BAND", pdf=True)
+
+        # with HI-lines indicated
+        plot_spectrum(star, data_path, HI_lines=True, pdf=True)
+
     # plot the two spectra in one figure
     # with the default settings
     plot_multi_spectra(starlist, data_path, pdf=True)
@@ -74,3 +83,9 @@ def test_plot_spectra():
             "Plotting the spectra of both stars in one figure in a specific wavelength range has failed.",
             stacklevel=2,
         )
+
+    # with band data excluded from the plot
+    plot_multi_spectra(starlist, data_path, exclude="BAND", pdf=True)
+
+    # with HI-lines indicated
+    plot_multi_spectra(starlist, data_path, HI_lines=True, pdf=True)

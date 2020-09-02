@@ -77,6 +77,25 @@ def _hierarch_keywords(names):
     return new_names
 
 
+def _get_column_val(column):
+    """
+
+    Parameters
+    ----------
+    column : float or tuple
+        gives the column or (column, unc) or (column, punc, munc)
+
+    Returns
+    -------
+    column: float
+        column value
+    """
+    if isinstance(column, tuple):
+        return float(column[0])
+    else:
+        return float(column)
+
+
 def AverageExtData(extdatas, alav=None):
     """
     Generate the average extinction curve from a list of ExtData objects
@@ -101,8 +120,9 @@ def AverageExtData(extdatas, alav=None):
                 y = cext.exts[src][gindxs]
                 yu = cext.uncs[src][gindxs]
                 if alav is not None:
-                    y = (y / float(cext.columns["AV"][0])) + 1.0
-                    yu /= float(cext.columns["AV"][0])
+                    av = _get_column_val(cext.columns["AV"])
+                    y = (y / av) + 1.0
+                    yu /= av
                 aveext.exts[src][gindxs] += y
                 aveext.uncs[src][gindxs] += np.square(yu)
                 aveext.npts[src][gindxs] += cext.npts[src][gindxs]
@@ -126,8 +146,9 @@ def AverageExtData(extdatas, alav=None):
             y = cext.exts[src][k]
             yu = cext.uncs[src][k]
             if alav is not None:
-                y = (y / float(cext.columns["AV"][0])) + 1.0
-                yu /= float(cext.columns["AV"][0])
+                av = _get_column_val(cext.columns["AV"])
+                y = (y / av) + 1.0
+                yu /= av
             cwavev = cwave.to(u.micron).value
             cband = cext.names[src][k]
             if cband in pwaves.keys():
@@ -489,8 +510,9 @@ class ExtData:
                 self.calc_AV(akav=akav)
 
             for curname in self.exts.keys():
-                self.exts[curname] = (self.exts[curname] / self.columns["AV"]) + 1
-                self.uncs[curname] /= self.columns["AV"]
+                av = _get_column_val(self.columns["AV"])
+                self.exts[curname] = (self.exts[curname] / av) + 1
+                self.uncs[curname] /= av
             # update the extinction curve type
             self.type = "alav"
 
@@ -570,6 +592,7 @@ class ExtData:
         self,
         ext_filename,
         column_info=None,
+        save_params=None,
         fm90_best_params=None,
         fm90_per_params=None,
         p92_best_params=None,
@@ -587,17 +610,26 @@ class ExtData:
             dictionary with information about the dust column
             for example: {'ebv': 0.1, 'rv': 4.2, 'av': 0.42}
 
+        save_params : dict
+            "type" - type of parameters (e.g., FM90, P92)
+            "best" - best fit parameters as tuple (names, values)
+            "per" - percentile parameters as tuple (names, p50s, puncs, muncs)
+
         fm90_best_params : tuple of 2 float vectors
            parameter names and best fit values for the FM90 fit
+           (legacy, use save_params instead)
 
         fm90_per_params : tuple of 2 float vectors
            parameter names and (p50, +unc, -unc) values for the FM90 fit
+           (legacy, use save_params instead)
 
         p92_best_params : tuple of 2 float vectors
            parameter names and best fit values for the P92 fit
+           (legacy, use save_params instead)
 
         p92_per_params : tuple of 2 float vectors
            parameter names and (p50, +unc, -unc) values for the P92 fit
+           (legacy, use save_params instead)
         """
         # generate the primary header
         pheader = fits.Header()
@@ -628,86 +660,53 @@ class ExtData:
                 else:
                     print(ckey + " not supported for saving extcurves")
 
-        # FM90 best fit parameters
+        # legacy save param keywords
         if fm90_best_params is not None:
-            hname = np.concatenate((hname, fm90_best_params[0]))
-            hval = np.concatenate((hval, fm90_best_params[1]))
-            fm90_comment = [pname + ": FM90 parameter" for pname in fm90_best_params[0]]
-            hcomment = np.concatenate((hcomment, fm90_comment))
-
-        # FM90 p50 +unc -unc fit parameters
-        if fm90_per_params is not None:
-            # p50 values
-            hname = np.concatenate(
-                (hname, _hierarch_keywords([f"{cp}_p50" for cp in fm90_per_params[0]]))
-            )
-            hval = np.concatenate((hval, [cv[0] for cv in fm90_per_params[1]]))
-            fm90_comment = [
-                pname + ": FM90 p50 parameter" for pname in fm90_per_params[0]
-            ]
-            hcomment = np.concatenate((hcomment, fm90_comment))
-
-            # +unc values
-            hname = np.concatenate(
-                (hname, _hierarch_keywords([f"{cp}_punc" for cp in fm90_per_params[0]]))
-            )
-            hval = np.concatenate((hval, [cv[1] for cv in fm90_per_params[1]]))
-            fm90_comment = [
-                pname + ": FM90 punc parameter" for pname in fm90_per_params[0]
-            ]
-            hcomment = np.concatenate((hcomment, fm90_comment))
-
-            # -unc values
-            hname = np.concatenate(
-                (hname, _hierarch_keywords([f"{cp}_munc" for cp in fm90_per_params[0]]))
-            )
-            hval = np.concatenate((hval, [cv[2] for cv in fm90_per_params[1]]))
-            fm90_comment = [
-                pname + ": FM90 munc parameter" for pname in fm90_per_params[0]
-            ]
-            hcomment = np.concatenate((hcomment, fm90_comment))
-
-        # P92 best fit parameters
+            save_params = {"type": "FM90", "best": fm90_best_params}
+            if fm90_per_params is not None:
+                save_params["per"] = fm90_per_params
         if p92_best_params is not None:
-            hname = np.concatenate((hname, _hierarch_keywords(p92_best_params[0])))
-            hval = np.concatenate((hval, p92_best_params[1]))
-            p92_comment = [pname + ": P92 parameter" for pname in p92_best_params[0]]
-            hcomment = np.concatenate((hcomment, p92_comment))
+            save_params = {"type": "P92", "best": p92_best_params}
+            if p92_per_params is not None:
+                save_params["per"] = p92_per_params
 
-        # P92 p50 +unc -unc fit parameters
-        if p92_per_params is not None:
-            # p50 values
-            hname = np.concatenate(
-                (hname, _hierarch_keywords([f"{cp}_p50" for cp in p92_per_params[0]]))
-            )
-            hval = np.concatenate((hval, [cv[0] for cv in p92_per_params[1]]))
-            p92_comment = [pname + ": P92 p50 parameter" for pname in p92_per_params[0]]
-            hcomment = np.concatenate((hcomment, p92_comment))
+        # save parameters
+        if save_params is not None:
+            if "type" in save_params.keys():
+                tstr = save_params["type"]
+            else:
+                raise ValueError("type not in save_params dict")
 
-            # +unc values
-            hname = np.concatenate(
-                (hname, _hierarch_keywords([f"{cp}_punc" for cp in p92_per_params[0]]))
-            )
-            hval = np.concatenate((hval, [cv[1] for cv in p92_per_params[1]]))
-            p92_comment = [
-                pname + ": P92 punc parameter" for pname in p92_per_params[0]
-            ]
-            hcomment = np.concatenate((hcomment, p92_comment))
+            if "best" in save_params.keys():
+                best_params = save_params["best"]
+                best_keys = _hierarch_keywords(best_params[0])
+                hname = np.concatenate((hname, best_keys))
+                hval = np.concatenate((hval, best_params[1]))
+                tcomment = [f"{tstr} parameter" for pname in best_params[0]]
+                hcomment = np.concatenate((hcomment, tcomment))
 
-            # -unc values
-            hname = np.concatenate(
-                (hname, _hierarch_keywords([f"{cp}_munc" for cp in p92_per_params[0]]))
-            )
-            hval = np.concatenate((hval, [cv[2] for cv in p92_per_params[1]]))
-            p92_comment = [
-                pname + ": P92 munc parameter" for pname in p92_per_params[0]
-            ]
-            hcomment = np.concatenate((hcomment, p92_comment))
+            if "per" in save_params.keys():
+                params = save_params["per"]
+                # p50 values
+                p50_keys = _hierarch_keywords([f"{cp}_p50" for cp in params[0]])
+                hname = np.concatenate((hname, p50_keys))
+                hval = np.concatenate((hval, [cv[0] for cv in params[1]]))
+                tcomment = [f"{tstr} p50 parameter" for pname in params[0]]
+                hcomment = np.concatenate((hcomment, tcomment))
 
-        # P92 emcee results
-        if hasattr(self, "p92_emcee_param_names"):
-            print(self.p92_emcee_param_names)
-            exit()
+                # +unc values
+                punc_keys = _hierarch_keywords([f"{cp}_punc" for cp in params[0]])
+                hname = np.concatenate((hname, punc_keys))
+                hval = np.concatenate((hval, [cv[1] for cv in params[1]]))
+                tcomment = [f"{tstr} punc parameter" for pname in params[0]]
+                hcomment = np.concatenate((hcomment, tcomment))
+
+                # -unc values
+                munc_keys = _hierarch_keywords([f"{cp}_munc" for cp in params[0]])
+                hname = np.concatenate((hname, munc_keys))
+                hval = np.concatenate((hval, [cv[2] for cv in params[1]]))
+                tcomment = [f"{tstr} munc parameter" for pname in params[0]]
+                hcomment = np.concatenate((hcomment, tcomment))
 
         # other possible header keywords
         #   setup to populate if info passed (TBD)
@@ -861,6 +860,28 @@ class ExtData:
                         munc = float(pheader.get(f"{bkey}_munc"))
                         self.p92_p50_fit[bkey] = (val, punc, munc)
 
+        # get G21 parameters if they exist
+        # fmt: off
+        G21_keys = ["SCALE", "ALPHA",
+                    "SIL1_AMP", "SIL1_CENTER", "SIL1_FWHM", "SIL1_ASYM",
+                    "SIL2_AMP", "SIL2_CENTER", "SIL2_FWHM", "SIL2_ASYM"]
+        # fmt: on
+        if pheader.get("SIL1_CENTER"):
+            self.g21_best_fit = {}
+            for curkey in G21_keys:
+                if pheader.get(curkey):
+                    self.g21_best_fit[curkey] = float(pheader.get("%s" % curkey))
+
+        # get the G21 p50 +unc -unc fit parameters if they exist
+        if pheader.get("SIL1_CENTER_p50"):
+            self.g21_p50_fit = {}
+            for bkey in G21_keys:
+                if pheader.get(f"{bkey}_p50"):
+                    val = float(pheader.get(f"{bkey}_p50"))
+                    punc = float(pheader.get(f"{bkey}_punc"))
+                    munc = float(pheader.get(f"{bkey}_munc"))
+                    self.g21_p50_fit[bkey] = (val, punc, munc)
+
     def _get_ext_ytitle(self, ytype=None):
         """
         Format the extinction type nicely for plotting
@@ -966,10 +987,10 @@ class ExtData:
             # compute A(V) if it is not available
             if "AV" not in self.columns.keys():
                 self.trans_elv_alav()
-            av = float(self.columns["AV"])
+            av = _get_column_val(self.columns["AV"])
             if self.type_rel_band != "V":  # not sure if this works (where is RV given?)
                 # use F04 model to convert AV to AX
-                rv = float(self.columns["RV"][0])
+                rv = _get_column_val(self.columns["RV"])
                 emod = F04(rv)
                 (indx,) = np.where(self.type_rel_band == self.names["BAND"])
                 axav = emod(self.waves["BAND"][indx[0]])

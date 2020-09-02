@@ -4,7 +4,7 @@ import astropy.units as u
 import numpy as np
 
 from measure_extinction.stardata import StarData
-from measure_extinction.extdata import ExtData
+from measure_extinction.extdata import ExtData, _hierarch_keywords, _get_column_val
 
 
 def test_calc_ext():
@@ -79,3 +79,20 @@ def test_calc_AV_RV():
     # calculate R(V)
     ext.calc_RV()
     np.testing.assert_almost_equal(ext.columns["RV"], 2.65546825263045)
+
+
+def test_hierarch_keyword():
+    # input and expected keywords
+    inkeys = ["AKEY", "AAAAKEY", "AAAAAKEY", "AAAAAAAKEY"]
+    expkeys = ["AKEY", "AAAAKEY", "HIERARCH AAAAAKEY", "HIERARCH AAAAAAAKEY"]
+    # out keywords
+    outkeys = _hierarch_keywords(inkeys)
+    for ekey, okey in zip(expkeys, outkeys):
+        assert ekey == okey
+
+
+def test_get_column_val():
+    # single float value
+    np.testing.assert_almost_equal(_get_column_val(3.0), 3.0)
+    # tuple
+    np.testing.assert_almost_equal(_get_column_val((3.0, 1.0, 2.0)), 3.0)
