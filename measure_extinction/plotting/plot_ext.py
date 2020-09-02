@@ -71,7 +71,7 @@ def plot_extmodels(extdata, alax):
             linewidth=1,
             label="R(V) = {:4.2f}".format(cRv),
         )
-        plt.legend()
+        plt.legend(bbox_to_anchor=(0.99, 0.9))
 
 
 def plot_powerlaw(extdata, alax):
@@ -208,7 +208,7 @@ def zoom(ax, range):
 
 
 def plot_multi_extinction(
-    starlist,
+    starpair_list,
     path,
     alax=False,
     extmodels=False,
@@ -224,8 +224,8 @@ def plot_multi_extinction(
 
     Parameters
     ----------
-    starlist : list of strings
-        List of stars for which to plot the extinction curve
+    starpair_list : list of strings
+        List of star pairs for which to plot the extinction curve, in the format "reddenedstarname_comparisonstarname" (no spaces)
 
     path : string
         Path to the data files
@@ -270,12 +270,12 @@ def plot_multi_extinction(
     plt.rc("ytick.minor", width=2)
 
     # create the plot
-    fig, ax = plt.subplots(figsize=(15, len(starlist) * 1.25))
+    fig, ax = plt.subplots(figsize=(15, len(starpair_list) * 1.25))
     colors = plt.get_cmap("tab10")
 
-    for i, star in enumerate(starlist):
+    for i, starpair in enumerate(starpair_list):
         # read in the extinction curve data
-        extdata = ExtData("%s%s_ext.fits" % (path, star.lower()))
+        extdata = ExtData("%s%s_ext.fits" % (path, starpair.lower()))
 
         # spread out the curves if requested
         if spread:
@@ -308,7 +308,7 @@ def plot_multi_extinction(
             yoffset=yoffset,
             annotate_key=ann_key,
             annotate_wave_range=ann_range,
-            annotate_text=star,
+            annotate_text=starpair.replace("_", " (") + ")",
             annotate_yoffset=0.05,
             annotate_color=colors(i % 10),
         )
@@ -357,7 +357,7 @@ def plot_multi_extinction(
 
 
 def plot_extinction(
-    star,
+    starpair,
     path,
     alax=False,
     extmodels=False,
@@ -372,8 +372,8 @@ def plot_extinction(
 
     Parameters
     ----------
-    star : string
-        Name of the star for which to plot the extinction curve
+    starpair : string
+        Name of the star pair for which to plot the extinction curve, in the format "reddenedstarname_comparisonstarname" (no spaces)
 
     path : string
         Path to the data files
@@ -418,11 +418,11 @@ def plot_extinction(
     fig, ax = plt.subplots(figsize=(13, 10))
 
     # read in and plot the extinction curve data for this star
-    extdata = ExtData("%s%s_ext.fits" % (path, star.lower()))
+    extdata = ExtData("%s%s_ext.fits" % (path, starpair.lower()))
     extdata.plot(ax, alax=alax, exclude=exclude)
 
     # define the output name
-    outname = "%s_ext_%s.pdf" % (star.lower(), extdata.type)
+    outname = "%s_ext_%s.pdf" % (starpair.lower(), extdata.type)
 
     # fit and plot a NIR powerlaw model if requested
     if powerlaw:
@@ -442,8 +442,16 @@ def plot_extinction(
         outname = outname.replace(".pdf", "_zoom.pdf")
 
     # finish configuring the plot
+    ax.set_title(starpair.split("_")[0], fontsize=50)
+    ax.text(
+        0.99,
+        0.95,
+        "comparison: " + starpair.split("_")[1],
+        fontsize=25,
+        horizontalalignment="right",
+        transform=ax.transAxes,
+    )
     ax.set_xscale("log")
-    ax.set_title(star, fontsize=50)
     ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
     ax.set_ylabel(extdata._get_ext_ytitle(ytype=extdata.type), fontsize=1.5 * fontsize)
     ax.tick_params("both", length=10, width=2, which="major")
@@ -464,9 +472,9 @@ if __name__ == "__main__":
     # commandline parser
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "starlist",
+        "starpair_list",
         nargs="+",
-        help="star name or list of star names for which to plot the extinction curve",
+        help='pairs of star names for which to plot the extinction curve, in the format "reddenedstarname_comparisonstarname", without spaces',
     )
     parser.add_argument(
         "--path",
@@ -507,10 +515,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
-
     if args.onefig:  # plot all curves in the same figure
         plot_multi_extinction(
-            args.starlist,
+            args.starpair_list,
             args.path,
             args.alax,
             args.extmodels,
@@ -526,9 +533,9 @@ if __name__ == "__main__":
             parser.error(
                 "The flag --spread can only be used in combination with the flag --onefig. It only makes sense to spread out the curves if there is more than one curve in the same plot."
             )
-        for star in args.starlist:
+        for starpair in args.starpair_list:
             plot_extinction(
-                star,
+                starpair,
                 args.path,
                 args.alax,
                 args.extmodels,
