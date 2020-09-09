@@ -22,15 +22,15 @@ def test_plot_spectra():
 
         # check if the expected pdf files were created
         message = "Plotting the spectrum of star " + star + ", "
-        assert os.path.isfile(data_path + star + "_spec.pdf"), (
+        assert os.path.isfile(data_path + star.lower() + "_spec.pdf"), (
             message + "with the default settings, has failed."
         )
 
-        assert os.path.isfile(data_path + star + "_spec_mlam4.pdf"), (
+        assert os.path.isfile(data_path + star.lower() + "_spec_mlam4.pdf"), (
             message + "in lambda^4*F(lambda), has failed."
         )
 
-        assert os.path.isfile(data_path + star + "_spec_zoom.pdf"), (
+        assert os.path.isfile(data_path + star.lower() + "_spec_zoom.pdf"), (
             message + "in a specific wavelength range, has failed."
         )
 
