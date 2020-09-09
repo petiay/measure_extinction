@@ -123,7 +123,7 @@ def plot_powerlaw(extdata, alax):
     else:
         av = popt[2]
     plt.plot(mod_x, mod_y, "--", label="A(V) = %5.2f" % av)
-    plt.legend()
+    plt.legend(bbox_to_anchor=(0.99, 0.9))
 
 
 def plot_HI(path, ax):
