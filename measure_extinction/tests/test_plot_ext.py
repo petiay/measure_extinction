@@ -45,15 +45,15 @@ def test_plot_extinction():
         + ", "
     )
 
-    assert os.path.isfile(data_path + starpair + "_ext_elx.pdf"), (
+    assert os.path.isfile(data_path + starpair.lower() + "_ext_elx.pdf"), (
         message + "with the default settings, has failed."
     )
 
-    assert os.path.isfile(data_path + starpair + "_ext_alav.pdf"), (
+    assert os.path.isfile(data_path + starpair.lower() + "_ext_alav.pdf"), (
         message + "in A(lambda)/A(V), has failed."
     )
 
-    assert os.path.isfile(data_path + starpair + "_ext_elx_zoom.pdf"), (
+    assert os.path.isfile(data_path + starpair.lower() + "_ext_elx_zoom.pdf"), (
         message + "in a specific wavelength range, has failed."
     )
 
