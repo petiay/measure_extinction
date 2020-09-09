@@ -1,6 +1,5 @@
 import pkg_resources
 import os
-import warnings
 
 from measure_extinction.utils.calc_ext import calc_extinction
 

@@ -1,6 +1,5 @@
 import pkg_resources
 import os
-import warnings
 
 from measure_extinction.plotting.plot_ext import plot_multi_extinction, plot_extinction
 

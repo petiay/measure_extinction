@@ -1,6 +1,5 @@
 import pkg_resources
 import os
-import warnings
 
 from measure_extinction.plotting.plot_spec import plot_multi_spectra, plot_spectrum
 
