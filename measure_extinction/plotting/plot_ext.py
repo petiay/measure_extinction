@@ -346,12 +346,9 @@ def plot_multi_extinction(
     ax.tick_params("both", length=10, width=2, which="major")
     ax.tick_params("both", length=5, width=1, which="minor")
 
-    # use the whitespace better
-    fig.tight_layout()
-
     # show the figure or save it to a pdf file
     if pdf:
-        fig.savefig(path + outname)
+        fig.savefig(path + outname, bbox_inches="tight")
     else:
         plt.show()
 
@@ -457,12 +454,9 @@ def plot_extinction(
     ax.tick_params("both", length=10, width=2, which="major")
     ax.tick_params("both", length=5, width=1, which="minor")
 
-    # use the whitespace better
-    fig.tight_layout()
-
     # show the figure or save it to a pdf file
     if pdf:
-        fig.savefig(path + outname)
+        fig.savefig(path + outname, bbox_inches="tight")
         plt.close()
     else:
         plt.show()
