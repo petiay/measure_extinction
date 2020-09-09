@@ -16,9 +16,11 @@ def test_calc_extinction():
     calc_extinction(redstarname, compstarname, data_path)
 
     # check if an extinction curve has been calculated and saved to a fits file
-    if not os.path.isfile(data_path + redstarname + "_ext.fits"):
-        warnings.warn(
-            "No FITS file with the extinction curve has been created for star "
-            + redstarname,
-            stacklevel=2,
-        )
+    assert os.path.isfile(
+        data_path + "%s_%s_ext.fits" % (redstarname.lower(), compstarname.lower())
+    ), (
+        "No FITS file has been created with the extinction curve of reddened star "
+        + redstarname
+        + " with comparison star "
+        + compstarname
+    )

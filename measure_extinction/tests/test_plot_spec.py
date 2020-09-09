@@ -22,29 +22,18 @@ def test_plot_spectra():
         plot_spectrum(star, data_path, range=[0.7, 6], pdf=True)
 
         # check if the expected pdf files were created
-        if not os.path.isfile(data_path + star + "_spec.pdf"):
-            warnings.warn(
-                "Plotting the spectrum for star "
-                + star
-                + " with the default settings has failed.",
-                stacklevel=2,
-            )
+        message = "Plotting the spectrum of star " + star + ", "
+        assert os.path.isfile(data_path + star + "_spec.pdf"), (
+            message + "with the default settings, has failed."
+        )
 
-        if not os.path.isfile(data_path + star + "_spec_mlam4.pdf"):
-            warnings.warn(
-                "Plotting the spectrum for star "
-                + star
-                + " in lambda^4*F(lambda) has failed.",
-                stacklevel=2,
-            )
+        assert os.path.isfile(data_path + star + "_spec_mlam4.pdf"), (
+            message + "in lambda^4*F(lambda), has failed."
+        )
 
-        if not os.path.isfile(data_path + star + "_spec_zoom.pdf"):
-            warnings.warn(
-                "Plotting the spectrum for star "
-                + star
-                + " in a specific wavelength range has failed.",
-                stacklevel=2,
-            )
+        assert os.path.isfile(data_path + star + "_spec_zoom.pdf"), (
+            message + "in a specific wavelength range, has failed."
+        )
 
         # test several other plotting options
         # note: verifying the existence of the pdf file with the plot is not sufficient to ensure that the different plotting options work as expected. However, these tests at least make sure that the corresponding functions run without errors.
@@ -66,23 +55,18 @@ def test_plot_spectra():
     plot_multi_spectra(starlist, data_path, range=[0.7, 6], pdf=True)
 
     # check if the expected pdf files were created
-    if not os.path.isfile(data_path + "all_spec.pdf"):
-        warnings.warn(
-            "Plotting the spectra of both stars in one figure with the default settings has failed.",
-            stacklevel=2,
-        )
+    message = "Plotting the spectra of both stars in one figure, "
+    assert os.path.isfile(data_path + "all_spec.pdf"), (
+        message + "with the default settings, has failed."
+    )
 
-    if not os.path.isfile(data_path + "all_spec_mlam4.pdf"):
-        warnings.warn(
-            "Plotting the spectra of both stars in one figure in lambda^4*F(lambda) has failed.",
-            stacklevel=2,
-        )
+    assert os.path.isfile(data_path + "all_spec_mlam4.pdf"), (
+        message + "in lambda^4*F(lambda), has failed."
+    )
 
-    if not os.path.isfile(data_path + "all_spec_zoom.pdf"):
-        warnings.warn(
-            "Plotting the spectra of both stars in one figure in a specific wavelength range has failed.",
-            stacklevel=2,
-        )
+    assert os.path.isfile(data_path + "all_spec_zoom.pdf"), (
+        message + "in a specific wavelength range, has failed."
+    )
 
     # with band data excluded from the plot
     plot_multi_spectra(starlist, data_path, exclude="BAND", pdf=True)
