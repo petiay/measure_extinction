@@ -1,5 +1,6 @@
 import pkg_resources
 import os
+import warnings
 
 from measure_extinction.plotting.plot_ext import plot_multi_extinction, plot_extinction
 
@@ -22,19 +23,35 @@ def test_plot_extinction():
     # test several other plotting options
     # note: verifying the existence of the pdf file with the plot is not sufficient to ensure that the different plotting options work as expected. However, these tests at least make sure that the corresponding functions run without errors.
 
+    # with a NIR powerlaw model overplotted
+    plot_extinction(starpair, data_path, powerlaw=True, pdf=True)
+
+    # with Milky Way extinction curve models overplotted
+    plot_extinction(starpair, data_path, extmodels=True, pdf=True)
+
     # with band data excluded from the plot
     plot_extinction(starpair, data_path, exclude="BAND", pdf=True)
 
     # with HI-lines indicated
     plot_extinction(starpair, data_path, HI_lines=True, pdf=True)
 
-    # in one figure, although this is actually only relevant if there is more than one curve.
+    # in one figure, although this is actually only relevant if there is more than one curve
     starpair_list = ["HD229238_HD204172"]
     plot_multi_extinction(starpair_list, data_path, pdf=True)
     plot_multi_extinction(starpair_list, data_path, alax=True, pdf=True)
     plot_multi_extinction(starpair_list, data_path, range=[0.7, 6], pdf=True)
+    plot_multi_extinction(starpair_list, data_path, powerlaw=True, pdf=True)
     plot_multi_extinction(starpair_list, data_path, exclude="BAND", pdf=True)
     plot_multi_extinction(starpair_list, data_path, HI_lines=True, pdf=True)
+
+    # this option should issue a warning
+    with warnings.catch_warnings(record=True) as w:
+        plot_multi_extinction(starpair_list, data_path, extmodels=True, pdf=True)
+        assert issubclass(w[-1].category, UserWarning)
+        assert (
+            "Overplotting Milky Way extinction curve models on a figure with multiple observed extinction curves in E(lambda-V) units is disabled, because the model curves in these units are different for every star, and would overload the plot. Please, do one of the following if you want to overplot Milky Way extinction curve models: 1) Use the flag --alax to plot ALL curves in A(lambda)/A(V) units, OR 2) Plot all curves separately by removing the flag --onefig."
+            == str(w[-1].message)
+        )
 
     # check if the expected pdf files were created
     message = (
