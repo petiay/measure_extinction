@@ -18,7 +18,7 @@ def calc_extinction(redstarname, compstarname, path):
     extdata = ExtData()
     extdata.calc_elx(redstarobs, compstarobs)
 
-    extdata.save(path + "%s_ext.fits" % redstarname.lower())
+    extdata.save(path + "%s_%s_ext.fits" % (redstarname.lower(), compstarname.lower()))
 
 
 if __name__ == "__main__":

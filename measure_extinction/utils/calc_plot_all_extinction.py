@@ -9,7 +9,6 @@ import pandas as pd
 
 
 if __name__ == "__main__":
-
     # commandline parser
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -51,16 +50,20 @@ if __name__ == "__main__":
 
     # read the list of stars for which to measure and plot the extinction curve
     table = pd.read_table(args.path + "red-comp.list", comment="#")
-    stars = table["reddened"]
+    redstars = table["reddened"]
+    compstars = table["comparison"]
+    starpair_list = []
 
     # calculate and plot the extinction curve for every star
-    for i, star in enumerate(stars):
-        print("reddened star: ", star, "/ comparison star:", table["comparison"][i])
-        calc_extinction(star, table["comparison"][i], args.path)
+    for redstar, compstar in zip(redstars, compstars):
+        print("reddened star: ", redstar, "/ comparison star:", compstar)
+        calc_extinction(redstar, compstar, args.path)
+        # create the starpair_list
+        starpair_list.append(redstar + "_" + compstar)
 
     if args.onefig:  # plot all curves in the same figure
         plot_multi_extinction(
-            stars,
+            starpair_list,
             args.path,
             args.alax,
             args.extmodels,
@@ -76,9 +79,9 @@ if __name__ == "__main__":
             parser.error(
                 "The flag --spread can only be used in combination with the flag --onefig. It only makes sense to spread out the curves if there is more than one curve in the same plot."
             )
-        for star in stars:
+        for redstar, compstar in zip(redstars, compstars):
             plot_extinction(
-                star,
+                redstar + "_" + compstar,
                 args.path,
                 args.alax,
                 args.extmodels,
