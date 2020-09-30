@@ -1188,6 +1188,9 @@ class ExtData:
                 ann_val = np.nanmedian(y[ann_indxs])
                 ann_val += (annotate_yoffset,)
                 ann_xval = 0.5 * np.sum(annotate_wave_range.value)
+
+                if wavenum:
+                    ann_xval = 1.0 / ann_xval
                 pltax.text(
                     ann_xval,
                     ann_val,
