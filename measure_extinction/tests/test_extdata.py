@@ -74,11 +74,11 @@ def test_calc_AV_RV():
 
     # calculate A(V)
     ext.calc_AV()
-    np.testing.assert_almost_equal(ext.columns["AV"], 2.602358887577842)
+    np.testing.assert_almost_equal(ext.columns["AV"], 2.5626900237367805)
 
     # calculate R(V)
     ext.calc_RV()
-    np.testing.assert_almost_equal(ext.columns["RV"], 2.65546825263045)
+    np.testing.assert_almost_equal(ext.columns["RV"], 2.614989769244703)
 
 
 def test_hierarch_keyword():
