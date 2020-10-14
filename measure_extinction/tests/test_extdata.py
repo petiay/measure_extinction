@@ -98,6 +98,50 @@ def test_get_column_val():
     np.testing.assert_almost_equal(_get_column_val((3.0, 1.0, 2.0)), 3.0)
 
 
+def test_fit_band_ext():  # only for alax=False (for now)
+    # get the location of the data files
+    data_path = pkg_resources.resource_filename("measure_extinction", "data/")
+
+    # read in the extinction curve data
+    extdata = ExtData(data_path + "hd229238_hd204172_ext.fits")
+
+    # fit the extinction curve with a powerlaw based on the band data
+    extdata.fit_band_ext()
+
+    # test the fitting results
+    waves = extdata.waves["BAND"][
+        np.all(
+            [
+                (extdata.npts["BAND"] > 0),
+                (extdata.waves["BAND"] > 1.0 * u.micron),
+                (extdata.waves["BAND"] < 40.0 * u.micron),
+            ],
+            axis=0,
+        )
+    ].value
+    np.testing.assert_almost_equal(extdata.model["waves"], waves)
+    exts = [
+        -2.0250664,
+        -2.2126555,
+        -2.3416822,
+        -2.4570248,
+        -2.4664872,
+        -2.504268,
+        -2.508792,
+        -2.5324326,
+        -2.557169,
+        -2.5779433,
+        -2.5869684,
+        -2.5951946,
+    ]
+    np.testing.assert_almost_equal(extdata.model["exts"], exts)
+    np.testing.assert_almost_equal(
+        extdata.model["params"],
+        (0.7593262393303228, 1.345528276482045, 2.6061368004634025),
+    )
+    np.testing.assert_almost_equal(extdata.columns["AV"], 2.6061368004634025)
+
+
 def test_fit_spex_ext():  # only for alax=False (for now)
     # get the location of the data files
     data_path = pkg_resources.resource_filename("measure_extinction", "data/")
