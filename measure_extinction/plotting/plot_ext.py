@@ -15,19 +15,6 @@ from measure_extinction.extdata import ExtData
 from dust_extinction.parameter_averages import CCM89
 
 
-def elx_powerlaw(x, a, alpha, c):
-    return a * x ** -alpha - c
-
-
-def alav_powerlaw(x, a, alpha):
-    return a * x ** -alpha
-
-
-# this function is currently not used
-# def irpowerlaw_18(x, a, c):
-#    return a * x ** -1.8 - c
-
-
 def plot_extmodels(extdata, alax):
     """
     Plot Milky Way extinction curve models of Cardelli, Clayton, and Mathis (1989, ApJ, 345, 245), only possible for wavelengths between 0.1 and 3.33 micron
@@ -76,7 +63,9 @@ def plot_extmodels(extdata, alax):
 
 def plot_powerlaw(extdata, alax):
     """
-    Fit and plot a NIR powerlaw model to the band data between 1 and 40 micron
+    Fit and plot a NIR powerlaw model
+    - to the SpeX spectra if these are available
+    - to the band data between 1 and 40 micron otherwise
 
     Parameters
     ----------
@@ -90,40 +79,25 @@ def plot_powerlaw(extdata, alax):
     -------
     Overplots a fitted NIR powerlaw model
     """
-    # retrieve the band data to be fitted
-    ftype = "BAND"
-    gbool = np.all(
-        [
-            (extdata.npts[ftype] > 0),
-            (extdata.waves[ftype] > 1.0 * u.micron),
-            (extdata.waves[ftype] < 40.0 * u.micron),
-        ],
-        axis=0,
-    )
-    xdata = extdata.waves[ftype][gbool].value
-    ydata = extdata.exts[ftype][gbool]
-    # fit the data points with a powerlaw function
-    if alax:
-        func = alav_powerlaw
-        labeltxt = r"fit: $%5.2f \lambda ^{-%5.2f}$"
-    else:
-        func = elx_powerlaw
-        labeltxt = r"fit: $%5.2f \lambda ^{-%5.2f} - %5.2f$"
-    popt, pcov = curve_fit(func, xdata, ydata)
-    # plot the fitted curve
-    plt.plot(
-        xdata, func(xdata, *popt), "-", label=labeltxt % tuple(popt),
-    )
+    if "SpeX_SXD" in extdata.waves.keys() or "SpeX_LXD" in extdata.waves.keys():
+        extdata.fit_spex_ext()
+    else:  # use the band data
+        extdata.fit_band_ext()
 
-    # plot the model line from 1 to 40 micron
-    mod_x = np.arange(1.0, 40.0, 0.1)
-    mod_y = func(mod_x, *popt)
+    # plot the fitted powerlaw model
     if alax:
-        av = extdata.columns["AV"]
+        labeltxt = r"$%5.2f \lambda ^{-%5.2f}$"
     else:
-        av = popt[2]
-    plt.plot(mod_x, mod_y, "--", label="A(V) = %5.2f" % av)
-    plt.legend(bbox_to_anchor=(0.99, 0.9))
+        labeltxt = r"$%5.2f \lambda ^{-%5.2f} - %5.2f$"
+    plt.plot(
+        extdata.model["waves"],
+        extdata.model["exts"],
+        "--",
+        lw=2,
+        alpha=0.5,
+        label=labeltxt % (extdata.model["params"]),
+    )
+    plt.legend(loc="lower left")
 
 
 def plot_HI(path, ax):
