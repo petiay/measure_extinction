@@ -10,7 +10,6 @@ import numpy as np
 import astropy.units as u
 import pandas as pd
 
-from scipy.optimize import curve_fit
 from measure_extinction.extdata import ExtData
 from dust_extinction.parameter_averages import CCM89
 
