@@ -60,7 +60,7 @@ def plot_extmodels(extdata, alax):
         plt.legend(bbox_to_anchor=(0.99, 0.9))
 
 
-def plot_powerlaw(extdata, alax):
+def plot_powerlaw(extdata, alax, res):
     """
     Fit and plot a NIR powerlaw model
     - to the SpeX spectra if these are available
@@ -73,6 +73,9 @@ def plot_powerlaw(extdata, alax):
 
     alax : boolean
         Whether or not to plot A(lambda)/A(X) instead of E(lambda-X)
+
+    res : boolean
+        Whether or not to plot the relative residuals of the fitting (only useful when plotting a single extinction curve)
 
     Returns
     -------
@@ -97,6 +100,11 @@ def plot_powerlaw(extdata, alax):
         label=labeltxt % (extdata.model["params"]),
     )
     plt.legend(loc="lower left")
+    if res:
+        plt.axes([0.125, 0, 0.775, 0.11], sharex=plt.gca())
+        plt.plot(extdata.model["waves"], extdata.model["residuals"])
+        plt.axhline(ls="--", c="k", alpha=0.5)
+        plt.ylabel("residual")
 
 
 def plot_HI(path, ax):
@@ -237,10 +245,10 @@ def plot_multi_extinction(
     plt.rc("font", **font)
     plt.rc("lines", linewidth=1)
     plt.rc("axes", linewidth=2)
-    plt.rc("xtick.major", width=2)
-    plt.rc("xtick.minor", width=2)
-    plt.rc("ytick.major", width=2)
-    plt.rc("ytick.minor", width=2)
+    plt.rc("xtick.major", width=2, size=10)
+    plt.rc("xtick.minor", width=1, size=5)
+    plt.rc("ytick.major", width=2, size=10)
+    plt.rc("ytick.minor", width=1, size=5)
 
     # create the plot
     fig, ax = plt.subplots(figsize=(15, len(starpair_list) * 1.25))
@@ -288,7 +296,7 @@ def plot_multi_extinction(
 
         # fit and plot a NIR powerlaw model if requested
         if powerlaw:
-            plot_powerlaw(extdata, alax)
+            plot_powerlaw(extdata, alax, res=False)
 
     # overplot Milky Way extinction curve models if requested
     if extmodels:
@@ -316,8 +324,6 @@ def plot_multi_extinction(
     ax.set_xscale("log")
     ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
     ax.set_ylabel(extdata._get_ext_ytitle(ytype=extdata.type), fontsize=1.5 * fontsize)
-    ax.tick_params("both", length=10, width=2, which="major")
-    ax.tick_params("both", length=5, width=1, which="minor")
 
     # show the figure or save it to a pdf file
     if pdf:
@@ -379,10 +385,11 @@ def plot_extinction(
     plt.rc("font", **font)
     plt.rc("lines", linewidth=1)
     plt.rc("axes", linewidth=2)
-    plt.rc("xtick.major", width=2)
-    plt.rc("xtick.minor", width=2)
-    plt.rc("ytick.major", width=2)
-    plt.rc("ytick.minor", width=2)
+    plt.rc("xtick.major", width=2, size=10)
+    plt.rc("xtick.minor", width=1, size=5)
+    plt.rc("ytick.major", width=2, size=10)
+    plt.rc("ytick.minor", width=1, size=5)
+    plt.rc("axes.formatter", min_exponent=2)
 
     # create the plot
     fig, ax = plt.subplots(figsize=(13, 10))
@@ -394,13 +401,13 @@ def plot_extinction(
     # define the output name
     outname = "%s_ext_%s.pdf" % (starpair.lower(), extdata.type)
 
-    # fit and plot a NIR powerlaw model if requested
-    if powerlaw:
-        plot_powerlaw(extdata, alax)
-
     # plot Milky Way extinction models if requested
     if extmodels:
         plot_extmodels(extdata, alax)
+
+    # fit and plot a NIR powerlaw model if requested
+    if powerlaw:
+        plot_powerlaw(extdata, alax, res=True)
 
     # plot HI-lines if requested
     if HI_lines:
@@ -422,10 +429,8 @@ def plot_extinction(
         transform=ax.transAxes,
     )
     ax.set_xscale("log")
-    ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
+    plt.xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
     ax.set_ylabel(extdata._get_ext_ytitle(ytype=extdata.type), fontsize=1.5 * fontsize)
-    ax.tick_params("both", length=10, width=2, which="major")
-    ax.tick_params("both", length=5, width=1, which="minor")
 
     # show the figure or save it to a pdf file
     if pdf:
