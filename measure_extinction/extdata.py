@@ -3,8 +3,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import warnings
 
 import numpy as np
-from astropy.io import fits
 import astropy.units as u
+from astropy.io import fits
+from scipy.optimize import curve_fit
 
 from dust_extinction.parameter_averages import F04
 from astropy.modeling.powerlaws import PowerLaw1D
@@ -210,6 +211,11 @@ class ExtData:
 
     fm90 : list of FM90 parameters tuples
         tuples are measurement, uncertainty
+
+    model : dict of key:value with model fitting results, including
+        - waves: np.ndarray with the wavelengths used in the fitting
+        - exts: np.ndarray with the fitted powerlaw model to the extinction curve
+        - params: tuple with the parameters (amplitude, alpha) if data in A(lambda)/A(V) or (amplitude, alpha, A(V)) if data in E(lambda-V)
     """
 
     def __init__(self, filename=None):
@@ -230,6 +236,7 @@ class ExtData:
         self.uncs = {}
         self.npts = {}
         self.names = {}
+        self.model = {}
 
         if filename is not None:
             self.read(filename)
@@ -439,8 +446,7 @@ class ExtData:
         """
         # if SpeX extinction curve is available: compute A(V) by fitting the NIR extintion curve with a powerlaw.
         if "SpeX_SXD" in self.waves.keys() or "SpeX_LXD" in self.waves.keys():
-            fit_result = self.fit_spex_ext()
-            self.columns["AV"] = fit_result.Av_1.value
+            self.fit_spex_ext()
 
         # if no SpeX spectrum is available: compute A(V) from E(K-V)
         else:
@@ -1056,29 +1062,80 @@ class ExtData:
                     fontsize=fontsize,
                 )
 
-    def fit_spex_ext(
-        self, amp_bounds=(-10.0, 10.0), index_bounds=(0.0, 5.0), AV_bounds=(0.0, 10.0)
-    ):
+    def fit_band_ext(self):
         """
-        Fit the observed extinction curve with a powerlaw model, based on the SpeX spectra only.
+        Fit the observed NIR extinction curve with a powerlaw model, based on the band data between 1 and 40 micron
 
         Parameters
         ----------
+
+        Returns
+        -------
+        Updates self.model["waves", "exts", "params"] and self.columns["AV"] with the fitting results:
+            - waves: np.ndarray with the wavelengths used in the fitting
+            - exts: np.ndarray with the fitted powerlaw model to the extinction curve
+            - params: tuple with the parameters (amplitude, alpha) if data in A(lambda)/A(V) or (amplitude, alpha, A(V)) if data in E(lambda-V)
+        """
+        # retrieve the band data to be fitted
+        ftype = "BAND"
+        gbool = np.all(
+            [
+                (self.npts[ftype] > 0),
+                (self.waves[ftype] > 1.0 * u.micron),
+                (self.waves[ftype] < 40.0 * u.micron),
+            ],
+            axis=0,
+        )
+        xdata = self.waves[ftype][gbool].value
+        ydata = self.exts[ftype][gbool]
+
+        # fit the data points with a powerlaw function (function must take the independent variable as the first argument and the parameters to fit as separate remaining arguments)
+        if self.type == "alav":
+
+            def alav_powerlaw(x, a, alpha):
+                return a * x ** -alpha
+
+            func = alav_powerlaw
+        else:
+
+            def elx_powerlaw(x, a, alpha, c):
+                return a * x ** -alpha - c
+
+            func = elx_powerlaw
+        fit_result = curve_fit(func, xdata, ydata)
+
+        # save the fitting results
+        self.model["waves"] = xdata
+        self.model["exts"] = func(self.model["waves"], *fit_result[0])
+        self.model["params"] = tuple(fit_result[0])
+        if self.type != "alav":
+            self.columns["AV"] = fit_result[0][2]
+
+    def fit_spex_ext(
+        self, amp_bounds=(-1.5, 1.5), index_bounds=(0.0, 5.0), AV_bounds=(0.0, 6.0)
+    ):
+        """
+        Fit the observed NIR extinction curve with a powerlaw model, based on the SpeX spectra
+
+        Parameters
+        ----------
+        amp_bounds : tuple [default=(-1.5,1.5)]
+            Model amplitude bounds to be used in the fitting
+
         index_bounds : tuple [default=(0.0,5.0)]
             Powerlaw index bounds to be used in the fitting
 
-        amp_bounds : tuple [default=(-10.0,10.0)]
-            Model amplitude bounds to be used in the fitting
-
-        AV_bounds : tuple [default=(0.0,10.0)]
+        AV_bounds : tuple [default=(0.0,6.0)]
             A(V) bounds to be used in the fitting
 
         Returns
         -------
-        fit(func, waves, exts) : CompoundModel
-            Fitting results
+        Updates self.model["waves", "exts", "params"] and self.columns["AV"] with the fitting results:
+            - waves: np.ndarray with the wavelengths used in the fitting
+            - exts: np.ndarray with the fitted powerlaw model to the extinction curve
+            - params: tuple with the parameters (amplitude, alpha) if data in A(lambda)/A(V) or (amplitude, alpha, A(V)) if data in E(lambda-V)
         """
-        # get the SpeX data, and sort the curve from short to long wavelengths
+        # retrieve the SpeX data, and sort the curve from short to long wavelengths
         (waves, exts, exts_unc) = self.get_fitdata(["SpeX_SXD", "SpeX_LXD"])
         indx = np.argsort(waves)
         waves = waves[indx].value
@@ -1086,8 +1143,32 @@ class ExtData:
         exts_unc = exts_unc[indx]
 
         # fit a powerlaw to the spectrum
-        func = PowerLaw1D(
-            fixed={"x_0": True}, bounds={"amplitude": amp_bounds, "alpha": index_bounds}
-        ) | AxAvToExv(bounds={"Av": AV_bounds})
+        if self.type == "alav":
+            func = PowerLaw1D(
+                fixed={"x_0": True},
+                bounds={"amplitude": amp_bounds, "alpha": index_bounds},
+            )
+        else:
+            func = (
+                PowerLaw1D(
+                    fixed={"x_0": True},
+                    bounds={"amplitude": amp_bounds, "alpha": index_bounds},
+                )
+                | AxAvToExv(bounds={"Av": AV_bounds})
+            )
+
         fit = LevMarLSQFitter()
-        return fit(func, waves, exts)
+        fit_result = fit(func, waves, exts, weights=1 / exts_unc)
+
+        # save the fitting results
+        self.model["waves"] = waves
+        self.model["exts"] = fit_result(waves)
+        if self.type == "alav":
+            self.model["params"] = (fit_result.amplitude.value, fit_result.alpha.value)
+        else:  # in this case, fitted amplitude has to be multiplied by A(V) to get the "combined" amplitude
+            self.model["params"] = (
+                fit_result.amplitude_0.value * fit_result.Av_1.value,
+                fit_result.alpha_0.value,
+                fit_result.Av_1.value,
+            )
+            self.columns["AV"] = fit_result.Av_1.value

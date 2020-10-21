@@ -205,6 +205,7 @@ def plot_multi_spectra(
             annotate_wave_range=ann_range,
             annotate_text=star.upper() + "  " + starobs.sptype,
             annotate_yoffset=0.25,
+            annotate_rotation=10,
             annotate_color=colors(i % 10),
         )
 
@@ -229,9 +230,7 @@ def plot_multi_spectra(
         ylabel = r"$F(\lambda)$ [$ergs\ cm^{-2}\ s^{-1}\ \AA^{-1}$]"
     if spread:
         ylabel = ylabel + " + offset"
-    ax.set_ylabel(
-        ylabel, fontsize=1.5 * fontsize,
-    )
+    ax.set_ylabel(ylabel, fontsize=1.5 * fontsize)
     ax.tick_params("both", length=10, width=2, which="major")
     ax.tick_params("both", length=5, width=1, which="minor")
 
