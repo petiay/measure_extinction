@@ -1091,9 +1091,17 @@ class ExtData:
 
         # fit the data points with a powerlaw function (function must take the independent variable as the first argument and the parameters to fit as separate remaining arguments)
         if self.type == "alav":
-            func = lambda x, a, alpha: a * x ** -alpha
+
+            def powerlaw_alax(x, a, alpha):
+                a * x ** -alpha
+
+            func = powerlaw_alax
         else:
-            func = lambda x, a, alpha, c: a * x ** -alpha - c
+
+            def powerlaw_elx(x, a, alpha, c):
+                a * x ** -alpha - c
+
+            func = powerlaw_elx
         fit_result = curve_fit(func, xdata, ydata)
 
         # save the fitting results
