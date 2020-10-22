@@ -10,11 +10,86 @@ import numpy as np
 import astropy.units as u
 import pandas as pd
 
-from measure_extinction.extdata import ExtData
+from measure_extinction.extdata import ExtData, AverageExtData
 from dust_extinction.parameter_averages import CCM89
 
 
-def plot_extmodels(extdata, alax):
+def plot_average(
+    starpair_list,
+    path,
+    ax,
+    alax=False,
+    powerlaw=False,
+    spread=False,
+    annotate_key=None,
+    annotate_wave_range=None,
+):
+    """
+    Overplot the average extinction curve
+
+    Parameters
+    ----------
+    starpair_list : list of strings
+        List of star pairs for which to calculate and plot the average extinction curve, in the format "reddenedstarname_comparisonstarname" (no spaces)
+
+    path : string
+        Path to the data files
+
+    ax : AxesSubplot
+        Axes of plot on which to add the average extinction curve
+
+    alax : boolean [default=False]
+        Whether or not to plot A(lambda)/A(X) instead of E(lambda-X)
+
+    powerlaw: boolean [default=False]
+        Whether or not to fit and overplot a NIR powerlaw model
+
+    spread : boolean [default=False]
+        Whether or not to offset the average extinction curve from the other curves
+
+    annotate_key : string [default=None]
+        type of data for which to annotate text (e.g., SpeX_LXD)
+
+    annotate_wave_range : list of 2 floats [default=None]
+        min/max wavelength range for the annotation of the text
+
+    Returns
+    -------
+    Overplots the average extinction curve
+    """
+    # calculate the average extinction curve
+    extdatas = []
+    for starpair in starpair_list:
+        extdata = ExtData("%s%s_ext.fits" % (path, starpair.lower()))
+        extdata.calc_AV()
+        extdatas.append(extdata)
+    if alax:
+        average = AverageExtData(extdatas, alax)
+    else:
+        average = AverageExtData(extdatas)
+
+    # plot the average extinction curve
+    if spread:
+        yoffset = -0.3
+    else:
+        yoffset = 0
+    average.plot(
+        ax,
+        color="k",
+        alpha=0.6,
+        yoffset=yoffset,
+        annotate_key=annotate_key,
+        annotate_wave_range=annotate_wave_range,
+        annotate_text="average",
+        annotate_yoffset=0.05,
+    )
+
+    # fit and plot a powerlaw to the average NIR extinction curve if requested
+    if powerlaw:
+        plot_powerlaw(average, alax, yoffset)
+
+
+def plot_extmodels(extdata, alax=False):
     """
     Plot Milky Way extinction curve models of Cardelli, Clayton, and Mathis (1989, ApJ, 345, 245), only possible for wavelengths between 0.1 and 3.33 micron
 
@@ -23,7 +98,7 @@ def plot_extmodels(extdata, alax):
     extdata : ExtData
         Extinction data under consideration
 
-    alax : boolean
+    alax : boolean [default=False]
         Whether or not to plot A(lambda)/A(X) instead of E(lambda-X)
 
     Returns
@@ -60,7 +135,7 @@ def plot_extmodels(extdata, alax):
         plt.legend(bbox_to_anchor=(0.99, 0.9))
 
 
-def plot_powerlaw(extdata, alax, res):
+def plot_powerlaw(extdata, alax=False, yoffset=0, res=False):
     """
     Fit and plot a NIR powerlaw model
     - to the SpeX spectra if these are available
@@ -71,10 +146,13 @@ def plot_powerlaw(extdata, alax, res):
     extdata : ExtData
         Extinction data under consideration
 
-    alax : boolean
+    alax : boolean [default=False]
         Whether or not to plot A(lambda)/A(X) instead of E(lambda-X)
 
-    res : boolean
+    yoffset : float [default=0]
+        Offset of the corresponding extinction curve (in order to match the powerlaw model to the curve)
+
+    res : boolean [default=False]
         Whether or not to plot the relative residuals of the fitting (only useful when plotting a single extinction curve)
 
     Returns
@@ -93,7 +171,7 @@ def plot_powerlaw(extdata, alax, res):
         labeltxt = r"$%5.2f \lambda ^{-%5.2f} - %5.2f$"
     plt.plot(
         extdata.model["waves"],
-        extdata.model["exts"],
+        extdata.model["exts"] + yoffset,
         "--",
         lw=2,
         alpha=0.5,
@@ -192,6 +270,7 @@ def plot_multi_extinction(
     starpair_list,
     path,
     alax=False,
+    average=False,
     extmodels=False,
     powerlaw=False,
     HI_lines=False,
@@ -213,6 +292,9 @@ def plot_multi_extinction(
 
     alax : boolean [default=False]
         Whether or not to plot A(lambda)/A(X) instead of E(lambda-X)
+
+    average : boolean [default=False]
+        Whether or not to plot the average extinction curve
 
     extmodels: boolean [default=False]
         Whether or not to overplot Milky Way extinction curve models
@@ -249,6 +331,7 @@ def plot_multi_extinction(
     plt.rc("xtick.minor", width=1, size=5)
     plt.rc("ytick.major", width=2, size=10)
     plt.rc("ytick.minor", width=1, size=5)
+    plt.rc("axes.formatter", min_exponent=2)
 
     # create the plot
     fig, ax = plt.subplots(figsize=(15, len(starpair_list) * 1.25))
@@ -262,7 +345,7 @@ def plot_multi_extinction(
         if spread:
             yoffset = 0.3 * i
         else:
-            yoffset = 0
+            yoffset = 0.0
 
         # determine where to add the name of the star
         # find the shortest plotted wavelength
@@ -296,7 +379,7 @@ def plot_multi_extinction(
 
         # fit and plot a NIR powerlaw model if requested
         if powerlaw:
-            plot_powerlaw(extdata, alax, res=False)
+            plot_powerlaw(extdata, alax, yoffset)
 
     # overplot Milky Way extinction curve models if requested
     if extmodels:
@@ -307,6 +390,12 @@ def plot_multi_extinction(
                 "Overplotting Milky Way extinction curve models on a figure with multiple observed extinction curves in E(lambda-V) units is disabled, because the model curves in these units are different for every star, and would overload the plot. Please, do one of the following if you want to overplot Milky Way extinction curve models: 1) Use the flag --alax to plot ALL curves in A(lambda)/A(V) units, OR 2) Plot all curves separately by removing the flag --onefig.",
                 stacklevel=2,
             )
+
+    # plot the average extinction curve if requested
+    if average:
+        plot_average(
+            starpair_list, path, ax, alax, powerlaw, spread, ann_key, ann_range
+        )
 
     # define the output name
     outname = "all_ext_%s.pdf" % (extdata.type)
@@ -455,6 +544,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("--alax", help="plot A(lambda)/A(X)", action="store_true")
     parser.add_argument(
+        "--average", help="plot the average extinction curve", action="store_true"
+    )
+    parser.add_argument(
         "--extmodels", help="plot extinction curve models", action="store_true"
     )
     parser.add_argument(
@@ -492,6 +584,7 @@ if __name__ == "__main__":
             args.starpair_list,
             args.path,
             args.alax,
+            args.average,
             args.extmodels,
             args.powerlaw,
             args.HI_lines,
@@ -504,6 +597,10 @@ if __name__ == "__main__":
         if args.spread:
             parser.error(
                 "The flag --spread can only be used in combination with the flag --onefig. It only makes sense to spread out the curves if there is more than one curve in the same plot."
+            )
+        if args.average:
+            parser.error(
+                "The flag --average can only be used in combination with the flag --onefig. It only makes sense to overplot the average extinction curve on a plot with multiple curves."
             )
         for starpair in args.starpair_list:
             plot_extinction(
