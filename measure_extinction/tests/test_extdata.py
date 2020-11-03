@@ -109,32 +109,12 @@ def test_fit_band_ext():  # only for alax=False (for now)
     extdata.fit_band_ext()
 
     # test the fitting results
-    waves = extdata.waves["BAND"][
-        np.all(
-            [
-                (extdata.npts["BAND"] > 0),
-                (extdata.waves["BAND"] > 1.0 * u.micron),
-                (extdata.waves["BAND"] < 40.0 * u.micron),
-            ],
-            axis=0,
-        )
-    ].value
+    waves, exts, res = np.loadtxt(
+        data_path + "fit_band_ext_result_hd229238_hd204172.txt", unpack=True
+    )
     np.testing.assert_almost_equal(extdata.model["waves"], waves)
-    exts = [
-        -2.0250664,
-        -2.2126555,
-        -2.3416822,
-        -2.4570248,
-        -2.4664872,
-        -2.504268,
-        -2.508792,
-        -2.5324326,
-        -2.557169,
-        -2.5779433,
-        -2.5869684,
-        -2.5951946,
-    ]
     np.testing.assert_almost_equal(extdata.model["exts"], exts)
+    np.testing.assert_almost_equal(extdata.model["residuals"], res)
     np.testing.assert_almost_equal(
         extdata.model["params"],
         (0.7593262393303228, 1.345528276482045, 2.6061368004634025),
@@ -153,10 +133,12 @@ def test_fit_spex_ext():  # only for alax=False (for now)
     extdata.fit_spex_ext()
 
     # test the fitting results
-    waves = np.sort(extdata.get_fitdata(["SpeX_SXD", "SpeX_LXD"])[0].value)
+    waves, exts, res = np.loadtxt(
+        data_path + "fit_spex_ext_result_hd229238_hd204172.txt", unpack=True
+    )
     np.testing.assert_almost_equal(extdata.model["waves"], waves)
-    exts = np.loadtxt(data_path + "fit_spex_ext_result_hd229238_hd204172.txt")
     np.testing.assert_almost_equal(extdata.model["exts"], exts)
+    np.testing.assert_almost_equal(extdata.model["residuals"], res)
     np.testing.assert_almost_equal(
         extdata.model["params"],
         (0.8680132704511972, 2.023865293614347, 2.5626900237367805),

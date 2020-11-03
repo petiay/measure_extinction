@@ -215,6 +215,7 @@ class ExtData:
     model : dict of key:value with model fitting results, including
         - waves: np.ndarray with the wavelengths used in the fitting
         - exts: np.ndarray with the fitted powerlaw model to the extinction curve
+        - residuals: np.ndarray with the fractional residuals, i.e. (data-fit)/fit
         - params: tuple with the parameters (amplitude, alpha) if data in A(lambda)/A(V) or (amplitude, alpha, A(V)) if data in E(lambda-V)
     """
 
@@ -1071,9 +1072,10 @@ class ExtData:
 
         Returns
         -------
-        Updates self.model["waves", "exts", "params"] and self.columns["AV"] with the fitting results:
+        Updates self.model["waves", "exts", "residuals", "params"] and self.columns["AV"] with the fitting results:
             - waves: np.ndarray with the wavelengths used in the fitting
             - exts: np.ndarray with the fitted powerlaw model to the extinction curve
+            - residuals: np.ndarray with the fractional residuals, i.e. (data-fit)/fit
             - params: tuple with the parameters (amplitude, alpha) if data in A(lambda)/A(V) or (amplitude, alpha, A(V)) if data in E(lambda-V)
         """
         # retrieve the band data to be fitted
@@ -1086,8 +1088,8 @@ class ExtData:
             ],
             axis=0,
         )
-        xdata = self.waves[ftype][gbool].value
-        ydata = self.exts[ftype][gbool]
+        waves = self.waves[ftype][gbool].value
+        exts = self.exts[ftype][gbool]
 
         # fit the data points with a powerlaw function (function must take the independent variable as the first argument and the parameters to fit as separate remaining arguments)
         if self.type == "alav":
@@ -1102,11 +1104,12 @@ class ExtData:
                 return a * x ** -alpha - c
 
             func = elx_powerlaw
-        fit_result = curve_fit(func, xdata, ydata)
+        fit_result = curve_fit(func, waves, exts)
 
         # save the fitting results
-        self.model["waves"] = xdata
-        self.model["exts"] = func(self.model["waves"], *fit_result[0])
+        self.model["waves"] = waves
+        self.model["exts"] = func(waves, *fit_result[0])
+        self.model["residuals"] = (exts - self.model["exts"]) / self.model["exts"]
         self.model["params"] = tuple(fit_result[0])
         if self.type != "alav":
             self.columns["AV"] = fit_result[0][2]
@@ -1130,9 +1133,10 @@ class ExtData:
 
         Returns
         -------
-        Updates self.model["waves", "exts", "params"] and self.columns["AV"] with the fitting results:
+        Updates self.model["waves", "exts", "residuals", "params"] and self.columns["AV"] with the fitting results:
             - waves: np.ndarray with the wavelengths used in the fitting
             - exts: np.ndarray with the fitted powerlaw model to the extinction curve
+            - residuals: np.ndarray with the fractional residuals, i.e. (data-fit)/fit
             - params: tuple with the parameters (amplitude, alpha) if data in A(lambda)/A(V) or (amplitude, alpha, A(V)) if data in E(lambda-V)
         """
         # retrieve the SpeX data, and sort the curve from short to long wavelengths
@@ -1163,6 +1167,7 @@ class ExtData:
         # save the fitting results
         self.model["waves"] = waves
         self.model["exts"] = fit_result(waves)
+        self.model["residuals"] = (exts - self.model["exts"]) / self.model["exts"]
         if self.type == "alav":
             self.model["params"] = (fit_result.amplitude.value, fit_result.alpha.value)
         else:  # in this case, fitted amplitude has to be multiplied by A(V) to get the "combined" amplitude
