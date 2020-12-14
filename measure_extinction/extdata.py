@@ -104,8 +104,10 @@ def AverageExtData(extdatas, alav=None):
     aveext = ExtData()
     if alav is None:
         aveext.type = extdatas[0].type
+        aveext.type_rel_band = extdatas[0].type_rel_band
     else:
         aveext.type = "alav"
+        aveext.type_rel_band = "V"
 
     gkeys = list(extdatas[0].waves.keys())
     gkeys.remove("BAND")
@@ -127,6 +129,7 @@ def AverageExtData(extdatas, alav=None):
                 aveext.exts[src][gindxs] += y
                 aveext.uncs[src][gindxs] += np.square(yu)
                 aveext.npts[src][gindxs] += cext.npts[src][gindxs]
+
         (gindxs,) = np.where(aveext.npts[src] > 0)
         aveext.exts[src][gindxs] /= aveext.npts[src][gindxs]
         aveext.uncs[src][gindxs] /= aveext.npts[src][gindxs]
@@ -760,7 +763,7 @@ class ExtData:
         Parameters
         ----------
         filename : string
-            Full filename to a save extinction curve
+            Full filename of the saved extinction curve
         """
         # read in the FITS file
         hdulist = fits.open(ext_filename)
@@ -1109,7 +1112,7 @@ class ExtData:
         # save the fitting results
         self.model["waves"] = waves
         self.model["exts"] = func(waves, *fit_result[0])
-        self.model["residuals"] = (exts - self.model["exts"]) / self.model["exts"]
+        self.model["residuals"] = exts - self.model["exts"]
         self.model["params"] = tuple(fit_result[0])
         if self.type != "alav":
             self.columns["AV"] = fit_result[0][2]
@@ -1167,7 +1170,7 @@ class ExtData:
         # save the fitting results
         self.model["waves"] = waves
         self.model["exts"] = fit_result(waves)
-        self.model["residuals"] = (exts - self.model["exts"]) / self.model["exts"]
+        self.model["residuals"] = exts - self.model["exts"]
         if self.type == "alav":
             self.model["params"] = (fit_result.amplitude.value, fit_result.alpha.value)
         else:  # in this case, fitted amplitude has to be multiplied by A(V) to get the "combined" amplitude
