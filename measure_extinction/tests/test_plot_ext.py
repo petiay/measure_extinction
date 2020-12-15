@@ -39,10 +39,13 @@ def test_plot_extinction():
     starpair_list = ["HD229238_HD204172"]
     plot_multi_extinction(starpair_list, data_path, pdf=True)
     plot_multi_extinction(starpair_list, data_path, alax=True, pdf=True)
-    plot_multi_extinction(starpair_list, data_path, range=[0.7, 6], pdf=True)
+    plot_multi_extinction(
+        starpair_list, data_path, alax=True, average=True, pdf=True
+    )  # This needs to be checked for alax=False as well TODO
     plot_multi_extinction(starpair_list, data_path, powerlaw=True, pdf=True)
-    plot_multi_extinction(starpair_list, data_path, exclude="BAND", pdf=True)
     plot_multi_extinction(starpair_list, data_path, HI_lines=True, pdf=True)
+    plot_multi_extinction(starpair_list, data_path, range=[0.7, 6], pdf=True)
+    plot_multi_extinction(starpair_list, data_path, exclude="BAND", pdf=True)
 
     # this option should issue a warning
     with warnings.catch_warnings(record=True) as w:
