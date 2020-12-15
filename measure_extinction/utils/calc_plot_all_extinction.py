@@ -84,7 +84,7 @@ if __name__ == "__main__":
             )
         if args.average:
             parser.error(
-                "The flag --average can only be used in combination with the flag --onefig. It only makes sense to overplot the average extinction curve on a plot with multiple curves."
+                "The flag --average can only be used in combination with the flag --onefig. It only makes sense to add the average extinction curve to a plot with multiple curves."
             )
         for redstar, compstar in zip(redstars, compstars):
             plot_extinction(
