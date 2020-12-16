@@ -19,7 +19,6 @@ def plot_average(
     starpair_list,
     path,
     ax=None,
-    alax=False,
     extmodels=False,
     powerlaw=False,
     HI_lines=False,
@@ -43,9 +42,6 @@ def plot_average(
 
     ax : AxesSubplot [default=None]
         Axes of plot on which to add the average extinction curve if pdf=False
-
-    alax : boolean [default=False]
-        Whether or not to plot A(lambda)/A(X) instead of E(lambda-X)
 
     extmodels: boolean [default=False]
         Whether or not to overplot Milky Way extinction curve models
@@ -80,13 +76,10 @@ def plot_average(
     Plots the average extinction curve
     """
     # calculate the average extinction curve
-    calc_ave_ext(starpair_list, path, alax)
+    calc_ave_ext(starpair_list, path)
 
     # read in the average extinction curve
-    if alax:
-        average = ExtData(path + "average_ext_alav.fits")
-    else:
-        average = ExtData(path + "average_ext_elx.fits")
+    average = ExtData(path + "average_ext.fits")
 
     # make a new plot if requested
     if pdf:
@@ -104,18 +97,15 @@ def plot_average(
 
         # create the plot
         fig, ax = plt.subplots(figsize=(13, 10))
-
-        # define the output name
-        outname = "average_ext_%s.pdf" % (average.type)
         average.plot(ax, exclude=exclude, color="k")
 
         # plot Milky Way extinction models if requested
         if extmodels:
-            plot_extmodels(average, alax)
+            plot_extmodels(average, alax=True)
 
         # fit and plot a NIR powerlaw model if requested
         if powerlaw:
-            plot_powerlaw(average, alax, res=True)
+            plot_powerlaw(average, alax=True, res=True)
 
         # plot HI-lines if requested
         if HI_lines:
@@ -124,7 +114,6 @@ def plot_average(
         # zoom in on a specific region if requested
         if range is not None:
             zoom(ax, range)
-            outname = outname.replace(".pdf", "_zoom.pdf")
 
         # finish configuring the plot
         ax.set_title("average", fontsize=50)
@@ -133,7 +122,7 @@ def plot_average(
         ax.set_ylabel(
             average._get_ext_ytitle(ytype=average.type), fontsize=1.5 * fontsize
         )
-        fig.savefig(path + outname, bbox_inches="tight")
+        fig.savefig(path + "average_ext.pdf", bbox_inches="tight")
 
     else:
         if spread:

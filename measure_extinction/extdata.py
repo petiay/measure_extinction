@@ -97,39 +97,52 @@ def _get_column_val(column):
         return float(column)
 
 
-def AverageExtData(extdatas, alav=None):
+def AverageExtData(extdatas):
     """
     Generate the average extinction curve from a list of ExtData objects
+
+    Parameters
+    ----------
+    extdatas : list of ExtData objects
+        list of extinction curves to average
+
+    Returns
+    -------
+    aveext: ExtData object
+        the average extintion curve
     """
     aveext = ExtData()
-    if alav is None:
-        aveext.type = extdatas[0].type
-        aveext.type_rel_band = extdatas[0].type_rel_band
-    else:
-        aveext.type = "alav"
-        aveext.type_rel_band = "V"
+    keys = []
+    for extdata in extdatas:
+        # check the data type of the extinction curves, and convert if needed
+        if extdata.type != "alav" or extdata.type != "alax":
+            extdata.trans_elv_alav()
 
-    gkeys = list(extdatas[0].waves.keys())
-    gkeys.remove("BAND")
-    for src in gkeys:
-        aveext.waves[src] = extdatas[0].waves[src]
+        # collect the keywords of the data in the extinction curves
+        for key in extdata.waves.keys():
+            if key not in keys:
+                keys.append(key)
+
+    aveext.type = extdatas[0].type
+    aveext.type_rel_band = extdatas[0].type_rel_band
+
+    # calculate the average for all spectral data
+    keys.remove("BAND")
+    for src in keys:
+        for extdata in extdatas:
+            if src in extdata.waves.keys():
+                aveext.waves[src] = extdata.waves[src]
+                break
         n_waves = len(aveext.waves[src])
         aveext.exts[src] = np.zeros(n_waves)
         aveext.uncs[src] = np.zeros(n_waves)
         aveext.npts[src] = np.zeros(n_waves)
-        for cext in extdatas:
-            if src in cext.waves.keys():
-                (gindxs,) = np.where(cext.npts[src] > 0)
-                y = cext.exts[src][gindxs]
-                yu = cext.uncs[src][gindxs]
-                if alav is not None:
-                    av = _get_column_val(cext.columns["AV"])
-                    y = (y / av) + 1.0
-                    yu /= av
-                aveext.exts[src][gindxs] += y
-                aveext.uncs[src][gindxs] += np.square(yu)
-                aveext.npts[src][gindxs] += cext.npts[src][gindxs]
-
+        for extdata in extdatas:
+            if src in extdata.waves.keys():
+                (gindxs,) = np.where(extdata.npts[src] > 0)
+                aveext.exts[src][gindxs] += extdata.exts[src][gindxs]
+                aveext.uncs[src][gindxs] += np.square(extdata.uncs[src][gindxs])
+                aveext.npts[src][gindxs] += 1
         (gindxs,) = np.where(aveext.npts[src] > 0)
         aveext.exts[src][gindxs] /= aveext.npts[src][gindxs]
         aveext.uncs[src][gindxs] /= aveext.npts[src][gindxs]
@@ -137,7 +150,7 @@ def AverageExtData(extdatas, alav=None):
             np.sqrt(aveext.uncs[src][gindxs]) / aveext.npts[src][gindxs]
         )
 
-    # do the photometric band data separately
+    # calculate the average for the photometric band data
     src = "BAND"
     # possible band waves and number of curves with those waves
     pwaves = {}
@@ -145,26 +158,20 @@ def AverageExtData(extdatas, alav=None):
     pwaves_uncs = {}
     pwaves_npts = {}
     pwaves_names = {}
-    for cext in extdatas:
-        for k, cwave in enumerate(cext.waves[src]):
-            y = cext.exts[src][k]
-            yu = cext.uncs[src][k]
-            if alav is not None:
-                av = _get_column_val(cext.columns["AV"])
-                y = (y / av) + 1.0
-                yu /= av
+    for extdata in extdatas:
+        for k, cwave in enumerate(extdata.waves[src]):
             cwavev = cwave.to(u.micron).value
-            cband = cext.names[src][k]
+            cband = extdata.names[src][k]
             if cband in pwaves.keys():
-                pwaves_ext[cband] += y
-                pwaves_uncs[cband] += np.square(yu)
+                pwaves_ext[cband] += extdata.exts[src][k]
+                pwaves_uncs[cband] += np.square(extdata.uncs[src][k])
                 pwaves_npts[cband] += 1.0
             else:
                 pwaves[cband] = cwavev
-                pwaves_ext[cband] = y
-                pwaves_uncs[cband] = np.square(yu)
+                pwaves_ext[cband] = extdata.exts[src][k]
+                pwaves_uncs[cband] = np.square(extdata.uncs[src][k])
                 pwaves_npts[cband] = 1.0
-                pwaves_names[cband] = cext.names[src][k]
+                pwaves_names[cband] = extdata.names[src][k]
 
     aveext.waves[src] = np.array(list(pwaves.values())) * u.micron
     aveext.exts[src] = np.array(list(pwaves_ext.values())) / np.array(
