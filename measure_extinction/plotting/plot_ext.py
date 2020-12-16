@@ -142,7 +142,7 @@ def plot_average(
 
         # fit and plot a NIR powerlaw model if requested
         if powerlaw:
-            plot_powerlaw(average, alax, yoffset)
+            plot_powerlaw(average, alax=True, yoffset=yoffset)
 
 
 def plot_extmodels(extdata, alax=False):
@@ -466,7 +466,6 @@ def plot_multi_extinction(
             starpair_list,
             path,
             ax=ax,
-            alax=alax,
             extmodels=extmodels,
             powerlaw=powerlaw,
             exclude=exclude,
