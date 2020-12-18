@@ -7,7 +7,6 @@ import astropy.units as u
 from astropy.io import fits
 from scipy.optimize import curve_fit
 
-from dust_extinction.parameter_averages import F04
 from astropy.modeling.powerlaws import PowerLaw1D
 from astropy.modeling.fitting import LevMarLSQFitter
 from dust_extinction.conversions import AxAvToExv
@@ -920,6 +919,7 @@ class ExtData:
         color=None,
         alpha=None,
         alax=False,
+        plot_rel_band=None,
         exclude=[],
         normval=1.0,
         yoffset=0.0,
@@ -950,6 +950,10 @@ class ExtData:
         alax : boolean [default=False]
             convert from E(lambda-X) using A(X), if necessary
             plot A(lambda)/A(X)
+
+        plot_rel_band : str [default=None]
+            plot relative to this band
+            if None then use the existing relative band (often V)
 
         exclude : list of strings [default=[]]
             List of data type(s) to exclude from the plot (e.g., IRS)
@@ -995,15 +999,24 @@ class ExtData:
             if "AV" not in self.columns.keys():
                 self.trans_elv_alav()
             av = _get_column_val(self.columns["AV"])
-            if self.type_rel_band != "V":  # not sure if this works (where is RV given?)
-                # use F04 model to convert AV to AX
-                rv = _get_column_val(self.columns["RV"])
-                emod = F04(rv)
-                (indx,) = np.where(self.type_rel_band == self.names["BAND"])
-                axav = emod(self.waves["BAND"][indx[0]])
+            if self.type_rel_band != "V":
+                if self.type_rel_band in self.names["BAND"]:
+                    (bindx,) = np.where(self.names["BAND"] == self.type_rel_band)
+                    ax = self.exts["BAND"][bindx[0]] + av
+                else:
+                    raise ValueError("type_rel_band not band extinctions")
             else:
-                axav = 1.0
-            ax = axav * av
+                ax = av
+
+        # get the conversion to another relative band
+        if plot_rel_band is not None:
+            if plot_rel_band in self.names["BAND"]:
+                (bindx,) = np.where(self.names["BAND"] == plot_rel_band)
+                eval = self.exts["BAND"][bindx[0]]
+            else:
+                raise ValueError("plot_rel_band not band extinctions")
+        else:
+            eval = 0.0
 
         for curtype in self.waves.keys():
             # do not plot the excluded data type(s)
@@ -1019,8 +1032,9 @@ class ExtData:
                 alax and self.type == "elx"
             ):  # in the case A(V) was already available and the curve has not been transformed yet
                 # convert E(lambda-X) to A(lambda)/A(X)
-                y = (y / ax) + 1.0
-                yu /= ax
+                # will also covert relative bands if plot_rel_bad different than self.type_rel_band
+                y = ((y - eval) / (ax + eval)) + 1.0
+                yu /= (ax + eval)
 
             y = y / normval + yoffset
             yu = yu / normval
