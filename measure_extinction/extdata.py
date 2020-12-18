@@ -6,6 +6,7 @@ import numpy as np
 import astropy.units as u
 from astropy.io import fits
 from scipy.optimize import curve_fit
+from scipy import stats
 
 from dust_extinction.parameter_averages import F04
 from astropy.modeling.powerlaws import PowerLaw1D
@@ -113,75 +114,61 @@ def AverageExtData(extdatas):
     """
     aveext = ExtData()
     keys = []
+    names = []
+    bwaves = []
     for extdata in extdatas:
         # check the data type of the extinction curves, and convert if needed
         if extdata.type != "alav" or extdata.type != "alax":
             extdata.trans_elv_alav()
 
-        # collect the keywords of the data in the extinction curves
-        for key in extdata.waves.keys():
-            if key not in keys:
-                keys.append(key)
-
+        # collect the keywords of the data in the extinction curves, and collect the names of the BAND data in the extinction curves, and determine the wavelengths of the data
+        for src in extdata.waves.keys():
+            if src not in keys:
+                keys.append(src)
+                aveext.waves[src] = extdata.waves[src]
+            if src == "BAND":
+                for i, name in enumerate(extdata.names["BAND"]):
+                    if name not in names:
+                        names.append(name)
+                        bwaves.append(extdata.waves["BAND"][i].value)
+    aveext.names["BAND"] = names
+    aveext.waves["BAND"] = bwaves
     aveext.type = extdatas[0].type
     aveext.type_rel_band = extdatas[0].type_rel_band
 
     # calculate the average for all spectral data
-    keys.remove("BAND")
+    bexts = {k: [] for k in aveext.names["BAND"]}
     for src in keys:
+        exts = []
         for extdata in extdatas:
             if src in extdata.waves.keys():
-                aveext.waves[src] = extdata.waves[src]
-                break
-        n_waves = len(aveext.waves[src])
-        aveext.exts[src] = np.zeros(n_waves)
-        aveext.uncs[src] = np.zeros(n_waves)
-        aveext.npts[src] = np.zeros(n_waves)
-        for extdata in extdatas:
-            if src in extdata.waves.keys():
-                (gindxs,) = np.where(extdata.npts[src] > 0)
-                aveext.exts[src][gindxs] += extdata.exts[src][gindxs]
-                aveext.uncs[src][gindxs] += np.square(extdata.uncs[src][gindxs])
-                aveext.npts[src][gindxs] += 1
-        (gindxs,) = np.where(aveext.npts[src] > 0)
-        aveext.exts[src][gindxs] /= aveext.npts[src][gindxs]
-        aveext.uncs[src][gindxs] /= aveext.npts[src][gindxs]
-        aveext.uncs[src][gindxs] = (
-            np.sqrt(aveext.uncs[src][gindxs]) / aveext.npts[src][gindxs]
-        )
+                if src == "BAND":
+                    for i, name in enumerate(extdata.names["BAND"]):
+                        bexts[name].append(extdata.exts["BAND"][i])
+                else:
+                    extdata.exts[src][np.where(extdata.npts[src] == 0)] = np.nan
+                    exts.append(extdata.exts[src])
 
-    # calculate the average for the photometric band data
-    src = "BAND"
-    # possible band waves and number of curves with those waves
-    pwaves = {}
-    pwaves_ext = {}
-    pwaves_uncs = {}
-    pwaves_npts = {}
-    pwaves_names = {}
-    for extdata in extdatas:
-        for k, cwave in enumerate(extdata.waves[src]):
-            cwavev = cwave.to(u.micron).value
-            cband = extdata.names[src][k]
-            if cband in pwaves.keys():
-                pwaves_ext[cband] += extdata.exts[src][k]
-                pwaves_uncs[cband] += np.square(extdata.uncs[src][k])
-                pwaves_npts[cband] += 1.0
-            else:
-                pwaves[cband] = cwavev
-                pwaves_ext[cband] = extdata.exts[src][k]
-                pwaves_uncs[cband] = np.square(extdata.uncs[src][k])
-                pwaves_npts[cband] = 1.0
-                pwaves_names[cband] = extdata.names[src][k]
+        if src == "BAND":
+            aveext.exts["BAND"] = []
+            aveext.npts["BAND"] = []
+            aveext.stds["BAND"] = []
+            aveext.uncs["BAND"] = []
+            for name in aveext.names["BAND"]:
+                aveext.exts["BAND"].append(np.nanmean(bexts[name]))
+                aveext.npts["BAND"].append(len(bexts[name]))
 
-    aveext.waves[src] = np.array(list(pwaves.values())) * u.micron
-    aveext.exts[src] = np.array(list(pwaves_ext.values())) / np.array(
-        list(pwaves_npts.values())
-    )
-    aveext.uncs[src] = np.sqrt(np.array(list(pwaves_uncs.values()))) / np.array(
-        list(pwaves_npts.values())
-    )
-    aveext.npts[src] = np.array(list(pwaves_npts.values()))
-    aveext.names[src] = np.array(list(pwaves_names))
+                # calculation of the standard deviation (this is the spread of the sample around the population mean)
+                aveext.stds["BAND"].append(np.nanstd(bexts[name], ddof=1))
+
+                # calculation of the standard error of the average (the standard error of the sample mean is an estimate of how far the sample mean is likely to be from the population mean)
+                aveext.uncs["BAND"].append(stats.sem(bexts[name]))
+
+        else:
+            aveext.exts[src] = np.nanmean(exts, axis=0)
+            aveext.npts[src] = np.sum(~np.isnan(exts), axis=0)
+            aveext.stds[src] = np.nanstd(exts, axis=0, ddof=1)
+            aveext.uncs[src] = stats.sem(exts, axis=0, nan_policy="omit")
 
     return aveext
 
@@ -211,9 +198,11 @@ class ExtData:
     waves : dict of key:wavelengths
         key is BAND, IUE, IRS, etc.
 
-    ext : dict of key:E(lambda-v) measurements
+    ext : dict of key:E(lambda-v) or A(lambda)/A(V) measurements
 
-    uncs : dict of key:E(lambda-v) measurement uncertainties
+    uncs : dict of key:E(lambda-v) or A(lambda)/A(V) measurement uncertainties
+
+    stds : dict of key:A(lambda)/A(V) standard deviations (this is the spread of the sample around the population mean)
 
     npts : dict of key:number of measurements at each wavelength
 
@@ -245,6 +234,7 @@ class ExtData:
         self.waves = {}
         self.exts = {}
         self.uncs = {}
+        self.stds = {}
         self.npts = {}
         self.names = {}
         self.model = {}
@@ -750,12 +740,17 @@ class ExtData:
             col2 = fits.Column(name="EXT", format="E", array=self.exts[curname])
             col3 = fits.Column(name="UNC", format="E", array=self.uncs[curname])
             col4 = fits.Column(name="NPTS", format="E", array=self.npts[curname])
+            cols = [col1, col2, col3, col4]
+            if curname in self.stds.keys():
+                cols.append(
+                    fits.Column(name="STDS", format="E", array=self.stds[curname])
+                )
             if curname == "BAND":
-                col5 = fits.Column(name="NAME", format="A20", array=self.names[curname])
-                cols = fits.ColDefs([col1, col2, col3, col4, col5])
-            else:
-                cols = fits.ColDefs([col1, col2, col3, col4])
-            tbhdu = fits.BinTableHDU.from_columns(cols)
+                cols.append(
+                    fits.Column(name="NAME", format="A20", array=self.names[curname])
+                )
+            columns = fits.ColDefs(cols)
+            tbhdu = fits.BinTableHDU.from_columns(columns)
             tbhdu.header.set(
                 "EXTNAME", "%sEXT" % curname, "%s based extinction" % curname
             )
@@ -788,6 +783,8 @@ class ExtData:
                     self.uncs[curname] = hdulist[curext].data["UNC"]
                 else:
                     self.uncs[curname] = hdulist[curext].data["EXT_UNC"]
+                if "STDS" in hdulist[curext].data.columns.names:
+                    self.stds[curname] = hdulist[curext].data["STDS"]
                 if "NPTS" in hdulist[curext].data.columns.names:
                     self.npts[curname] = hdulist[curext].data["NPTS"]
                 else:
