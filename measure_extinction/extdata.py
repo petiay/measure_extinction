@@ -161,14 +161,14 @@ def AverageExtData(extdatas):
                 # calculation of the standard deviation (this is the spread of the sample around the population mean)
                 aveext.stds["BAND"].append(np.nanstd(bexts[name], ddof=1))
 
-                # calculation of the standard error of the average (the standard error of the sample mean is an estimate of how far the sample mean is likely to be from the population mean)
-                aveext.uncs["BAND"].append(stats.sem(bexts[name]))
+            # calculation of the standard error of the average (the standard error of the sample mean is an estimate of how far the sample mean is likely to be from the population mean)
+            aveext.uncs["BAND"] = aveext.stds["BAND"] / np.sqrt(aveext.npts["BAND"])
 
         else:
             aveext.exts[src] = np.nanmean(exts, axis=0)
             aveext.npts[src] = np.sum(~np.isnan(exts), axis=0)
             aveext.stds[src] = np.nanstd(exts, axis=0, ddof=1)
-            aveext.uncs[src] = stats.sem(exts, axis=0, nan_policy="omit")
+            aveext.uncs[src] = aveext.stds[src] / np.sqrt(aveext.npts[src])
 
     return aveext
 
@@ -198,11 +198,11 @@ class ExtData:
     waves : dict of key:wavelengths
         key is BAND, IUE, IRS, etc.
 
-    ext : dict of key:E(lambda-v) or A(lambda)/A(V) measurements
+    ext : dict of key:E(lambda-X) or A(lambda)/A(X) measurements
 
-    uncs : dict of key:E(lambda-v) or A(lambda)/A(V) measurement uncertainties
+    uncs : dict of key:E(lambda-X) or A(lambda)/A(X) measurement uncertainties
 
-    stds : dict of key:A(lambda)/A(V) standard deviations (this is the spread of the sample around the population mean)
+    stds : dict of key:A(lambda)/A(X) standard deviations (only defined if the curve is an average of a set of curves, in which case the standard deviation is the spread of the sample around the population mean)
 
     npts : dict of key:number of measurements at each wavelength
 
