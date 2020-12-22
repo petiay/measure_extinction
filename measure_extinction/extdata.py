@@ -6,7 +6,6 @@ import numpy as np
 import astropy.units as u
 from astropy.io import fits
 from scipy.optimize import curve_fit
-from scipy import stats
 
 from dust_extinction.parameter_averages import F04
 from astropy.modeling.powerlaws import PowerLaw1D
