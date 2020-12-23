@@ -6,7 +6,7 @@ import pkg_resources
 import argparse
 
 from measure_extinction.stardata import StarData
-from measure_extinction.extdata import ExtData
+from measure_extinction.extdata import ExtData, AverageExtData
 
 
 def calc_extinction(redstarname, compstarname, path):
@@ -19,6 +19,15 @@ def calc_extinction(redstarname, compstarname, path):
     extdata.calc_elx(redstarobs, compstarobs)
 
     extdata.save(path + "%s_%s_ext.fits" % (redstarname.lower(), compstarname.lower()))
+
+
+def calc_ave_ext(starpair_list, path):
+    extdatas = []
+    for starpair in starpair_list:
+        extdata = ExtData("%s%s_ext.fits" % (path, starpair.lower()))
+        extdatas.append(extdata)
+    average = AverageExtData(extdatas)
+    average.save(path + "average_ext.fits")
 
 
 if __name__ == "__main__":

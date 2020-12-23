@@ -97,81 +97,77 @@ def _get_column_val(column):
         return float(column)
 
 
-def AverageExtData(extdatas, alav=None):
+def AverageExtData(extdatas):
     """
     Generate the average extinction curve from a list of ExtData objects
+
+    Parameters
+    ----------
+    extdatas : list of ExtData objects
+        list of extinction curves to average
+
+    Returns
+    -------
+    aveext: ExtData object
+        the average extintion curve
     """
     aveext = ExtData()
-    if alav is None:
-        aveext.type = extdatas[0].type
-    else:
-        aveext.type = "alav"
+    keys = []
+    names = []
+    bwaves = []
+    for extdata in extdatas:
+        # check the data type of the extinction curves, and convert if needed
+        if extdata.type != "alav" or extdata.type != "alax":
+            extdata.trans_elv_alav()
 
-    gkeys = list(extdatas[0].waves.keys())
-    gkeys.remove("BAND")
-    for src in gkeys:
-        aveext.waves[src] = extdatas[0].waves[src]
-        n_waves = len(aveext.waves[src])
-        aveext.exts[src] = np.zeros(n_waves)
-        aveext.uncs[src] = np.zeros(n_waves)
-        aveext.npts[src] = np.zeros(n_waves)
-        for cext in extdatas:
-            if src in cext.waves.keys():
-                (gindxs,) = np.where(cext.npts[src] > 0)
-                y = cext.exts[src][gindxs]
-                yu = cext.uncs[src][gindxs]
-                if alav is not None:
-                    av = _get_column_val(cext.columns["AV"])
-                    y = (y / av) + 1.0
-                    yu /= av
-                aveext.exts[src][gindxs] += y
-                aveext.uncs[src][gindxs] += np.square(yu)
-                aveext.npts[src][gindxs] += cext.npts[src][gindxs]
-        (gindxs,) = np.where(aveext.npts[src] > 0)
-        aveext.exts[src][gindxs] /= aveext.npts[src][gindxs]
-        aveext.uncs[src][gindxs] /= aveext.npts[src][gindxs]
-        aveext.uncs[src][gindxs] = (
-            np.sqrt(aveext.uncs[src][gindxs]) / aveext.npts[src][gindxs]
-        )
+        # collect the keywords of the data in the extinction curves, and collect the names of the BAND data in the extinction curves, and determine the wavelengths of the data
+        for src in extdata.waves.keys():
+            if src not in keys:
+                keys.append(src)
+                aveext.waves[src] = extdata.waves[src]
+            if src == "BAND":
+                for i, name in enumerate(extdata.names["BAND"]):
+                    if name not in names:
+                        names.append(name)
+                        bwaves.append(extdata.waves["BAND"][i].value)
+    aveext.names["BAND"] = names
+    aveext.waves["BAND"] = bwaves
+    aveext.type = extdatas[0].type
+    aveext.type_rel_band = extdatas[0].type_rel_band
 
-    # do the photometric band data separately
-    src = "BAND"
-    # possible band waves and number of curves with those waves
-    pwaves = {}
-    pwaves_ext = {}
-    pwaves_uncs = {}
-    pwaves_npts = {}
-    pwaves_names = {}
-    for cext in extdatas:
-        for k, cwave in enumerate(cext.waves[src]):
-            y = cext.exts[src][k]
-            yu = cext.uncs[src][k]
-            if alav is not None:
-                av = _get_column_val(cext.columns["AV"])
-                y = (y / av) + 1.0
-                yu /= av
-            cwavev = cwave.to(u.micron).value
-            cband = cext.names[src][k]
-            if cband in pwaves.keys():
-                pwaves_ext[cband] += y
-                pwaves_uncs[cband] += np.square(yu)
-                pwaves_npts[cband] += 1.0
-            else:
-                pwaves[cband] = cwavev
-                pwaves_ext[cband] = y
-                pwaves_uncs[cband] = np.square(yu)
-                pwaves_npts[cband] = 1.0
-                pwaves_names[cband] = cext.names[src][k]
+    # calculate the average for all spectral data
+    bexts = {k: [] for k in aveext.names["BAND"]}
+    for src in keys:
+        exts = []
+        for extdata in extdatas:
+            if src in extdata.waves.keys():
+                if src == "BAND":
+                    for i, name in enumerate(extdata.names["BAND"]):
+                        bexts[name].append(extdata.exts["BAND"][i])
+                else:
+                    extdata.exts[src][np.where(extdata.npts[src] == 0)] = np.nan
+                    exts.append(extdata.exts[src])
 
-    aveext.waves[src] = np.array(list(pwaves.values())) * u.micron
-    aveext.exts[src] = np.array(list(pwaves_ext.values())) / np.array(
-        list(pwaves_npts.values())
-    )
-    aveext.uncs[src] = np.sqrt(np.array(list(pwaves_uncs.values()))) / np.array(
-        list(pwaves_npts.values())
-    )
-    aveext.npts[src] = np.array(list(pwaves_npts.values()))
-    aveext.names[src] = np.array(list(pwaves_names))
+        if src == "BAND":
+            aveext.exts["BAND"] = []
+            aveext.npts["BAND"] = []
+            aveext.stds["BAND"] = []
+            aveext.uncs["BAND"] = []
+            for name in aveext.names["BAND"]:
+                aveext.exts["BAND"].append(np.nanmean(bexts[name]))
+                aveext.npts["BAND"].append(len(bexts[name]))
+
+                # calculation of the standard deviation (this is the spread of the sample around the population mean)
+                aveext.stds["BAND"].append(np.nanstd(bexts[name], ddof=1))
+
+            # calculation of the standard error of the average (the standard error of the sample mean is an estimate of how far the sample mean is likely to be from the population mean)
+            aveext.uncs["BAND"] = aveext.stds["BAND"] / np.sqrt(aveext.npts["BAND"])
+
+        else:
+            aveext.exts[src] = np.nanmean(exts, axis=0)
+            aveext.npts[src] = np.sum(~np.isnan(exts), axis=0)
+            aveext.stds[src] = np.nanstd(exts, axis=0, ddof=1)
+            aveext.uncs[src] = aveext.stds[src] / np.sqrt(aveext.npts[src])
 
     return aveext
 
@@ -201,9 +197,11 @@ class ExtData:
     waves : dict of key:wavelengths
         key is BAND, IUE, IRS, etc.
 
-    ext : dict of key:E(lambda-v) measurements
+    ext : dict of key:E(lambda-X) or A(lambda)/A(X) measurements
 
-    uncs : dict of key:E(lambda-v) measurement uncertainties
+    uncs : dict of key:E(lambda-X) or A(lambda)/A(X) measurement uncertainties
+
+    stds : dict of key:A(lambda)/A(X) standard deviations (only defined if the curve is an average of a set of curves, in which case the standard deviation is the spread of the sample around the population mean)
 
     npts : dict of key:number of measurements at each wavelength
 
@@ -235,6 +233,7 @@ class ExtData:
         self.waves = {}
         self.exts = {}
         self.uncs = {}
+        self.stds = {}
         self.npts = {}
         self.names = {}
         self.model = {}
@@ -740,12 +739,17 @@ class ExtData:
             col2 = fits.Column(name="EXT", format="E", array=self.exts[curname])
             col3 = fits.Column(name="UNC", format="E", array=self.uncs[curname])
             col4 = fits.Column(name="NPTS", format="E", array=self.npts[curname])
+            cols = [col1, col2, col3, col4]
+            if curname in self.stds.keys():
+                cols.append(
+                    fits.Column(name="STDS", format="E", array=self.stds[curname])
+                )
             if curname == "BAND":
-                col5 = fits.Column(name="NAME", format="A20", array=self.names[curname])
-                cols = fits.ColDefs([col1, col2, col3, col4, col5])
-            else:
-                cols = fits.ColDefs([col1, col2, col3, col4])
-            tbhdu = fits.BinTableHDU.from_columns(cols)
+                cols.append(
+                    fits.Column(name="NAME", format="A20", array=self.names[curname])
+                )
+            columns = fits.ColDefs(cols)
+            tbhdu = fits.BinTableHDU.from_columns(columns)
             tbhdu.header.set(
                 "EXTNAME", "%sEXT" % curname, "%s based extinction" % curname
             )
@@ -760,7 +764,7 @@ class ExtData:
         Parameters
         ----------
         filename : string
-            Full filename to a save extinction curve
+            Full filename of the saved extinction curve
         """
         # read in the FITS file
         hdulist = fits.open(ext_filename)
@@ -778,6 +782,8 @@ class ExtData:
                     self.uncs[curname] = hdulist[curext].data["UNC"]
                 else:
                     self.uncs[curname] = hdulist[curext].data["EXT_UNC"]
+                if "STDS" in hdulist[curext].data.columns.names:
+                    self.stds[curname] = hdulist[curext].data["STDS"]
                 if "NPTS" in hdulist[curext].data.columns.names:
                     self.npts[curname] = hdulist[curext].data["NPTS"]
                 else:
@@ -1109,7 +1115,7 @@ class ExtData:
         # save the fitting results
         self.model["waves"] = waves
         self.model["exts"] = func(waves, *fit_result[0])
-        self.model["residuals"] = (exts - self.model["exts"]) / self.model["exts"]
+        self.model["residuals"] = exts - self.model["exts"]
         self.model["params"] = tuple(fit_result[0])
         if self.type != "alav":
             self.columns["AV"] = fit_result[0][2]
@@ -1167,7 +1173,7 @@ class ExtData:
         # save the fitting results
         self.model["waves"] = waves
         self.model["exts"] = fit_result(waves)
-        self.model["residuals"] = (exts - self.model["exts"]) / self.model["exts"]
+        self.model["residuals"] = exts - self.model["exts"]
         if self.type == "alav":
             self.model["params"] = (fit_result.amplitude.value, fit_result.alpha.value)
         else:  # in this case, fitted amplitude has to be multiplied by A(V) to get the "combined" amplitude
