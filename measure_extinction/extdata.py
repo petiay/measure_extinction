@@ -9,6 +9,7 @@ from scipy.optimize import curve_fit
 
 from dust_extinction.parameter_averages import F04
 from astropy.modeling.powerlaws import PowerLaw1D
+from astropy.modeling import Parameter
 from astropy.modeling.fitting import LevMarLSQFitter
 from dust_extinction.conversions import AxAvToExv
 
@@ -755,6 +756,29 @@ class ExtData:
             )
             hdulist.append(tbhdu)
 
+        # write the fitted model if available
+        if self.model:
+            col1 = fits.Column(name="MOD_WAVE", format="E", array=self.model["waves"])
+            col2 = fits.Column(name="MOD_EXT", format="E", array=self.model["exts"])
+            col3 = fits.Column(
+                name="RESIDUAL", format="E", array=self.model["residuals"]
+            )
+            columns = fits.ColDefs([col1, col2, col3])
+            tbhdu = fits.BinTableHDU.from_columns(columns)
+            for param in self.model["params"]:
+                tbhdu.header.set(
+                    param.name[:8],
+                    param.value,
+                    param.name
+                    + " | bounds="
+                    + str(param.bounds)
+                    + " | fixed="
+                    + str(param.fixed),
+                )
+            tbhdu.header.set("MOD_TYPE", self.model["type"], "Type of fitted model")
+            tbhdu.header.set("EXTNAME", "MODEXT", "Fitted model extinction")
+            hdulist.append(tbhdu)
+
         hdulist.writeto(ext_filename, overwrite=True)
 
     def read(self, ext_filename):
@@ -814,6 +838,27 @@ class ExtData:
                     tunc = 0.0
 
                 self.columns[curkey] = (float(pheader.get(curkey)), tunc)
+
+        # get the fitted model if available
+        if "MODEXT" in extnames:
+            self.model["waves"] = hdulist["MODEXT"].data["MOD_WAVE"]
+            self.model["exts"] = hdulist["MODEXT"].data["MOD_EXT"]
+            self.model["residuals"] = hdulist["MODEXT"].data["RESIDUAL"]
+            self.model["params"] = []
+            paramkeys = ["AMPLITUD", "X_0", "ALPHA", "AV"]
+            hdr = hdulist["MODEXT"].header
+            self.model["type"] = hdr["MOD_TYPE"]
+            for paramkey in paramkeys:
+                if paramkey in list(hdr.keys()):
+                    comment = hdr.comments[paramkey].split(" |")
+                    self.model["params"].append(
+                        Parameter(
+                            name=comment[0],
+                            default=hdr[paramkey],
+                            bounds=comment[1].split("=")[1],
+                            fixed=comment[2].split("=")[1],
+                        )
+                    )
 
         # get the columns p50 +unc -unc fit parameters if they exist
         if pheader.get("AV_p50"):
