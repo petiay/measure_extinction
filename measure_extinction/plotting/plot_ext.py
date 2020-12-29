@@ -20,7 +20,7 @@ def plot_average(
     path,
     ax=None,
     extmodels=False,
-    powerlaw=False,
+    fitmodel=False,
     HI_lines=False,
     range=None,
     exclude=[],
@@ -46,8 +46,8 @@ def plot_average(
     extmodels: boolean [default=False]
         Whether or not to overplot Milky Way extinction curve models
 
-    powerlaw: boolean [default=False]
-        Whether or not to fit and overplot a NIR powerlaw model
+    fitmodel: boolean [default=False]
+        Whether or not to overplot a fitted model
 
     HI_lines : boolean [default=False]
         Whether or not to indicate the HI-lines in the plot
@@ -103,9 +103,9 @@ def plot_average(
         if extmodels:
             plot_extmodels(average, alax=True)
 
-        # fit and plot a NIR powerlaw model if requested
-        if powerlaw:
-            plot_powerlaw(average, alax=True, res=True)
+        # overplot a fitted model if requested
+        if fitmodel:
+            plot_fitmodel(average, res=True)
 
         # plot HI-lines if requested
         if HI_lines:
@@ -140,9 +140,9 @@ def plot_average(
             annotate_yoffset=0.05,
         )
 
-        # fit and plot a NIR powerlaw model if requested
-        if powerlaw:
-            plot_powerlaw(average, alax=True, yoffset=yoffset)
+        # overplot a fitted model if requested
+        if fitmodel:
+            plot_fitmodel(average, yoffset=yoffset)
 
 
 def plot_extmodels(extdata, alax=False):
@@ -191,66 +191,62 @@ def plot_extmodels(extdata, alax=False):
         plt.legend(bbox_to_anchor=(0.99, 0.9))
 
 
-def plot_powerlaw(extdata, alax=False, yoffset=0, res=False):
+def plot_fitmodel(extdata, yoffset=0, res=False):
     """
-    Fit and plot a NIR powerlaw model
-    - to the SpeX spectra if these are available
-    - to the band data between 1 and 40 micron otherwise
+    Overplot a fitted model if available
 
     Parameters
     ----------
     extdata : ExtData
         Extinction data under consideration
 
-    alax : boolean [default=False]
-        Whether or not to plot A(lambda)/A(X) instead of E(lambda-X)
-
     yoffset : float [default=0]
-        Offset of the corresponding extinction curve (in order to match the powerlaw model to the curve)
+        Offset of the corresponding extinction curve (in order to match the model to the curve)
 
     res : boolean [default=False]
         Whether or not to plot the residuals of the fitting (only useful when plotting a single extinction curve)
 
     Returns
     -------
-    Overplots a fitted NIR powerlaw model
+    Overplots a fitted model
     """
-    if "SpeX_SXD" in extdata.waves.keys() or "SpeX_LXD" in extdata.waves.keys():
-        extdata.fit_spex_ext()
-    else:  # use the band data
-        extdata.fit_band_ext()
-
-    # plot the fitted powerlaw model
-    if alax:
-        labeltxt = r"$%5.2f \lambda ^{-%5.2f}$"
-    else:
-        labeltxt = r"$%5.2f \lambda ^{-%5.2f} - %5.2f$"
-    plt.plot(
-        extdata.model["waves"],
-        extdata.model["exts"] + yoffset,
-        "--",
-        lw=2,
-        alpha=0.5,
-        label=labeltxt % (extdata.model["params"]),
-    )
-    plt.legend(loc="lower left")
-    if res:
-        # create an array with NaNs for all wavelengths
-        full_res = np.full_like(
-            np.concatenate((extdata.npts["SpeX_SXD"], extdata.npts["SpeX_LXD"])), np.nan
-        )
-        gindxs = np.concatenate(
-            (extdata.npts["SpeX_SXD"] > 0, extdata.npts["SpeX_LXD"] > 0)
-        )
-        full_res[gindxs] = extdata.model["residuals"]
-        plt.axes([0.125, 0, 0.775, 0.11], sharex=plt.gca())
+    # plot a fitted model if available
+    if extdata.model:
+        if extdata.model["type"] == "pow_elx":
+            labeltxt = r"$%5.2f \lambda ^{-%5.2f} - %5.2f$" % (
+                extdata.model["params"][0].value * extdata.model["params"][3].value,
+                extdata.model["params"][2].value,
+                extdata.model["params"][3].value,
+            )
+        elif extdata.model["type"] == "pow_alav":
+            labeltxt = r"$%5.2f \lambda ^{-%5.2f}$" % (
+                extdata.model["params"][0].value,
+                extdata.model["params"][2].value,
+            )
+        else:
+            labeltxt = "fitted model"
         plt.plot(
-            np.concatenate((extdata.waves["SpeX_SXD"], extdata.waves["SpeX_LXD"])),
-            full_res,
+            extdata.model["waves"],
+            extdata.model["exts"] + yoffset,
+            "-",
+            lw=1,
+            alpha=0.5,
+            label=labeltxt,
         )
-        plt.axhline(ls="--", c="k", alpha=0.5)
-        plt.ylabel("residual")
-        plt.ylim([-0.03, 0.03])
+        plt.legend(loc="lower left")
+
+        # plot the residuals if requested
+        if res:
+            plt.axes([0.125, 0, 0.775, 0.11], sharex=plt.gca())
+            plt.scatter(extdata.model["waves"], extdata.model["residuals"], s=0.5)
+            plt.axhline(ls="--", c="k", alpha=0.5)
+            plt.ylabel("residual")
+
+    else:
+        warnings.warn(
+            "There is no fitted model available to plot.",
+            stacklevel=2,
+        )
 
 
 def plot_HI(path, ax):
@@ -340,7 +336,7 @@ def plot_multi_extinction(
     alax=False,
     average=False,
     extmodels=False,
-    powerlaw=False,
+    fitmodel=False,
     HI_lines=False,
     range=None,
     spread=False,
@@ -367,8 +363,8 @@ def plot_multi_extinction(
     extmodels: boolean [default=False]
         Whether or not to overplot Milky Way extinction curve models
 
-    powerlaw: boolean [default=False]
-        Whether or not to fit and overplot a NIR powerlaw model
+    fitmodel: boolean [default=False]
+        Whether or not to overplot a fitted model
 
     HI_lines : boolean [default=False]
         Whether or not to indicate the HI-lines in the plot
@@ -446,9 +442,9 @@ def plot_multi_extinction(
             annotate_color=colors(i % 10),
         )
 
-        # fit and plot a NIR powerlaw model if requested
-        if powerlaw:
-            plot_powerlaw(extdata, alax, yoffset)
+        # overplot a fitted model if requested
+        if fitmodel:
+            plot_fitmodel(extdata, yoffset=yoffset)
 
     # overplot Milky Way extinction curve models if requested
     if extmodels:
@@ -467,7 +463,7 @@ def plot_multi_extinction(
             path,
             ax=ax,
             extmodels=extmodels,
-            powerlaw=powerlaw,
+            fitmodel=fitmodel,
             exclude=exclude,
             spread=spread,
             annotate_key=ann_key,
@@ -503,7 +499,7 @@ def plot_extinction(
     path,
     alax=False,
     extmodels=False,
-    powerlaw=False,
+    fitmodel=False,
     HI_lines=False,
     range=None,
     exclude=[],
@@ -526,8 +522,8 @@ def plot_extinction(
     extmodels: boolean [default=False]
         Whether or not to overplot Milky Way extinction curve models
 
-    powerlaw: boolean [default=False]
-        Whether or not to fit and overplot a NIR powerlaw model
+    fitmodel: boolean [default=False]
+        Whether or not to overplot a fitted model
 
     HI_lines : boolean [default=False]
         Whether or not to indicate the HI-lines in the plot
@@ -571,9 +567,9 @@ def plot_extinction(
     if extmodels:
         plot_extmodels(extdata, alax)
 
-    # fit and plot a NIR powerlaw model if requested
-    if powerlaw:
-        plot_powerlaw(extdata, alax, res=True)
+    # overplot a fitted model if requested
+    if fitmodel:
+        plot_fitmodel(extdata, res=True)
 
     # plot HI-lines if requested
     if HI_lines:
@@ -626,9 +622,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--extmodels", help="plot extinction curve models", action="store_true"
     )
-    parser.add_argument(
-        "--powerlaw", help="fit and plot NIR powerlaw model", action="store_true"
-    )
+    parser.add_argument("--fitmodel", help="plot a fitted model", action="store_true")
     parser.add_argument("--HI_lines", help="indicate the HI-lines", action="store_true")
     parser.add_argument(
         "--onefig",
@@ -663,7 +657,7 @@ if __name__ == "__main__":
             args.alax,
             args.average,
             args.extmodels,
-            args.powerlaw,
+            args.fitmodel,
             args.HI_lines,
             args.range,
             args.spread,
@@ -685,7 +679,7 @@ if __name__ == "__main__":
                 args.path,
                 args.alax,
                 args.extmodels,
-                args.powerlaw,
+                args.fitmodel,
                 args.HI_lines,
                 args.range,
                 args.exclude,
