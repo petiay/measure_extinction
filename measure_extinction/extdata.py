@@ -845,7 +845,16 @@ class ExtData:
             self.model["exts"] = hdulist["MODEXT"].data["MOD_EXT"]
             self.model["residuals"] = hdulist["MODEXT"].data["RESIDUAL"]
             self.model["params"] = []
-            paramkeys = ["AMPLITUD", "X_0", "ALPHA", "AV"]
+            paramkeys = [
+                "AMPLITUD",
+                "X_0",
+                "ALPHA",
+                "SCALE",
+                "X_O",
+                "GAMMA_O",
+                "ASYM",
+                "AV",
+            ]
             hdr = hdulist["MODEXT"].header
             self.model["type"] = hdr["MOD_TYPE"]
             for paramkey in paramkeys:
