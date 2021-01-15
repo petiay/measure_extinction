@@ -213,6 +213,7 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
     # plot a fitted model if available
     if extdata.model:
         if extdata.model["type"] == "pow_elx":
+            # in this case, fitted amplitude must be multiplied by A(V) to get the "combined" model amplitude
             labeltxt = r"$%5.2f \lambda ^{-%5.2f} - %5.2f$" % (
                 extdata.model["params"][0].value * extdata.model["params"][3].value,
                 extdata.model["params"][2].value,
@@ -229,10 +230,25 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
             extdata.model["waves"],
             extdata.model["exts"] + yoffset,
             "-",
-            lw=1,
-            alpha=0.5,
+            lw=2,
+            color="firebrick",
+            alpha=0.8,
             label=labeltxt,
         )
+
+        # plot the underlying powerlaw if a Drude was fitted
+        if "Drude" in extdata.model["type"]:
+            plt.plot(
+                extdata.model["waves"],
+                extdata.model["params"][0]
+                * extdata.model["params"][7]
+                * extdata.model["waves"] ** (-extdata.model["params"][2])
+                - extdata.model["params"][7],
+                ls="--",
+                color="olive",
+                alpha=0.6,
+                label="powerlaw",
+            )
         plt.legend(loc="lower left")
 
         # plot the residuals if requested
@@ -240,6 +256,8 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
             plt.axes([0.125, 0, 0.775, 0.11], sharex=plt.gca())
             plt.scatter(extdata.model["waves"], extdata.model["residuals"], s=0.5)
             plt.axhline(ls="--", c="k", alpha=0.5)
+            plt.axhline(y=0.05, ls=":", c="k", alpha=0.5)
+            plt.axhline(y=-0.05, ls=":", c="k", alpha=0.5)
             plt.ylabel("residual")
 
     else:
@@ -503,6 +521,7 @@ def plot_extinction(
     HI_lines=False,
     range=None,
     exclude=[],
+    log=False,
     pdf=False,
 ):
     """
@@ -533,6 +552,9 @@ def plot_extinction(
 
     exclude : list of strings [default=[]]
         List of data type(s) to exclude from the plot (e.g., IRS)
+
+    log : boolean [default=False]
+        Whether or not to plot the wavelengths on a log scale
 
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
@@ -590,7 +612,8 @@ def plot_extinction(
         horizontalalignment="right",
         transform=ax.transAxes,
     )
-    ax.set_xscale("log")
+    if log:
+        ax.set_xscale("log")
     plt.xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
     ax.set_ylabel(extdata._get_ext_ytitle(ytype=extdata.type), fontsize=1.5 * fontsize)
 
