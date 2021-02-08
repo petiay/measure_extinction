@@ -23,8 +23,11 @@ def test_plot_extinction():
     # test several other plotting options
     # note: verifying the existence of the pdf file with the plot is not sufficient to ensure that the different plotting options work as expected. However, these tests at least make sure that the corresponding functions run without errors.
 
-    # with a NIR powerlaw model overplotted
-    plot_extinction(starpair, data_path, powerlaw=True, pdf=True)
+    # with a fitted model overplotted, this should issue a warning
+    with warnings.catch_warnings(record=True) as w:
+        plot_extinction(starpair, data_path, fitmodel=True, pdf=True)
+        assert issubclass(w[-1].category, UserWarning)
+        assert "There is no fitted model available to plot." == str(w[-1].message)
 
     # with Milky Way extinction curve models overplotted
     plot_extinction(starpair, data_path, extmodels=True, pdf=True)
@@ -42,10 +45,14 @@ def test_plot_extinction():
     plot_multi_extinction(
         starpair_list, data_path, alax=True, average=True, pdf=True
     )  # This needs to be checked for alax=False as well TODO
-    plot_multi_extinction(starpair_list, data_path, powerlaw=True, pdf=True)
     plot_multi_extinction(starpair_list, data_path, HI_lines=True, pdf=True)
     plot_multi_extinction(starpair_list, data_path, range=[0.7, 6], pdf=True)
     plot_multi_extinction(starpair_list, data_path, exclude="BAND", pdf=True)
+
+    with warnings.catch_warnings(record=True) as w:
+        plot_multi_extinction(starpair_list, data_path, fitmodel=True, pdf=True)
+    assert issubclass(w[-1].category, UserWarning)
+    assert "There is no fitted model available to plot." == str(w[-1].message)
 
     # this option should issue a warning
     with warnings.catch_warnings(record=True) as w:
