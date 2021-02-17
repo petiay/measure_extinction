@@ -801,6 +801,14 @@ class SpecData:
             if len(indxs) > 0:
                 self.npts[indxs] = 0
 
+        if "IRS_maxsnr" in corfac.keys():
+            # probably a more clever way to do this, but this at least works
+            gindxs, = np.where(self.npts > 0)
+            above_maxsnr = (self.fluxes[gindxs] / self.uncs[gindxs]) > corfac["IRS_maxsnr"]
+            new_uncs = self.uncs[gindxs]
+            new_uncs[above_maxsnr] = self.fluxes[gindxs][above_maxsnr] / corfac["IRS_maxsnr"]
+            self.uncs[gindxs] = new_uncs
+
         # add units
         self.fluxes = self.fluxes.value * (u.Jy)
         self.uncs = self.uncs.value * (u.Jy)
@@ -905,6 +913,8 @@ class StarData:
                     self.corfac["IRS_slope"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs_maxwave":
                     self.corfac["IRS_maxwave"] = float(cpair[1])
+                elif cpair[0] == "corfac_irs_maxsnr":
+                    self.corfac["IRS_maxsnr"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs":
                     self.corfac["IRS"] = float(cpair[1])
 
