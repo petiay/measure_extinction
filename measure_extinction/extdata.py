@@ -512,11 +512,12 @@ class ExtData:
                 "attempt to normalize a non-E(lambda-V) curve with A(V)", UserWarning
             )
         else:
-            if av is None:
+            # obtain or calculate A(V)
+            if "AV" not in self.columns.keys():
                 self.calc_AV(akav=akav)
+            av = _get_column_val(self.columns["AV"])
 
             for curname in self.exts.keys():
-                av = _get_column_val(self.columns["AV"])
                 self.exts[curname] = (self.exts[curname] / av) + 1
                 self.uncs[curname] /= av
             # update the extinction curve type
@@ -586,7 +587,7 @@ class ExtData:
 
         # sort the data
         # at the same time, remove points with no data
-        (gindxs,) = np.where(npts > 0)
+        (gindxs,) = np.where((npts > 0) & np.isfinite(unc))
         sindxs = np.argsort(x[gindxs])
         gindxs = gindxs[sindxs]
         wave = wave[gindxs]
