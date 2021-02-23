@@ -11,30 +11,43 @@ from astropy.table import Table
 from measure_extinction.merge_obsspec import merge_spex_obsspec
 
 
-def merge_spex(starname, inpath, outpath, outname):
+def spex_mask(starname, path):
+    mask = []
+    file = open(
+        os.path.dirname(os.path.normpath(path)) + "/" + starname.lower() + ".dat", "r"
+    )
+    for line in list(file):
+        if line.startswith("spex_mask"):
+            mask = eval(line.split("= ")[1].strip())
+    return mask
+    file.close()
+
+
+def merge_spex(starname, inpath, outpath):
     # check which data are available
     filename_S = "%s/%s_sxd.txt" % (inpath, starname.lower())
     filename_L = "%s/%s_lxd.txt" % (inpath, starname.lower())
     if not os.path.isfile(filename_S):
         filenames = [filename_L]
         if not os.path.isfile(filename_L):
-            print("No spectra could be found for this star!")
+            print("No SpeX spectra could be found for this star!")
     elif not os.path.isfile(filename_L):
         filenames = [filename_S]
     else:
         filenames = [filename_S, filename_L]
 
+    # obtain wavelength regions that need to be masked
+    mask = spex_mask(starname, outpath)
+
     # bin and merge the spectra
     for filename in filenames:
         table = Table.read(
-            filename, format="ascii", names=["WAVELENGTH", "FLUX", "ERROR", "FLAG"],
+            filename,
+            format="ascii",
+            names=["WAVELENGTH", "FLUX", "ERROR", "FLAG"],
         )
-        spex_merged = merge_spex_obsspec(table)
-        if outname:
-            out_name = outname
-        else:
-            out_name = os.path.basename(filename).split(".")[0]
-        spex_file = "%s_spex.fits" % (out_name)
+        spex_merged = merge_spex_obsspec(table, mask)
+        spex_file = os.path.basename(filename).split(".")[0] + "_spex.fits"
         spex_merged.write("%s/%s" % (outpath, spex_file), overwrite=True)
 
 
@@ -53,8 +66,7 @@ if __name__ == "__main__":
         help="path where merged SpeX spectra will be stored",
         default=pkg_resources.resource_filename("measure_extinction", "data/Spectra"),
     )
-    parser.add_argument("--outname", help="Output filebase")
     args = parser.parse_args()
 
     # merge the spectra
-    merge_spex(args.starname, args.inpath, args.outpath, args.outname)
+    merge_spex(args.starname, args.inpath, args.outpath)
