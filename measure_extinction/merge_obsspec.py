@@ -238,7 +238,7 @@ def merge_irs_obsspec(obstables, output_resolution=150):
     return otable
 
 
-def merge_spex_obsspec(obstable, output_resolution=2000):
+def merge_spex_obsspec(obstable, mask=[], output_resolution=2000):
     """
     Merge one or more IRTF SpeX 1D spectra into a single spectrum
     on a uniform wavelength scale
@@ -249,8 +249,11 @@ def merge_spex_obsspec(obstable, output_resolution=2000):
         table containing the observed SpeX spectrum
         usually the result of reading tables
 
-    output_resolution : float
-        output resolution of spectra
+    mask : list of tuples [default=[]]
+        list of tuples with wavelength regions (in micron) that need to be masked, e.g. [(2.55,2.61),(3.01,3.10)]
+
+    output_resolution : float [default=2000]
+        output resolution of spectrum
         input spectrum assumed to be at the appropriate resolution
 
     Returns
@@ -267,12 +270,15 @@ def merge_spex_obsspec(obstable, output_resolution=2000):
     # take out data points with NaN fluxes
     npts[np.isnan(fluxes)] = 0
     # take out data points with low SNR
-    npts[np.less(fluxes / uncs, 5, where=~np.isnan(fluxes / uncs))] = 0
+    npts[np.less(fluxes / uncs, 10, where=~np.isnan(fluxes / uncs))] = 0
     # take out wavelength regions affected by the atmosphere
-    npts[np.logical_and(1.35e4 < waves, waves < 1.41e4)] = 0
-    npts[np.logical_and(1.81e4 < waves, waves < 1.94e4)] = 0
-    npts[np.logical_and(2.52e4 < waves, waves < 2.86e4)] = 0
-    npts[np.logical_and(4.18e4 < waves, waves < 4.56e4)] = 0
+    npts[np.logical_and(1.354e4 < waves, waves < 1.411e4)] = 0
+    npts[np.logical_and(1.805e4 < waves, waves < 1.947e4)] = 0
+    npts[np.logical_and(2.522e4 < waves, waves < 2.875e4)] = 0
+    npts[np.logical_and(4.014e4 < waves, waves < 4.594e4)] = 0
+    # take out data points that need to be masked
+    for region in mask:
+        npts[(waves > region[0] * 1e4) & (waves < region[1] * 1e4)] = 0
 
     # determine the wavelength range and calculate the wavelength grid
     if np.max(waves) < 25000:  # SXD
@@ -304,7 +310,9 @@ def merge_spex_obsspec(obstable, output_resolution=2000):
     (indxs,) = np.where(full_npts > 0)
     if len(indxs) > 0:
         full_flux[indxs] /= full_unc[indxs]
-        full_unc[indxs] = np.sqrt(1.0 / full_unc[indxs])
+        full_unc[indxs] = np.sqrt(
+            1.0 / full_unc[indxs]
+        )  # this is the standard error of the weighted mean
 
     # create the output table
     otable = Table()
