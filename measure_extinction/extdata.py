@@ -667,6 +667,16 @@ class ExtData:
                 else:
                     print(ckey + " not supported for saving extcurves")
 
+        # save the column values if available
+        if "AV" in self.columns.keys():
+            hname.append("AV")
+            hcomment.append("V-band extinction A(V)")
+            hval.append(self.columns["AV"])
+        if "RV" in self.columns.keys():
+            hname.append("RV")
+            hcomment.append("total-to-selective extintion R(V)")
+            hval.append(self.columns["RV"])
+
         # legacy save param keywords
         if fm90_best_params is not None:
             save_params = {"type": "FM90", "best": fm90_best_params}
@@ -775,7 +785,20 @@ class ExtData:
                     + " | fixed="
                     + str(param.fixed),
                 )
+                tbhdu.header.set(
+                    param.name[:6] + "_u",
+                    param.unc_plus,
+                    param.name + " upper uncertainty",
+                )
+                tbhdu.header.set(
+                    param.name[:6] + "_l",
+                    param.unc_minus,
+                    param.name + " lower uncertainty",
+                )
             tbhdu.header.set("MOD_TYPE", self.model["type"], "Type of fitted model")
+            tbhdu.header.set(
+                "chi2", self.model["chi2"], "Chi squared for the fitted model"
+            )
             tbhdu.header.set("EXTNAME", "MODEXT", "Fitted model extinction")
             hdulist.append(tbhdu)
 
