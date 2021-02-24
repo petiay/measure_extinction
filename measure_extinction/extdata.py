@@ -775,6 +775,7 @@ class ExtData:
             )
             columns = fits.ColDefs([col1, col2, col3])
             tbhdu = fits.BinTableHDU.from_columns(columns)
+            # add the paramaters and their uncertainties
             for param in self.model["params"]:
                 tbhdu.header.set(
                     param.name[:8],
