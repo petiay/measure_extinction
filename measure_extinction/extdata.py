@@ -787,14 +787,14 @@ class ExtData:
                     + str(param.fixed),
                 )
                 tbhdu.header.set(
-                    param.name[:6] + "_u",
-                    param.unc_plus,
-                    param.name + " upper uncertainty",
-                )
-                tbhdu.header.set(
-                    param.name[:6] + "_l",
+                    param.name[:6] + "_L",
                     param.unc_minus,
                     param.name + " lower uncertainty",
+                )
+                tbhdu.header.set(
+                    param.name[:6] + "_U",
+                    param.unc_plus,
+                    param.name + " upper uncertainty",
                 )
             tbhdu.header.set("MOD_TYPE", self.model["type"], "Type of fitted model")
             tbhdu.header.set(
@@ -865,9 +865,11 @@ class ExtData:
 
         # get the fitted model if available
         if "MODEXT" in extnames:
-            self.model["waves"] = hdulist["MODEXT"].data["MOD_WAVE"]
-            self.model["exts"] = hdulist["MODEXT"].data["MOD_EXT"]
-            self.model["residuals"] = hdulist["MODEXT"].data["RESIDUAL"]
+            data = hdulist["MODEXT"].data
+            hdr = hdulist["MODEXT"].header
+            self.model["waves"] = data["MOD_WAVE"]
+            self.model["exts"] = data["MOD_EXT"]
+            self.model["residuals"] = data["RESIDUAL"]
             self.model["params"] = []
             paramkeys = [
                 "AMPLITUD",
@@ -879,19 +881,19 @@ class ExtData:
                 "ASYM",
                 "AV",
             ]
-            hdr = hdulist["MODEXT"].header
             self.model["type"] = hdr["MOD_TYPE"]
             for paramkey in paramkeys:
                 if paramkey in list(hdr.keys()):
                     comment = hdr.comments[paramkey].split(" |")
-                    self.model["params"].append(
-                        Parameter(
-                            name=comment[0],
-                            default=hdr[paramkey],
-                            bounds=comment[1].split("=")[1],
-                            fixed=comment[2].split("=")[1],
-                        )
+                    param = Parameter(
+                        name=comment[0],
+                        default=hdr[paramkey],
+                        bounds=comment[1].split("=")[1],
+                        fixed=comment[2].split("=")[1],
                     )
+                    param.unc_minus = hdr[paramkey[:6] + "_L"]
+                    param.unc_plus = hdr[paramkey[:6] + "_U"]
+                    self.model["params"].append(param)
 
         # get the columns p50 +unc -unc fit parameters if they exist
         if pheader.get("AV_p50"):
