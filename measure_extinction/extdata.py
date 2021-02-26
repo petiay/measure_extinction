@@ -765,16 +765,17 @@ class ExtData:
             )
             columns = fits.ColDefs([col1, col2, col3])
             tbhdu = fits.BinTableHDU.from_columns(columns)
-            for param in self.model["params"]:
-                tbhdu.header.set(
-                    param.name[:8],
-                    param.value,
-                    param.name
-                    + " | bounds="
-                    + str(param.bounds)
-                    + " | fixed="
-                    + str(param.fixed),
-                )
+            if "params" in self.model.keys():
+                for param in self.model["params"]:
+                    tbhdu.header.set(
+                        param.name[:8],
+                        param.value,
+                        param.name
+                        + " | bounds="
+                        + str(param.bounds)
+                        + " | fixed="
+                        + str(param.fixed),
+                    )
             tbhdu.header.set("MOD_TYPE", self.model["type"], "Type of fitted model")
             tbhdu.header.set("EXTNAME", "MODEXT", "Fitted model extinction")
             hdulist.append(tbhdu)
