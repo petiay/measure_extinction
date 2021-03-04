@@ -475,7 +475,7 @@ class ExtData:
         # obtain or calculate A(V)
         if "AV" not in self.columns.keys():
             self.calc_AV()
-        av = self.columns["AV"]
+        av = _get_column_val(self.columns["AV"])
 
         # obtain E(B-V)
         dwaves = np.absolute(self.waves["BAND"] - 0.438 * u.micron)
@@ -657,6 +657,7 @@ class ExtData:
             "rv": ("RV", "R(V)"),
             "rvunc": ("RV_UNC", "R(V) uncertainty"),
         }
+        # give preference to the column info that is given as argument to the save function
         if column_info is not None:
             for ckey in column_info.keys():
                 if ckey in ext_col_info.keys():
@@ -666,16 +667,29 @@ class ExtData:
                     hval.append(column_info[ckey])
                 else:
                     print(ckey + " not supported for saving extcurves")
-
-        # save the column values if available
-        if "AV" in self.columns.keys():
-            hname.append("AV")
-            hcomment.append("V-band extinction A(V)")
-            hval.append(self.columns["AV"])
-        if "RV" in self.columns.keys():
-            hname.append("RV")
-            hcomment.append("total-to-selective extintion R(V)")
-            hval.append(self.columns["RV"])
+        else:  # save the column info if available in the extdata object
+            if "AV" in self.columns.keys():
+                hname.append("AV")
+                hcomment.append("V-band extinction A(V)")
+                if isinstance(self.columns["AV"], tuple):
+                    hval.append(self.columns["AV"][0])
+                    if len(self.columns["AV"]) == 2:
+                        hname.append("AV_UNC")
+                        hcomment.append("A(V) uncertainty")
+                        hval.append(self.columns["AV"][1])
+                    elif len(self.columns["AV"]) == 3:
+                        hname.append("AV_L")
+                        hcomment.append("A(V) lower uncertainty")
+                        hval.append(self.columns["AV"][1])
+                        hname.append("AV_U")
+                        hcomment.append("A(V) upper uncertainty")
+                        hval.append(self.columns["AV"][2])
+                else:
+                    hval.append(self.columns["AV"])
+            if "RV" in self.columns.keys():
+                hname.append("RV")
+                hcomment.append("total-to-selective extintion R(V)")
+                hval.append(self.columns["RV"])
 
         # legacy save param keywords
         if fm90_best_params is not None:
