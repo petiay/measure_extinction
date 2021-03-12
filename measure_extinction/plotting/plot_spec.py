@@ -177,6 +177,12 @@ def plot_multi_spectra(
     if norm_range is not None:
         norm_range = norm_range * u.micron
 
+    # set default text offsets and angles
+    if text_offsets == []:
+        text_offsets = np.full(len(starlist), 0.2)
+    if text_angles == []:
+        text_angles = np.full(len(starlist), 10)
+
     for i, star in enumerate(starlist):
         # read in all bands and spectra for this star
         starobs = StarData("%s.dat" % star.lower(), path=path, use_corfac=True)
@@ -210,12 +216,6 @@ def plot_multi_spectra(
             if min_wave in used_waves.value:
                 ann_key = data_type
         ann_range = [min_wave, min_wave] * u.micron
-
-        # set default text offsets and angles
-        if text_offsets == []:
-            text_offsets = np.full(len(starlist), 0.2)
-        if text_angles == []:
-            text_angles = np.full(len(starlist), 10)
 
         # plot the spectrum
         starobs.plot(
@@ -251,7 +251,7 @@ def plot_multi_spectra(
     ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
     ylabel = r"$F(\lambda)$"
 
-    if norm_range:
+    if norm_range is not None:
         if norm_range[0].unit == "micron":
             units = r"$\mu m$"
         else:
