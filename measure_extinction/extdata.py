@@ -490,14 +490,12 @@ class ExtData:
 
     def trans_elv_alav(self, av=None, akav=0.112):
         """
-        Transform E(lambda-V) to A(lambda)/A(V) by normalizing to
-        A(V) and adding 1. Default is to calculate A(V) from the
-        input elx curve. If A(V) value is passed, use that one instead.
+        Transform E(lambda-V) to A(lambda)/A(V) by normalizing to A(V) and adding 1. If A(V) is in the columns of the extdata object, use that value. If A(V) is passed explicitly, use that value instead. If no A(V) is available, calculate A(V) from the input elx curve.
 
         Parameters
         ----------
         av : float [default = None]
-            value of A(V) to use - otherwise calculate it
+            value of A(V) to use - otherwise take it from the columns of the object or calculate it
 
         akav : float  [default = 0.112]
            Value of A(K)/A(V), only needed if A(V) has to be calculated from the K-band extinction
@@ -514,10 +512,13 @@ class ExtData:
             )
         else:
             if av is None:
-                self.calc_AV(akav=akav)
+                if "AV" in self.columns.keys():
+                    av = self.columns["AV"]
+                else:
+                    self.calc_AV(akav=akav)
+                av = _get_column_val(self.columns["AV"])
 
             for curname in self.exts.keys():
-                av = _get_column_val(self.columns["AV"])
                 self.exts[curname] = (self.exts[curname] / av) + 1
                 self.uncs[curname] /= av
             # update the extinction curve type
@@ -1091,10 +1092,10 @@ class ExtData:
             fontsize for plot
         """
         if alax:
-            # compute A(V) if it is not available
-            if "AV" not in self.columns.keys():
-                self.trans_elv_alav()
+            # transform the extinctions from E(lambda-V) to A(lambda)/A(V)
+            self.trans_elv_alav()
             av = _get_column_val(self.columns["AV"])
+
             if self.type_rel_band != "V":  # not sure if this works (where is RV given?)
                 # use F04 model to convert AV to AX
                 rv = _get_column_val(self.columns["RV"])
@@ -1114,13 +1115,6 @@ class ExtData:
             x = self.waves[curtype].to(u.micron).value
             y = self.exts[curtype]
             yu = self.uncs[curtype]
-
-            if (
-                alax and self.type == "elx"
-            ):  # in the case A(V) was already available and the curve has not been transformed yet
-                # convert E(lambda-X) to A(lambda)/A(X)
-                y = (y / ax) + 1.0
-                yu /= ax
 
             y = y / normval + yoffset
             yu = yu / normval
@@ -1160,6 +1154,7 @@ class ExtData:
                     color=annotate_color,
                     horizontalalignment="left",
                     rotation=annotate_rotation,
+                    rotation_mode="anchor",
                     fontsize=fontsize,
                 )
 

@@ -258,6 +258,7 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
             plt.axhline(ls="--", c="k", alpha=0.5)
             plt.axhline(y=0.05, ls=":", c="k", alpha=0.5)
             plt.axhline(y=-0.05, ls=":", c="k", alpha=0.5)
+            plt.ylim(-0.1, 0.1)
             plt.ylabel("residual")
 
     else:
@@ -359,6 +360,9 @@ def plot_multi_extinction(
     range=None,
     spread=False,
     exclude=[],
+    log=False,
+    text_offsets=[],
+    text_angles=[],
     pdf=False,
 ):
     """
@@ -396,6 +400,15 @@ def plot_multi_extinction(
     exclude : list of strings [default=[]]
         List of data type(s) to exclude from the plot (e.g., IRS)
 
+    log : boolean [default=False]
+        Whether or not to plot the wavelengths on a log-scale
+
+    text_offsets : list of floats [default=[]]
+        List of the same length as starpair_list with offsets for the annotated text
+
+    text_angles : list of integers [default=[]]
+        List of the same length as starpair_list with rotation angles for the annotated text
+
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
 
@@ -419,13 +432,19 @@ def plot_multi_extinction(
     fig, ax = plt.subplots(figsize=(15, len(starpair_list) * 1.25))
     colors = plt.get_cmap("tab10")
 
+    # set default text offsets and angles
+    if text_offsets == []:
+        text_offsets = np.full(len(starpair_list), 0.2)
+    if text_angles == []:
+        text_angles = np.full(len(starpair_list), 10)
+
     for i, starpair in enumerate(starpair_list):
         # read in the extinction curve data
         extdata = ExtData("%s%s_ext.fits" % (path, starpair.lower()))
 
         # spread out the curves if requested
         if spread:
-            yoffset = 0.3 * i
+            yoffset = 0.25 * i
         else:
             yoffset = 0.0
 
@@ -455,8 +474,8 @@ def plot_multi_extinction(
             annotate_key=ann_key,
             annotate_wave_range=ann_range,
             annotate_text=extdata.red_file.split(".")[0].upper(),
-            annotate_yoffset=-0.1,
-            annotate_rotation=-15,
+            annotate_yoffset=text_offsets[i],
+            annotate_rotation=text_angles[i],
             annotate_color=colors(i % 10),
         )
 
@@ -501,15 +520,22 @@ def plot_multi_extinction(
         outname = outname.replace(".pdf", "_zoom.pdf")
 
     # finish configuring the plot
-    ax.set_xscale("log")
+    if log:
+        ax.set_xscale("log")
     ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
-    ax.set_ylabel(extdata._get_ext_ytitle(ytype=extdata.type), fontsize=1.5 * fontsize)
+    ylabel = extdata._get_ext_ytitle(ytype=extdata.type)
+    if spread:
+        ylabel += " + offset"
+    ax.set_ylabel(ylabel, fontsize=1.5 * fontsize)
 
     # show the figure or save it to a pdf file
     if pdf:
         fig.savefig(path + outname, bbox_inches="tight")
     else:
         plt.show()
+
+    # return the figure and axes for additional manipulations
+    return fig, ax
 
 
 def plot_extinction(

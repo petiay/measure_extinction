@@ -144,10 +144,10 @@ def plot_multi_spectra(
         Whether or not to add an extra offset between main sequence and giant stars (only relevant when spread=True; this only works when the stars are sorted by spectral class, i.e. first the main sequence and then the giant stars)
 
     text_offsets : list of floats [default=[]]
-        List of the same length as starlist with offsets for the annotated text (only relevant when spread=True)
+        List of the same length as starlist with offsets for the annotated text
 
     text_angles : list of integers [default=[]]
-        List of the same length as starlist with rotation angles for the annotated text (only relevant when spread=True)
+        List of the same length as starlist with rotation angles for the annotated text
 
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
