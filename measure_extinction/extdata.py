@@ -475,7 +475,7 @@ class ExtData:
         # obtain or calculate A(V)
         if "AV" not in self.columns.keys():
             self.calc_AV()
-        av = self.columns["AV"]
+        av = _get_column_val(self.columns["AV"])
 
         # obtain E(B-V)
         dwaves = np.absolute(self.waves["BAND"] - 0.438 * u.micron)
@@ -657,6 +657,7 @@ class ExtData:
             "rv": ("RV", "R(V)"),
             "rvunc": ("RV_UNC", "R(V) uncertainty"),
         }
+        # give preference to the column info that is given as argument to the save function
         if column_info is not None:
             for ckey in column_info.keys():
                 if ckey in ext_col_info.keys():
@@ -666,6 +667,29 @@ class ExtData:
                     hval.append(column_info[ckey])
                 else:
                     print(ckey + " not supported for saving extcurves")
+        else:  # save the column info if available in the extdata object
+            if "AV" in self.columns.keys():
+                hname.append("AV")
+                hcomment.append("V-band extinction A(V)")
+                if isinstance(self.columns["AV"], tuple):
+                    hval.append(self.columns["AV"][0])
+                    if len(self.columns["AV"]) == 2:
+                        hname.append("AV_UNC")
+                        hcomment.append("A(V) uncertainty")
+                        hval.append(self.columns["AV"][1])
+                    elif len(self.columns["AV"]) == 3:
+                        hname.append("AV_L")
+                        hcomment.append("A(V) lower uncertainty")
+                        hval.append(self.columns["AV"][1])
+                        hname.append("AV_U")
+                        hcomment.append("A(V) upper uncertainty")
+                        hval.append(self.columns["AV"][2])
+                else:
+                    hval.append(self.columns["AV"])
+            if "RV" in self.columns.keys():
+                hname.append("RV")
+                hcomment.append("total-to-selective extintion R(V)")
+                hval.append(self.columns["RV"])
 
         # legacy save param keywords
         if fm90_best_params is not None:
@@ -765,6 +789,7 @@ class ExtData:
             )
             columns = fits.ColDefs([col1, col2, col3])
             tbhdu = fits.BinTableHDU.from_columns(columns)
+            # add the paramaters and their uncertainties
             for param in self.model["params"]:
                 tbhdu.header.set(
                     param.name[:8],
@@ -775,7 +800,20 @@ class ExtData:
                     + " | fixed="
                     + str(param.fixed),
                 )
+                tbhdu.header.set(
+                    param.name[:6] + "_L",
+                    param.unc_minus,
+                    param.name + " lower uncertainty",
+                )
+                tbhdu.header.set(
+                    param.name[:6] + "_U",
+                    param.unc_plus,
+                    param.name + " upper uncertainty",
+                )
             tbhdu.header.set("MOD_TYPE", self.model["type"], "Type of fitted model")
+            tbhdu.header.set(
+                "chi2", self.model["chi2"], "Chi squared for the fitted model"
+            )
             tbhdu.header.set("EXTNAME", "MODEXT", "Fitted model extinction")
             hdulist.append(tbhdu)
 
@@ -841,9 +879,11 @@ class ExtData:
 
         # get the fitted model if available
         if "MODEXT" in extnames:
-            self.model["waves"] = hdulist["MODEXT"].data["MOD_WAVE"]
-            self.model["exts"] = hdulist["MODEXT"].data["MOD_EXT"]
-            self.model["residuals"] = hdulist["MODEXT"].data["RESIDUAL"]
+            data = hdulist["MODEXT"].data
+            hdr = hdulist["MODEXT"].header
+            self.model["waves"] = data["MOD_WAVE"]
+            self.model["exts"] = data["MOD_EXT"]
+            self.model["residuals"] = data["RESIDUAL"]
             self.model["params"] = []
             paramkeys = [
                 "AMPLITUD",
@@ -855,19 +895,19 @@ class ExtData:
                 "ASYM",
                 "AV",
             ]
-            hdr = hdulist["MODEXT"].header
             self.model["type"] = hdr["MOD_TYPE"]
             for paramkey in paramkeys:
                 if paramkey in list(hdr.keys()):
                     comment = hdr.comments[paramkey].split(" |")
-                    self.model["params"].append(
-                        Parameter(
-                            name=comment[0],
-                            default=hdr[paramkey],
-                            bounds=comment[1].split("=")[1],
-                            fixed=comment[2].split("=")[1],
-                        )
+                    param = Parameter(
+                        name=comment[0],
+                        default=hdr[paramkey],
+                        bounds=comment[1].split("=")[1],
+                        fixed=comment[2].split("=")[1],
                     )
+                    param.unc_minus = hdr[paramkey[:6] + "_L"]
+                    param.unc_plus = hdr[paramkey[:6] + "_U"]
+                    self.model["params"].append(param)
 
         # get the columns p50 +unc -unc fit parameters if they exist
         if pheader.get("AV_p50"):
