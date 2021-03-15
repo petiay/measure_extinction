@@ -117,7 +117,8 @@ def AverageExtData(extdatas):
     names = []
     bwaves = []
     for extdata in extdatas:
-        # check the data type of the extinction curves, and convert if needed
+        # check the data type of the extinction curve, and convert if needed
+        # the average curve must be calculated from the A(lambda)/A(V) curves
         if extdata.type != "alav" or extdata.type != "alax":
             extdata.trans_elv_alav()
 
@@ -136,7 +137,7 @@ def AverageExtData(extdatas):
     aveext.type = extdatas[0].type
     aveext.type_rel_band = extdatas[0].type_rel_band
 
-    # calculate the average for all spectral data
+    # collect all the extinction data
     bexts = {k: [] for k in aveext.names["BAND"]}
     for src in keys:
         exts = []
@@ -149,6 +150,7 @@ def AverageExtData(extdatas):
                     extdata.exts[src][np.where(extdata.npts[src] == 0)] = np.nan
                     exts.append(extdata.exts[src])
 
+        # calculate the average and uncertainties of the band extinction data
         if src == "BAND":
             aveext.exts["BAND"] = []
             aveext.npts["BAND"] = []
@@ -164,6 +166,7 @@ def AverageExtData(extdatas):
             # calculation of the standard error of the average (the standard error of the sample mean is an estimate of how far the sample mean is likely to be from the population mean)
             aveext.uncs["BAND"] = aveext.stds["BAND"] / np.sqrt(aveext.npts["BAND"])
 
+        # calculate the average and uncertainties of the spectral extinction data
         else:
             aveext.exts[src] = np.nanmean(exts, axis=0)
             aveext.npts[src] = np.sum(~np.isnan(exts), axis=0)
