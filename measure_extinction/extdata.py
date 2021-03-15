@@ -152,16 +152,16 @@ def AverageExtData(extdatas):
 
         # calculate the average and uncertainties of the band extinction data
         if src == "BAND":
-            aveext.exts["BAND"] = []
-            aveext.npts["BAND"] = []
-            aveext.stds["BAND"] = []
-            aveext.uncs["BAND"] = []
-            for name in aveext.names["BAND"]:
-                aveext.exts["BAND"].append(np.nanmean(bexts[name]))
-                aveext.npts["BAND"].append(len(bexts[name]))
+            aveext.exts["BAND"] = np.zeros(len(names))
+            aveext.npts["BAND"] = np.zeros(len(names))
+            aveext.stds["BAND"] = np.zeros(len(names))
+            aveext.uncs["BAND"] = np.zeros(len(names))
+            for i, name in enumerate(aveext.names["BAND"]):
+                aveext.exts["BAND"][i] = np.nanmean(bexts[name])
+                aveext.npts["BAND"][i] = len(bexts[name])
 
                 # calculation of the standard deviation (this is the spread of the sample around the population mean)
-                aveext.stds["BAND"].append(np.nanstd(bexts[name], ddof=1))
+                aveext.stds["BAND"][i] = np.nanstd(bexts[name], ddof=1)
 
             # calculation of the standard error of the average (the standard error of the sample mean is an estimate of how far the sample mean is likely to be from the population mean)
             aveext.uncs["BAND"] = aveext.stds["BAND"] / np.sqrt(aveext.npts["BAND"])
@@ -172,6 +172,9 @@ def AverageExtData(extdatas):
             aveext.npts[src] = np.sum(~np.isnan(exts), axis=0)
             aveext.stds[src] = np.nanstd(exts, axis=0, ddof=1)
             aveext.uncs[src] = aveext.stds[src] / np.sqrt(aveext.npts[src])
+
+        # take out the data points where less than 3 values were averaged
+        aveext.npts[src][aveext.npts[src] < 3] = 0
 
     return aveext
 
