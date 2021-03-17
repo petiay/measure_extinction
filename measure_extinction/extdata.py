@@ -1100,17 +1100,14 @@ class ExtData:
         if alax:
             # transform the extinctions from E(lambda-V) to A(lambda)/A(V)
             self.trans_elv_alav()
-            av = _get_column_val(self.columns["AV"])
 
-            if self.type_rel_band != "V":  # not sure if this works (where is RV given?)
-                # use F04 model to convert AV to AX
-                rv = _get_column_val(self.columns["RV"])
-                emod = F04(rv)
-                (indx,) = np.where(self.type_rel_band == self.names["BAND"])
-                axav = emod(self.waves["BAND"][indx[0]])
-            else:
-                axav = 1.0
-            ax = axav * av
+            # the next part is not working. TODO: fix this
+            # if self.type_rel_band != "V":  # not sure if this works (where is RV given?)
+            #     # use F04 model to convert AV to AX
+            #     rv = _get_column_val(self.columns["RV"])
+            #     emod = F04(rv)
+            #     (indx,) = np.where(self.type_rel_band == self.names["BAND"])
+            #     axav = emod(self.waves["BAND"][indx[0]])
 
         for curtype in self.waves.keys():
             # do not plot the excluded data type(s)
