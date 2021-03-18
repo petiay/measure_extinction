@@ -258,7 +258,7 @@ def plot_multi_spectra(
             units = norm_range[0].unit
         ylabel += "/$F$(" + str(int(np.mean(norm_range).value)) + units + ")"
     else:
-        ylabel += " [$ergs\ cm^{-2}\ s^{-1}\ \AA^{-1}$]"
+        ylabel += r" [$ergs\ cm^{-2}\ s^{-1}\ \AA^{-1}$]"
     if mlam4:
         ylabel = "$\lambda^4$" + ylabel.replace("]", " $\mu m^4$]")
         outname = outname.replace("spec", "spec_mlam4")
