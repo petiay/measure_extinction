@@ -7,7 +7,7 @@ import astropy.units as u
 from astropy.io import fits
 from scipy.optimize import curve_fit
 
-from dust_extinction.parameter_averages import F04
+# from dust_extinction.parameter_averages import F04
 from astropy.modeling.powerlaws import PowerLaw1D
 from astropy.modeling import Parameter
 from astropy.modeling.fitting import LevMarLSQFitter

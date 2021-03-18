@@ -135,6 +135,9 @@ def plot_average(
         )
         fig.savefig(path + "average_ext.pdf", bbox_inches="tight")
 
+        # return the figure and axes for additional manipulations
+        return fig, ax
+
     else:
         if spread:
             yoffset = -0.3
@@ -507,7 +510,6 @@ def plot_multi_extinction(
     # plot the average extinction curve if requested
     if average:
         plot_average(
-            starpair_list,
             path,
             ax=ax,
             extmodels=extmodels,
