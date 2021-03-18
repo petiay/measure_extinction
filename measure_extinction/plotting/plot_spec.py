@@ -260,7 +260,7 @@ def plot_multi_spectra(
     else:
         ylabel += r" [$ergs\ cm^{-2}\ s^{-1}\ \AA^{-1}$]"
     if mlam4:
-        ylabel = "$\lambda^4$" + ylabel.replace("]", " $\mu m^4$]")
+        ylabel = r"$\lambda^4$" + ylabel.replace("]", " $\mu m^4$]")
         outname = outname.replace("spec", "spec_mlam4")
     if spread:
         ylabel += " + offset"
