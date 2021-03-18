@@ -125,7 +125,6 @@ def test_plot_average():
     plot_average(data_path, log=True, pdf=True)
 
     # check if the expected pdf file was created
-    message = "Plotting the average extinction curve "
     assert os.path.isfile(
         data_path + "average_ext.pdf"
     ), "Plotting the average extinction curve has failed."
