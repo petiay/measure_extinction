@@ -7,7 +7,6 @@ import astropy.units as u
 from astropy.io import fits
 from scipy.optimize import curve_fit
 
-# from dust_extinction.parameter_averages import F04
 from astropy.modeling.powerlaws import PowerLaw1D
 from astropy.modeling import Parameter
 from astropy.modeling.fitting import LevMarLSQFitter
@@ -1108,14 +1107,6 @@ class ExtData:
         if alax:
             # transform the extinctions from E(lambda-V) to A(lambda)/A(V)
             self.trans_elv_alav()
-
-            # the next part is not working. TODO: fix this
-            # if self.type_rel_band != "V":  # not sure if this works (where is RV given?)
-            #     # use F04 model to convert AV to AX
-            #     rv = _get_column_val(self.columns["RV"])
-            #     emod = F04(rv)
-            #     (indx,) = np.where(self.type_rel_band == self.names["BAND"])
-            #     axav = emod(self.waves["BAND"][indx[0]])
 
         for curtype in self.waves.keys():
             # do not plot the excluded data type(s)

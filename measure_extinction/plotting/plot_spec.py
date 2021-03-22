@@ -434,8 +434,8 @@ if __name__ == "__main__":
 
     if args.onefig:  # plot all spectra in the same figure
         plot_multi_spectra(
-            starlist=args.starlist,
-            path=args.path,
+            args.starlist,
+            args.path,
             mlam4=args.mlam4,
             HI_lines=args.HI_lines,
             range=args.range,
