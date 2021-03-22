@@ -21,12 +21,12 @@ def calc_extinction(redstarname, compstarname, path):
     extdata.save(path + "%s_%s_ext.fits" % (redstarname.lower(), compstarname.lower()))
 
 
-def calc_ave_ext(starpair_list, path):
+def calc_ave_ext(starpair_list, path, min_number=1):
     extdatas = []
     for starpair in starpair_list:
         extdata = ExtData("%s%s_ext.fits" % (path, starpair.lower()))
         extdatas.append(extdata)
-    average = AverageExtData(extdatas)
+    average = AverageExtData(extdatas, min_number=min_number)
     average.save(path + "average_ext.fits")
 
 

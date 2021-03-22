@@ -98,7 +98,7 @@ def _get_column_val(column):
         return float(column)
 
 
-def AverageExtData(extdatas):
+def AverageExtData(extdatas, min_number=1):
     """
     Generate the average extinction curve from a list of ExtData objects
 
@@ -106,6 +106,9 @@ def AverageExtData(extdatas):
     ----------
     extdatas : list of ExtData objects
         list of extinction curves to average
+
+    min_number : int [default=1]
+        minimum number of extinction curves that are required to measure the average extinction; if less than min_number of curves are available at certain wavelengths, the average extinction will still be calculated, but the number of points (npts) at those wavelengths will be set to zero (e.g. used in the plotting)
 
     Returns
     -------
@@ -173,8 +176,13 @@ def AverageExtData(extdatas):
             aveext.stds[src] = np.nanstd(exts, axis=0, ddof=1)
             aveext.uncs[src] = aveext.stds[src] / np.sqrt(aveext.npts[src])
 
-        # take out the data points where less than 3 values were averaged
-        aveext.npts[src][aveext.npts[src] < 3] = 0
+        # take out the data points where less than a certain number of values was averaged, and give a warning
+        if min_number > 1:
+            aveext.npts[src][aveext.npts[src] < min_number] = 0
+            warnings.warn(
+                "The minimum number of extinction curves was not reached for certain wavelengths, and the number of points (npts) for those wavelengths was set to 0.",
+                UserWarning,
+            )
 
     return aveext
 
