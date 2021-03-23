@@ -9,21 +9,22 @@ import matplotlib.pyplot as plt
 import numpy as np
 import astropy.units as u
 import pandas as pd
+import os
 
 from measure_extinction.extdata import ExtData
-from measure_extinction.utils.calc_ext import calc_ave_ext
 from dust_extinction.parameter_averages import CCM89
 
 
 def plot_average(
-    starpair_list,
     path,
+    filename="average_ext.fits",
     ax=None,
     extmodels=False,
     fitmodel=False,
     HI_lines=False,
     range=None,
     exclude=[],
+    log=False,
     spread=False,
     annotate_key=None,
     annotate_wave_range=None,
@@ -34,11 +35,11 @@ def plot_average(
 
     Parameters
     ----------
-    starpair_list : list of strings
-        List of star pairs for which to calculate and plot the average extinction curve, in the format "reddenedstarname_comparisonstarname" (no spaces)
-
     path : string
-        Path to the data files
+        Path to the average extinction curve fits file
+
+    filename : string [default="average_ext.fits"]
+        Name of the average extinction curve fits file
 
     ax : AxesSubplot [default=None]
         Axes of plot on which to add the average extinction curve if pdf=False
@@ -58,14 +59,17 @@ def plot_average(
     exclude : list of strings [default=[]]
         List of data type(s) to exclude from the plot (e.g., IRS)
 
+    log : boolean [default=False]
+        Whether or not to plot the wavelengths on a log-scale
+
     spread : boolean [default=False]
-        Whether or not to offset the average extinction curve from the other curves
+        Whether or not to offset the average extinction curve from the other curves (only relevant when pdf=False and ax=None)
 
     annotate_key : string [default=None]
-        type of data for which to annotate text (e.g., SpeX_LXD)
+        type of data for which to annotate text (e.g., SpeX_LXD) (only relevant when pdf=False and ax=None)
 
     annotate_wave_range : list of 2 floats [default=None]
-        min/max wavelength range for the annotation of the text
+        min/max wavelength range for the annotation of the text (only relevant when pdf=False and ax=None)
 
     pdf : boolean [default=False]
         - If False, the average extinction curve will be overplotted on the current plot (defined by ax)
@@ -75,11 +79,18 @@ def plot_average(
     -------
     Plots the average extinction curve
     """
-    # calculate the average extinction curve
-    calc_ave_ext(starpair_list, path)
-
-    # read in the average extinction curve
-    average = ExtData(path + "average_ext.fits")
+    # read in the average extinction curve (if it exists)
+    if os.path.isfile(path + filename):
+        average = ExtData(path + filename)
+    else:
+        warnings.warn(
+            "An average extinction curve with the name "
+            + filename
+            + " could not be found in "
+            + path
+            + ". Please calculate the average extinction curve first with the calc_ave_ext function in measure_extinction/utils/calc_ext.py.",
+            UserWarning,
+        )
 
     # make a new plot if requested
     if pdf:
@@ -116,13 +127,16 @@ def plot_average(
             zoom(ax, range)
 
         # finish configuring the plot
-        ax.set_title("average", fontsize=50)
-        ax.set_xscale("log")
+        if log:
+            ax.set_xscale("log")
         plt.xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
         ax.set_ylabel(
             average._get_ext_ytitle(ytype=average.type), fontsize=1.5 * fontsize
         )
         fig.savefig(path + "average_ext.pdf", bbox_inches="tight")
+
+        # return the figure and axes for additional manipulations
+        return fig, ax
 
     else:
         if spread:
@@ -258,6 +272,7 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
             plt.axhline(ls="--", c="k", alpha=0.5)
             plt.axhline(y=0.05, ls=":", c="k", alpha=0.5)
             plt.axhline(y=-0.05, ls=":", c="k", alpha=0.5)
+            plt.ylim(-0.1, 0.1)
             plt.ylabel("residual")
 
     else:
@@ -359,6 +374,9 @@ def plot_multi_extinction(
     range=None,
     spread=False,
     exclude=[],
+    log=False,
+    text_offsets=[],
+    text_angles=[],
     pdf=False,
 ):
     """
@@ -396,6 +414,15 @@ def plot_multi_extinction(
     exclude : list of strings [default=[]]
         List of data type(s) to exclude from the plot (e.g., IRS)
 
+    log : boolean [default=False]
+        Whether or not to plot the wavelengths on a log-scale
+
+    text_offsets : list of floats [default=[]]
+        List of the same length as starpair_list with offsets for the annotated text
+
+    text_angles : list of integers [default=[]]
+        List of the same length as starpair_list with rotation angles for the annotated text
+
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
 
@@ -419,13 +446,19 @@ def plot_multi_extinction(
     fig, ax = plt.subplots(figsize=(15, len(starpair_list) * 1.25))
     colors = plt.get_cmap("tab10")
 
+    # set default text offsets and angles
+    if text_offsets == []:
+        text_offsets = np.full(len(starpair_list), 0.2)
+    if text_angles == []:
+        text_angles = np.full(len(starpair_list), 10)
+
     for i, starpair in enumerate(starpair_list):
         # read in the extinction curve data
         extdata = ExtData("%s%s_ext.fits" % (path, starpair.lower()))
 
         # spread out the curves if requested
         if spread:
-            yoffset = 0.3 * i
+            yoffset = 0.25 * i
         else:
             yoffset = 0.0
 
@@ -455,8 +488,8 @@ def plot_multi_extinction(
             annotate_key=ann_key,
             annotate_wave_range=ann_range,
             annotate_text=extdata.red_file.split(".")[0].upper(),
-            annotate_yoffset=-0.1,
-            annotate_rotation=-15,
+            annotate_yoffset=text_offsets[i],
+            annotate_rotation=text_angles[i],
             annotate_color=colors(i % 10),
         )
 
@@ -477,7 +510,6 @@ def plot_multi_extinction(
     # plot the average extinction curve if requested
     if average:
         plot_average(
-            starpair_list,
             path,
             ax=ax,
             extmodels=extmodels,
@@ -501,15 +533,22 @@ def plot_multi_extinction(
         outname = outname.replace(".pdf", "_zoom.pdf")
 
     # finish configuring the plot
-    ax.set_xscale("log")
+    if log:
+        ax.set_xscale("log")
     ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
-    ax.set_ylabel(extdata._get_ext_ytitle(ytype=extdata.type), fontsize=1.5 * fontsize)
+    ylabel = extdata._get_ext_ytitle(ytype=extdata.type)
+    if spread:
+        ylabel += " + offset"
+    ax.set_ylabel(ylabel, fontsize=1.5 * fontsize)
 
     # show the figure or save it to a pdf file
     if pdf:
         fig.savefig(path + outname, bbox_inches="tight")
     else:
         plt.show()
+
+    # return the figure and axes for additional manipulations
+    return fig, ax
 
 
 def plot_extinction(

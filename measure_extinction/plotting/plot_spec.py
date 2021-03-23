@@ -101,6 +101,10 @@ def plot_multi_spectra(
     norm_range=None,
     spread=False,
     exclude=[],
+    log=False,
+    class_offset=True,
+    text_offsets=[],
+    text_angles=[],
     pdf=False,
     outname="all_spec.pdf",
 ):
@@ -133,6 +137,18 @@ def plot_multi_spectra(
     exclude : list of strings [default=[]]
         List of data type(s) to exclude from the plot (e.g., IRS)
 
+    log : boolean [default=False]
+        Whether or not to plot the wavelengths on a log-scale
+
+    class_offset : boolean [default=True]
+        Whether or not to add an extra offset between main sequence and giant stars (only relevant when spread=True; this only works when the stars are sorted by spectral class, i.e. first the main sequence and then the giant stars)
+
+    text_offsets : list of floats [default=[]]
+        List of the same length as starlist with offsets for the annotated text
+
+    text_angles : list of integers [default=[]]
+        List of the same length as starlist with rotation angles for the annotated text
+
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
 
@@ -161,6 +177,12 @@ def plot_multi_spectra(
     if norm_range is not None:
         norm_range = norm_range * u.micron
 
+    # set default text offsets and angles
+    if text_offsets == []:
+        text_offsets = np.full(len(starlist), 0.2)
+    if text_angles == []:
+        text_angles = np.full(len(starlist), 10)
+
     for i, star in enumerate(starlist):
         # read in all bands and spectra for this star
         starobs = StarData("%s.dat" % star.lower(), path=path, use_corfac=True)
@@ -169,16 +191,19 @@ def plot_multi_spectra(
         # add extra whitespace when the luminosity class changes from main sequence to giant
         if spread:
             extra_off = 0
-            if "V" not in starobs.sptype:
+            if "V" not in starobs.sptype and class_offset:
                 extra_off = 1
             yoffset = extra_off + 0.5 * i
         else:
             yoffset = 0
 
         # determine where to add the name of the star and its spectral type
-        # find the shortest plotted wavelength
+        # find the shortest plotted wavelength, and give preference to spectral data when available
+        exclude2 = []
+        if "BAND" in starobs.data.keys() and len(starobs.data.keys()) > 1:
+            exclude2 = ["BAND"]
         (waves, fluxes, flux_uncs) = starobs.get_flat_data_arrays(
-            starobs.data.keys() - exclude
+            starobs.data.keys() - (exclude + exclude2)
         )
         if range is not None:
             waves = waves[waves >= range[0]]
@@ -204,8 +229,8 @@ def plot_multi_spectra(
             annotate_key=ann_key,
             annotate_wave_range=ann_range,
             annotate_text=star.upper() + "  " + starobs.sptype,
-            annotate_yoffset=0.25,
-            annotate_rotation=10,
+            annotate_yoffset=text_offsets[i],
+            annotate_rotation=text_angles[i],
             annotate_color=colors(i % 10),
         )
 
@@ -221,15 +246,24 @@ def plot_multi_spectra(
     # finish configuring the plot
     if not spread:
         ax.set_yscale("log")
-    ax.set_xscale("log")
+    if log:
+        ax.set_xscale("log")
     ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
-    if mlam4:
-        ylabel = r"$F(\lambda)\ \lambda^4$ [$ergs\ cm^{-2}\ s^{-1}\ \AA^{-1}\ \mu m^4$]"
-        outname = outname.replace("spec", "spec_mlam4")
+    ylabel = r"$F(\lambda)$"
+
+    if norm_range is not None:
+        if norm_range[0].unit == "micron":
+            units = r"$\mu m$"
+        else:
+            units = norm_range[0].unit
+        ylabel += "/$F$(" + str(int(np.mean(norm_range).value)) + units + ")"
     else:
-        ylabel = r"$F(\lambda)$ [$ergs\ cm^{-2}\ s^{-1}\ \AA^{-1}$]"
+        ylabel += r" [$ergs\ cm^{-2}\ s^{-1}\ \AA^{-1}$]"
+    if mlam4:
+        ylabel = r"$\lambda^4$" + ylabel.replace("]", r" $\mu m^4$]")
+        outname = outname.replace("spec", "spec_mlam4")
     if spread:
-        ylabel = ylabel + " + offset"
+        ylabel += " + offset"
     ax.set_ylabel(ylabel, fontsize=1.5 * fontsize)
     ax.tick_params("both", length=10, width=2, which="major")
     ax.tick_params("both", length=5, width=1, which="minor")
@@ -239,6 +273,9 @@ def plot_multi_spectra(
         fig.savefig(path + outname, bbox_inches="tight")
     else:
         plt.show()
+
+    # return the figure and axes for additional manipulations
+    return fig, ax
 
 
 def plot_spectrum(
@@ -389,6 +426,9 @@ if __name__ == "__main__":
         type=str,
         default=[],
     )
+    parser.add_argument(
+        "--log", help="plot wavelengths on a log-scale", action="store_true"
+    )
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
 
@@ -396,13 +436,14 @@ if __name__ == "__main__":
         plot_multi_spectra(
             args.starlist,
             args.path,
-            args.mlam4,
-            args.HI_lines,
-            args.range,
-            args.norm_range,
-            args.spread,
-            args.exclude,
-            args.pdf,
+            mlam4=args.mlam4,
+            HI_lines=args.HI_lines,
+            range=args.range,
+            norm_range=args.norm_range,
+            spread=args.spread,
+            exclude=args.exclude,
+            log=args.log,
+            pdf=args.pdf,
         )
     else:  # plot all spectra separately
         if args.spread:
@@ -418,5 +459,6 @@ if __name__ == "__main__":
                 args.range,
                 args.norm_range,
                 args.exclude,
+                args.log,
                 args.pdf,
             )

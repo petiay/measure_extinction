@@ -7,7 +7,6 @@ import astropy.units as u
 from astropy.io import fits
 from scipy.optimize import curve_fit
 
-from dust_extinction.parameter_averages import F04
 from astropy.modeling.powerlaws import PowerLaw1D
 from astropy.modeling import Parameter
 from astropy.modeling.fitting import LevMarLSQFitter
@@ -98,7 +97,7 @@ def _get_column_val(column):
         return float(column)
 
 
-def AverageExtData(extdatas):
+def AverageExtData(extdatas, min_number=3):
     """
     Generate the average extinction curve from a list of ExtData objects
 
@@ -106,6 +105,9 @@ def AverageExtData(extdatas):
     ----------
     extdatas : list of ExtData objects
         list of extinction curves to average
+
+    min_number : int [default=3]
+        minimum number of extinction curves that are required to measure the average extinction; if less than min_number of curves are available at certain wavelengths, the average extinction will still be calculated, but the number of points (npts) at those wavelengths will be set to zero (e.g. used in the plotting)
 
     Returns
     -------
@@ -117,7 +119,8 @@ def AverageExtData(extdatas):
     names = []
     bwaves = []
     for extdata in extdatas:
-        # check the data type of the extinction curves, and convert if needed
+        # check the data type of the extinction curve, and convert if needed
+        # the average curve must be calculated from the A(lambda)/A(V) curves
         if extdata.type != "alav" or extdata.type != "alax":
             extdata.trans_elv_alav()
 
@@ -136,7 +139,7 @@ def AverageExtData(extdatas):
     aveext.type = extdatas[0].type
     aveext.type_rel_band = extdatas[0].type_rel_band
 
-    # calculate the average for all spectral data
+    # collect all the extinction data
     bexts = {k: [] for k in aveext.names["BAND"]}
     for src in keys:
         exts = []
@@ -149,26 +152,38 @@ def AverageExtData(extdatas):
                     extdata.exts[src][np.where(extdata.npts[src] == 0)] = np.nan
                     exts.append(extdata.exts[src])
 
+        # calculate the average and uncertainties of the band extinction data
         if src == "BAND":
-            aveext.exts["BAND"] = []
-            aveext.npts["BAND"] = []
-            aveext.stds["BAND"] = []
-            aveext.uncs["BAND"] = []
-            for name in aveext.names["BAND"]:
-                aveext.exts["BAND"].append(np.nanmean(bexts[name]))
-                aveext.npts["BAND"].append(len(bexts[name]))
+            aveext.exts["BAND"] = np.zeros(len(names))
+            aveext.npts["BAND"] = np.zeros(len(names))
+            aveext.stds["BAND"] = np.zeros(len(names))
+            aveext.uncs["BAND"] = np.zeros(len(names))
+            for i, name in enumerate(aveext.names["BAND"]):
+                aveext.exts["BAND"][i] = np.nanmean(bexts[name])
+                aveext.npts["BAND"][i] = len(bexts[name])
 
                 # calculation of the standard deviation (this is the spread of the sample around the population mean)
-                aveext.stds["BAND"].append(np.nanstd(bexts[name], ddof=1))
+                aveext.stds["BAND"][i] = np.nanstd(bexts[name], ddof=1)
 
             # calculation of the standard error of the average (the standard error of the sample mean is an estimate of how far the sample mean is likely to be from the population mean)
             aveext.uncs["BAND"] = aveext.stds["BAND"] / np.sqrt(aveext.npts["BAND"])
 
+        # calculate the average and uncertainties of the spectral extinction data
         else:
             aveext.exts[src] = np.nanmean(exts, axis=0)
             aveext.npts[src] = np.sum(~np.isnan(exts), axis=0)
             aveext.stds[src] = np.nanstd(exts, axis=0, ddof=1)
             aveext.uncs[src] = aveext.stds[src] / np.sqrt(aveext.npts[src])
+
+        # take out the data points where less than a certain number of values was averaged, and give a warning
+        if min_number > 1:
+            aveext.npts[src][aveext.npts[src] < min_number] = 0
+            warnings.warn(
+                "The minimum number of "
+                + str(min_number)
+                + " extinction curves was not reached for certain wavelengths, and the number of points (npts) for those wavelengths was set to 0.",
+                UserWarning,
+            )
 
     return aveext
 
@@ -490,14 +505,12 @@ class ExtData:
 
     def trans_elv_alav(self, av=None, akav=0.112):
         """
-        Transform E(lambda-V) to A(lambda)/A(V) by normalizing to
-        A(V) and adding 1. Default is to calculate A(V) from the
-        input elx curve. If A(V) value is passed, use that one instead.
+        Transform E(lambda-V) to A(lambda)/A(V) by normalizing to A(V) and adding 1. If A(V) is in the columns of the extdata object, use that value. If A(V) is passed explicitly, use that value instead. If no A(V) is available, calculate A(V) from the input elx curve.
 
         Parameters
         ----------
         av : float [default = None]
-            value of A(V) to use - otherwise calculate it
+            value of A(V) to use - otherwise take it from the columns of the object or calculate it
 
         akav : float  [default = 0.112]
            Value of A(K)/A(V), only needed if A(V) has to be calculated from the K-band extinction
@@ -514,10 +527,11 @@ class ExtData:
             )
         else:
             if av is None:
-                self.calc_AV(akav=akav)
+                if "AV" not in self.columns.keys():
+                    self.calc_AV(akav=akav)
+                av = _get_column_val(self.columns["AV"])
 
             for curname in self.exts.keys():
-                av = _get_column_val(self.columns["AV"])
                 self.exts[curname] = (self.exts[curname] / av) + 1
                 self.uncs[curname] /= av
             # update the extinction curve type
@@ -1091,19 +1105,8 @@ class ExtData:
             fontsize for plot
         """
         if alax:
-            # compute A(V) if it is not available
-            if "AV" not in self.columns.keys():
-                self.trans_elv_alav()
-            av = _get_column_val(self.columns["AV"])
-            if self.type_rel_band != "V":  # not sure if this works (where is RV given?)
-                # use F04 model to convert AV to AX
-                rv = _get_column_val(self.columns["RV"])
-                emod = F04(rv)
-                (indx,) = np.where(self.type_rel_band == self.names["BAND"])
-                axav = emod(self.waves["BAND"][indx[0]])
-            else:
-                axav = 1.0
-            ax = axav * av
+            # transform the extinctions from E(lambda-V) to A(lambda)/A(V)
+            self.trans_elv_alav()
 
         for curtype in self.waves.keys():
             # do not plot the excluded data type(s)
@@ -1114,13 +1117,6 @@ class ExtData:
             x = self.waves[curtype].to(u.micron).value
             y = self.exts[curtype]
             yu = self.uncs[curtype]
-
-            if (
-                alax and self.type == "elx"
-            ):  # in the case A(V) was already available and the curve has not been transformed yet
-                # convert E(lambda-X) to A(lambda)/A(X)
-                y = (y / ax) + 1.0
-                yu /= ax
 
             y = y / normval + yoffset
             yu = yu / normval
@@ -1160,6 +1156,7 @@ class ExtData:
                     color=annotate_color,
                     horizontalalignment="left",
                     rotation=annotate_rotation,
+                    rotation_mode="anchor",
                     fontsize=fontsize,
                 )
 

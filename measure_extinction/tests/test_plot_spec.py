@@ -38,7 +38,7 @@ def test_plot_spectra():
         # note: verifying the existence of the pdf file with the plot is not sufficient to ensure that the different plotting options work as expected. However, these tests at least make sure that the corresponding functions run without errors.
 
         # with band data excluded from the plot
-        plot_spectrum(star, data_path, exclude="BAND", pdf=True)
+        plot_spectrum(star, data_path, exclude=["BAND"], pdf=True)
 
         # with HI-lines indicated
         plot_spectrum(star, data_path, HI_lines=True, pdf=True)
@@ -68,7 +68,7 @@ def test_plot_spectra():
     )
 
     # with band data excluded from the plot
-    plot_multi_spectra(starlist, data_path, exclude="BAND", pdf=True)
+    plot_multi_spectra(starlist, data_path, exclude=["BAND"], pdf=True)
 
     # with HI-lines indicated
     plot_multi_spectra(starlist, data_path, HI_lines=True, pdf=True)
