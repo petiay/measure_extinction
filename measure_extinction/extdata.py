@@ -97,7 +97,7 @@ def _get_column_val(column):
         return float(column)
 
 
-def AverageExtData(extdatas, min_number=1):
+def AverageExtData(extdatas, min_number=3):
     """
     Generate the average extinction curve from a list of ExtData objects
 
@@ -106,7 +106,7 @@ def AverageExtData(extdatas, min_number=1):
     extdatas : list of ExtData objects
         list of extinction curves to average
 
-    min_number : int [default=1]
+    min_number : int [default=3]
         minimum number of extinction curves that are required to measure the average extinction; if less than min_number of curves are available at certain wavelengths, the average extinction will still be calculated, but the number of points (npts) at those wavelengths will be set to zero (e.g. used in the plotting)
 
     Returns
@@ -179,7 +179,9 @@ def AverageExtData(extdatas, min_number=1):
         if min_number > 1:
             aveext.npts[src][aveext.npts[src] < min_number] = 0
             warnings.warn(
-                "The minimum number of extinction curves was not reached for certain wavelengths, and the number of points (npts) for those wavelengths was set to 0.",
+                "The minimum number of "
+                + str(min_number)
+                + " extinction curves was not reached for certain wavelengths, and the number of points (npts) for those wavelengths was set to 0.",
                 UserWarning,
             )
 
@@ -525,9 +527,7 @@ class ExtData:
             )
         else:
             if av is None:
-                if "AV" in self.columns.keys():
-                    av = self.columns["AV"]
-                else:
+                if "AV" not in self.columns.keys():
                     self.calc_AV(akav=akav)
                 av = _get_column_val(self.columns["AV"])
 
