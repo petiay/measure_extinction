@@ -703,7 +703,39 @@ class ExtData:
             if "RV" in self.columns.keys():
                 hname.append("RV")
                 hcomment.append("total-to-selective extintion R(V)")
-                hval.append(self.columns["RV"])
+                if isinstance(self.columns["RV"], tuple):
+                    hval.append(self.columns["RV"][0])
+                    if len(self.columns["RV"]) == 2:
+                        hname.append("RV_UNC")
+                        hcomment.append("R(V) uncertainty")
+                        hval.append(self.columns["RV"][1])
+                    elif len(self.columns["RV"]) == 3:
+                        hname.append("RV_L")
+                        hcomment.append("R(V) lower uncertainty")
+                        hval.append(self.columns["RV"][1])
+                        hname.append("RV_U")
+                        hcomment.append("R(V) upper uncertainty")
+                        hval.append(self.columns["RV"][2])
+                else:
+                    hval.append(self.columns["RV"])
+            if "EBV" in self.columns.keys():
+                hname.append("EBV")
+                hcomment.append("color excess E(B-V)")
+                if isinstance(self.columns["EBV"], tuple):
+                    hval.append(self.columns["EBV"][0])
+                    if len(self.columns["EBV"]) == 2:
+                        hname.append("EBV_UNC")
+                        hcomment.append("E(B-V) uncertainty")
+                        hval.append(self.columns["EBV"][1])
+                    elif len(self.columns["EBV"]) == 3:
+                        hname.append("EBV_L")
+                        hcomment.append("E(B-V) lower uncertainty")
+                        hval.append(self.columns["EBV"][1])
+                        hname.append("EBV_U")
+                        hcomment.append("E(B-V) upper uncertainty")
+                        hval.append(self.columns["EBV"][2])
+                else:
+                    hval.append(self.columns["EBV"])
 
         # legacy save param keywords
         if fm90_best_params is not None:
