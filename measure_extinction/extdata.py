@@ -920,8 +920,13 @@ class ExtData:
                     )
                 else:
                     tunc = 0.0
-
                 self.columns[curkey] = (float(pheader.get(curkey)), tunc)
+                if pheader.get("%s_L" % curkey):
+                    self.columns[curkey] = (
+                        float(pheader.get(curkey)),
+                        float(pheader.get("%s_L" % curkey)),
+                        float(pheader.get("%s_U" % curkey)),
+                    )
 
         # get the fitted model if available
         if "MODEXT" in extnames:
