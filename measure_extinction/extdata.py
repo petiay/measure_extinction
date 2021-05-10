@@ -825,9 +825,10 @@ class ExtData:
                     param.name + " upper uncertainty",
                 )
             tbhdu.header.set("MOD_TYPE", self.model["type"], "Type of fitted model")
-            tbhdu.header.set(
-                "chi2", self.model["chi2"], "Chi squared for the fitted model"
-            )
+            if "chi2" in self.model.keys():
+                tbhdu.header.set(
+                    "chi2", self.model["chi2"], "Chi squared for the fitted model"
+                )
             tbhdu.header.set("EXTNAME", "MODEXT", "Fitted model extinction")
             hdulist.append(tbhdu)
 
