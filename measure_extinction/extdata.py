@@ -912,18 +912,18 @@ class ExtData:
         for curkey in column_keys:
             if pheader.get(curkey):
                 if pheader.get("%s_UNC" % curkey):
-                    tuple = float(pheader.get(curkey)), float(
+                    tunc = float(pheader.get(curkey)), float(
                         pheader.get("%s_UNC" % curkey)
                     )
                 elif pheader.get("%s_PUNC" % curkey):
-                    tuple = (
+                    tunc = (
                         float(pheader.get(curkey)),
                         float(pheader.get("%s_MUNC" % curkey)),
                         float(pheader.get("%s_PUNC" % curkey)),
                     )
                 else:
-                    tuple = (float(pheader.get(curkey)), 0.0)
-                self.columns[curkey] = tuple
+                    tunc = (float(pheader.get(curkey)), 0.0)
+                self.columns[curkey] = tunc
 
         # get the fitted model if available
         if "MODEXT" in extnames:
