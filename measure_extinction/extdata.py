@@ -530,7 +530,6 @@ class ExtData:
                 if "AV" not in self.columns.keys():
                     self.calc_AV(akav=akav)
                 av = _get_column_val(self.columns["AV"])
-
             for curname in self.exts.keys():
                 self.exts[curname] = (self.exts[curname] / av) + 1
                 self.uncs[curname] /= av
@@ -836,9 +835,10 @@ class ExtData:
             columns = fits.ColDefs([col1, col2, col3])
             tbhdu = fits.BinTableHDU.from_columns(columns)
             # add the paramaters and their uncertainties
-            for param in self.model["params"]:
+            for i, param in enumerate(self.model["params"]):
+                # add numbers to make sure all keywords are unique
                 tbhdu.header.set(
-                    param.name[:8],
+                    param.name[:6] + str(i).zfill(2),
                     param.value,
                     param.name
                     + " | bounds="
@@ -847,12 +847,12 @@ class ExtData:
                     + str(param.fixed),
                 )
                 tbhdu.header.set(
-                    param.name[:3] + "_MUNC",
+                    param.name[0] + "_MUNC" + str(i).zfill(2),
                     param.unc_minus,
                     param.name + " lower uncertainty",
                 )
                 tbhdu.header.set(
-                    param.name[:3] + "_PUNC",
+                    param.name[0] + "_PUNC" + str(i).zfill(2),
                     param.unc_plus,
                     param.name + " upper uncertainty",
                 )
@@ -934,14 +934,19 @@ class ExtData:
             self.model["residuals"] = data["RESIDUAL"]
             self.model["params"] = []
             paramkeys = [
-                "AMPLITUD",
-                "X_0",
-                "ALPHA",
-                "SCALE",
-                "X_O",
-                "GAMMA_O",
-                "ASYM",
-                "AV",
+                "AMPLIT00",
+                "X_001",
+                "ALPHA02",
+                "SCALE03",
+                "X_O04",
+                "GAMMA_05",
+                "ASYM06",
+                "SCALE07",
+                "X_O08",
+                "GAMMA_09",
+                "ASYM10",
+                "AV11",
+                "AV03",
             ]
             self.model["type"] = hdr["MOD_TYPE"]
             for paramkey in paramkeys:
@@ -953,8 +958,8 @@ class ExtData:
                         bounds=comment[1].split("=")[1],
                         fixed=comment[2].split("=")[1],
                     )
-                    param.unc_minus = hdr[paramkey[:3] + "_MUNC"]
-                    param.unc_plus = hdr[paramkey[:3] + "_PUNC"]
+                    param.unc_minus = hdr[paramkey[0] + "_MUNC" + paramkey[-2:]]
+                    param.unc_plus = hdr[paramkey[0] + "_PUNC" + paramkey[-2:]]
                     self.model["params"].append(param)
 
         # get the columns p50 +unc -unc fit parameters if they exist
