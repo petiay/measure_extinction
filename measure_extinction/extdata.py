@@ -121,7 +121,7 @@ def AverageExtData(extdatas, min_number=3):
     for extdata in extdatas:
         # check the data type of the extinction curve, and convert if needed
         # the average curve must be calculated from the A(lambda)/A(V) curves
-        if extdata.type != "alav" or extdata.type != "alax":
+        if extdata.type != "alav" and extdata.type != "alax":
             extdata.trans_elv_alav()
 
         # collect the keywords of the data in the extinction curves, and collect the names of the BAND data in the extinction curves, and determine the wavelengths of the data
@@ -135,7 +135,7 @@ def AverageExtData(extdatas, min_number=3):
                         names.append(name)
                         bwaves.append(extdata.waves["BAND"][i].value)
     aveext.names["BAND"] = names
-    aveext.waves["BAND"] = bwaves
+    aveext.waves["BAND"] = bwaves * u.micron
     aveext.type = extdatas[0].type
     aveext.type_rel_band = extdatas[0].type_rel_band
 
@@ -825,9 +825,10 @@ class ExtData:
                     param.name + " upper uncertainty",
                 )
             tbhdu.header.set("MOD_TYPE", self.model["type"], "Type of fitted model")
-            tbhdu.header.set(
-                "chi2", self.model["chi2"], "Chi squared for the fitted model"
-            )
+            if "chi2" in self.model.keys():
+                tbhdu.header.set(
+                    "chi2", self.model["chi2"], "Chi squared for the fitted model"
+                )
             tbhdu.header.set("EXTNAME", "MODEXT", "Fitted model extinction")
             hdulist.append(tbhdu)
 
@@ -1034,6 +1035,7 @@ class ExtData:
         color=None,
         alpha=None,
         alax=False,
+        wavenum=False,
         exclude=[],
         normval=1.0,
         yoffset=0.0,
@@ -1064,6 +1066,9 @@ class ExtData:
         alax : boolean [default=False]
             convert from E(lambda-X) using A(X), if necessary
             plot A(lambda)/A(X)
+
+        wavenum : boolean [default=False]
+            plot x axis as 1/wavelength as is standard for UV extinction curves
 
         exclude : list of strings [default=[]]
             List of data type(s) to exclude from the plot (e.g., IRS)
@@ -1121,13 +1126,8 @@ class ExtData:
             y = y / normval + yoffset
             yu = yu / normval
 
-            # if curtype == legend_key:
-            #     if legend_label is None:
-            #         legval = self.red_file
-            #     else:
-            #         legval = legend_label
-            # else:
-            #     legval = None
+            if wavenum:
+                x = 1.0 / x
 
             if curtype == "BAND":
                 # plot band data as points with errorbars
