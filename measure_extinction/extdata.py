@@ -530,7 +530,6 @@ class ExtData:
                 if "AV" not in self.columns.keys():
                     self.calc_AV(akav=akav)
                 av = _get_column_val(self.columns["AV"])
-
             for curname in self.exts.keys():
                 self.exts[curname] = (self.exts[curname] / av) + 1
                 self.uncs[curname] /= av
@@ -692,10 +691,10 @@ class ExtData:
                         hcomment.append("A(V) uncertainty")
                         hval.append(self.columns["AV"][1])
                     elif len(self.columns["AV"]) == 3:
-                        hname.append("AV_L")
+                        hname.append("AV_MUNC")
                         hcomment.append("A(V) lower uncertainty")
                         hval.append(self.columns["AV"][1])
-                        hname.append("AV_U")
+                        hname.append("AV_PUNC")
                         hcomment.append("A(V) upper uncertainty")
                         hval.append(self.columns["AV"][2])
                 else:
@@ -703,7 +702,39 @@ class ExtData:
             if "RV" in self.columns.keys():
                 hname.append("RV")
                 hcomment.append("total-to-selective extintion R(V)")
-                hval.append(self.columns["RV"])
+                if isinstance(self.columns["RV"], tuple):
+                    hval.append(self.columns["RV"][0])
+                    if len(self.columns["RV"]) == 2:
+                        hname.append("RV_UNC")
+                        hcomment.append("R(V) uncertainty")
+                        hval.append(self.columns["RV"][1])
+                    elif len(self.columns["RV"]) == 3:
+                        hname.append("RV_MUNC")
+                        hcomment.append("R(V) lower uncertainty")
+                        hval.append(self.columns["RV"][1])
+                        hname.append("RV_PUNC")
+                        hcomment.append("R(V) upper uncertainty")
+                        hval.append(self.columns["RV"][2])
+                else:
+                    hval.append(self.columns["RV"])
+            if "EBV" in self.columns.keys():
+                hname.append("EBV")
+                hcomment.append("color excess E(B-V)")
+                if isinstance(self.columns["EBV"], tuple):
+                    hval.append(self.columns["EBV"][0])
+                    if len(self.columns["EBV"]) == 2:
+                        hname.append("EBV_UNC")
+                        hcomment.append("E(B-V) uncertainty")
+                        hval.append(self.columns["EBV"][1])
+                    elif len(self.columns["EBV"]) == 3:
+                        hname.append("EBV_MUNC")
+                        hcomment.append("E(B-V) lower uncertainty")
+                        hval.append(self.columns["EBV"][1])
+                        hname.append("EBV_PUNC")
+                        hcomment.append("E(B-V) upper uncertainty")
+                        hval.append(self.columns["EBV"][2])
+                else:
+                    hval.append(self.columns["EBV"])
 
         # legacy save param keywords
         if fm90_best_params is not None:
@@ -804,9 +835,10 @@ class ExtData:
             columns = fits.ColDefs([col1, col2, col3])
             tbhdu = fits.BinTableHDU.from_columns(columns)
             # add the paramaters and their uncertainties
-            for param in self.model["params"]:
+            for i, param in enumerate(self.model["params"]):
+                # add numbers to make sure all keywords are unique
                 tbhdu.header.set(
-                    param.name[:8],
+                    param.name[:6] + str(i).zfill(2),
                     param.value,
                     param.name
                     + " | bounds="
@@ -815,12 +847,12 @@ class ExtData:
                     + str(param.fixed),
                 )
                 tbhdu.header.set(
-                    param.name[:6] + "_L",
+                    param.name[0] + "_MUNC" + str(i).zfill(2),
                     param.unc_minus,
                     param.name + " lower uncertainty",
                 )
                 tbhdu.header.set(
-                    param.name[:6] + "_U",
+                    param.name[0] + "_PUNC" + str(i).zfill(2),
                     param.unc_plus,
                     param.name + " upper uncertainty",
                 )
@@ -881,16 +913,18 @@ class ExtData:
         for curkey in column_keys:
             if pheader.get(curkey):
                 if pheader.get("%s_UNC" % curkey):
-                    tunc = float(pheader.get("%s_UNC" % curkey))
+                    tunc = float(pheader.get(curkey)), float(
+                        pheader.get("%s_UNC" % curkey)
+                    )
                 elif pheader.get("%s_PUNC" % curkey):
-                    tunc = 0.5 * (
-                        float(pheader.get("%s_PUNC" % curkey))
-                        + float(pheader.get("%s_MUNC" % curkey))
+                    tunc = (
+                        float(pheader.get(curkey)),
+                        float(pheader.get("%s_MUNC" % curkey)),
+                        float(pheader.get("%s_PUNC" % curkey)),
                     )
                 else:
-                    tunc = 0.0
-
-                self.columns[curkey] = (float(pheader.get(curkey)), tunc)
+                    tunc = (float(pheader.get(curkey)), 0.0)
+                self.columns[curkey] = tunc
 
         # get the fitted model if available
         if "MODEXT" in extnames:
@@ -901,14 +935,19 @@ class ExtData:
             self.model["residuals"] = data["RESIDUAL"]
             self.model["params"] = []
             paramkeys = [
-                "AMPLITUD",
-                "X_0",
-                "ALPHA",
-                "SCALE",
-                "X_O",
-                "GAMMA_O",
-                "ASYM",
-                "AV",
+                "AMPLIT00",
+                "X_001",
+                "ALPHA02",
+                "SCALE03",
+                "X_O04",
+                "GAMMA_05",
+                "ASYM06",
+                "SCALE07",
+                "X_O08",
+                "GAMMA_09",
+                "ASYM10",
+                "AV11",
+                "AV03",
             ]
             self.model["type"] = hdr["MOD_TYPE"]
             for paramkey in paramkeys:
@@ -920,8 +959,8 @@ class ExtData:
                         bounds=comment[1].split("=")[1],
                         fixed=comment[2].split("=")[1],
                     )
-                    param.unc_minus = hdr[paramkey[:6] + "_L"]
-                    param.unc_plus = hdr[paramkey[:6] + "_U"]
+                    param.unc_minus = hdr[paramkey[0] + "_MUNC" + paramkey[-2:]]
+                    param.unc_plus = hdr[paramkey[0] + "_PUNC" + paramkey[-2:]]
                     self.model["params"].append(param)
 
         # get the columns p50 +unc -unc fit parameters if they exist
