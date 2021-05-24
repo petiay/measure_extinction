@@ -105,6 +105,7 @@ def plot_multi_spectra(
     class_offset=True,
     text_offsets=[],
     text_angles=[],
+    multicolor=False,
     pdf=False,
     outname="all_spec.pdf",
 ):
@@ -148,6 +149,9 @@ def plot_multi_spectra(
 
     text_angles : list of integers [default=[]]
         List of the same length as starlist with rotation angles for the annotated text
+
+    multicolor : boolean [default=False]
+        Whether or not to give all curves a different color
 
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
@@ -218,9 +222,13 @@ def plot_multi_spectra(
         ann_range = [min_wave, min_wave] * u.micron
 
         # plot the spectrum
+        if multicolor:
+            pcolor = colors(i % 10)
+        else:
+            pcolor = "k"
         starobs.plot(
             ax,
-            pcolor=colors(i % 10),
+            pcolor=pcolor,
             norm_wave_range=norm_range,
             mlam4=mlam4,
             exclude=exclude,
@@ -231,7 +239,7 @@ def plot_multi_spectra(
             annotate_text=star.upper() + "  " + starobs.sptype,
             annotate_yoffset=text_offsets[i],
             annotate_rotation=text_angles[i],
-            annotate_color=colors(i % 10),
+            annotate_color=pcolor,
         )
 
     # plot HI-lines if requested

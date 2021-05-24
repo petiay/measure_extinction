@@ -1093,7 +1093,7 @@ class StarData:
             plot the data multiplied by lambda^4 to remove the Rayleigh-Jeans slope
 
         exclude : list of strings [default=[]]
-            Which data type(s) to exclude from the plot (e.g., IRS)
+            Which data type(s) to exclude from the plot (e.g., "IRS", "IRAC1",...)
 
         yoffset : float [default=None]
             multiplicative or additive offset for the data
@@ -1219,6 +1219,10 @@ class StarData:
             else:
                 yplotvals += yoffset
             if curtype == "BAND":
+                # do not plot the excluded band(s)
+                for i, bandname in enumerate(self.data[curtype].get_band_names()):
+                    if bandname in exclude:
+                        yplotvals[i] = np.nan
                 # plot band data as points with errorbars
                 ax.errorbar(
                     self.data[curtype].waves.value,
