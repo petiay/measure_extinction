@@ -1093,7 +1093,7 @@ class StarData:
             plot the data multiplied by lambda^4 to remove the Rayleigh-Jeans slope
 
         exclude : list of strings [default=[]]
-            Which data type(s) to exclude from the plot (e.g., "IRS", "IRAC1",...)
+            List of data type(s) to exclude from the plot (e.g., "IRS", "IRAC1",...)
 
         yoffset : float [default=None]
             multiplicative or additive offset for the data
