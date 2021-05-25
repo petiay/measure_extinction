@@ -95,8 +95,8 @@ def plot_average(
     # make a new plot if requested
     if pdf:
         # plotting setup for easier to read plots
-        fontsize = 18
-        font = {"size": fontsize}
+        fs = 20
+        font = {"size": fs}
         plt.rc("font", **font)
         plt.rc("lines", linewidth=1)
         plt.rc("axes", linewidth=2)
@@ -105,9 +105,11 @@ def plot_average(
         plt.rc("ytick.major", width=2, size=10)
         plt.rc("ytick.minor", width=1, size=5)
         plt.rc("axes.formatter", min_exponent=2)
+        plt.rc("xtick", direction="in", labelsize=fs * 0.8)
+        plt.rc("ytick", direction="in", labelsize=fs * 0.8)
 
         # create the plot
-        fig, ax = plt.subplots(figsize=(13, 10))
+        fig, ax = plt.subplots(figsize=(10, 7))
         average.plot(ax, exclude=exclude, color="k")
 
         # plot Milky Way extinction models if requested
@@ -129,10 +131,8 @@ def plot_average(
         # finish configuring the plot
         if log:
             ax.set_xscale("log")
-        plt.xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
-        ax.set_ylabel(
-            average._get_ext_ytitle(ytype=average.type), fontsize=1.5 * fontsize
-        )
+        plt.xlabel(r"$\lambda$ [$\mu m$]", fontsize=fs)
+        ax.set_ylabel(average._get_ext_ytitle(ytype=average.type), fontsize=fs)
         fig.savefig(path + "average_ext.pdf", bbox_inches="tight")
 
         # return the figure and axes for additional manipulations
@@ -234,7 +234,7 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
                 extdata.model["params"][3].value,
             )
         elif extdata.model["type"] == "pow_alav":
-            labeltxt = r"$%5.2f \lambda ^{-%5.2f}$" % (
+            labeltxt = r"$%5.2f \,\lambda^{-%5.2f}$" % (
                 extdata.model["params"][0].value,
                 extdata.model["params"][2].value,
             )
@@ -245,9 +245,10 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
             extdata.model["exts"] + yoffset,
             "-",
             lw=2,
-            color="firebrick",
+            color="crimson",
             alpha=0.8,
             label=labeltxt,
+            zorder=5,
         )
 
         # plot the underlying powerlaw if a Drude was fitted
@@ -268,7 +269,9 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
         # plot the residuals if requested
         if res:
             plt.axes([0.125, 0, 0.775, 0.11], sharex=plt.gca())
-            plt.scatter(extdata.model["waves"], extdata.model["residuals"], s=0.5)
+            plt.scatter(
+                extdata.model["waves"], extdata.model["residuals"], s=0.5, color="k"
+            )
             plt.axhline(ls="--", c="k", alpha=0.5)
             plt.axhline(y=0.05, ls=":", c="k", alpha=0.5)
             plt.axhline(y=-0.05, ls=":", c="k", alpha=0.5)
@@ -377,6 +380,7 @@ def plot_multi_extinction(
     log=False,
     text_offsets=[],
     text_angles=[],
+    multicolor=False,
     pdf=False,
 ):
     """
@@ -422,6 +426,9 @@ def plot_multi_extinction(
 
     text_angles : list of integers [default=[]]
         List of the same length as starpair_list with rotation angles for the annotated text
+
+    multicolor : boolean [default=False]
+        Whether or not to give all curves a different color
 
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
@@ -478,9 +485,13 @@ def plot_multi_extinction(
         ann_range = [min_wave, min_wave] * u.micron
 
         # plot the extinction curve
+        if multicolor:
+            pcolor = colors(i % 10)
+        else:
+            pcolor = "k"
         extdata.plot(
             ax,
-            color=colors(i % 10),
+            color=pcolor,
             alpha=0.7,
             alax=alax,
             exclude=exclude,
@@ -490,7 +501,7 @@ def plot_multi_extinction(
             annotate_text=extdata.red_file.split(".")[0].upper(),
             annotate_yoffset=text_offsets[i],
             annotate_rotation=text_angles[i],
-            annotate_color=colors(i % 10),
+            annotate_color=pcolor,
         )
 
         # overplot a fitted model if requested
@@ -662,6 +673,9 @@ def plot_extinction(
         plt.close()
     else:
         plt.show()
+
+    # return the figure and axes for additional manipulations
+    return fig, ax
 
 
 if __name__ == "__main__":

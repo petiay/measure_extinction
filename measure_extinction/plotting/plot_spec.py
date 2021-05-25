@@ -151,7 +151,7 @@ def plot_multi_spectra(
         List of the same length as starlist with rotation angles for the annotated text
 
     multicolor : boolean [default=False]
-        Whether or not to give all curves a different color
+        Whether or not to give all spectra a different color
 
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
