@@ -1110,7 +1110,7 @@ class ExtData:
             plot x axis as 1/wavelength as is standard for UV extinction curves
 
         exclude : list of strings [default=[]]
-            List of data type(s) to exclude from the plot (e.g., IRS)
+            List of data type(s) to exclude from the plot (e.g., "IRS", "IRAC1",...)
 
         normval : float [default=1.0]
             Normalization value
@@ -1169,6 +1169,10 @@ class ExtData:
                 x = 1.0 / x
 
             if curtype == "BAND":
+                # do not plot the excluded band(s)
+                for i, bandname in enumerate(self.names[curtype]):
+                    if bandname in exclude:
+                        y[i] = np.nan
                 # plot band data as points with errorbars
                 pltax.errorbar(
                     x, y, yerr=yu, fmt="o", color=color, alpha=alpha, mfc="white"
