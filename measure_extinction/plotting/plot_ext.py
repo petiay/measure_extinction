@@ -244,7 +244,7 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
             extdata.model["waves"],
             extdata.model["exts"] + yoffset,
             "-",
-            lw=2,
+            lw=3,
             color="crimson",
             alpha=0.8,
             label=labeltxt,
@@ -268,6 +268,7 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
 
         # plot the residuals if requested
         if res:
+            plt.setp(plt.gca().get_xticklabels(), visible=False)
             plt.axes([0.125, 0, 0.775, 0.11], sharex=plt.gca())
             plt.scatter(
                 extdata.model["waves"], extdata.model["residuals"], s=0.5, color="k"
@@ -626,7 +627,7 @@ def plot_extinction(
     plt.rc("axes.formatter", min_exponent=2)
 
     # create the plot
-    fig, ax = plt.subplots(figsize=(13, 10))
+    fig, ax = plt.subplots(figsize=(10, 7))
 
     # read in and plot the extinction curve data for this star
     extdata = ExtData("%s%s_ext.fits" % (path, starpair.lower()))
