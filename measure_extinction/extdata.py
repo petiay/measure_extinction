@@ -948,6 +948,7 @@ class ExtData:
                 "ASYM10",
                 "AV11",
                 "AV03",
+                "AV07",
             ]
             self.model["type"] = hdr["MOD_TYPE"]
             for paramkey in paramkeys:
