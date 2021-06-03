@@ -30,8 +30,7 @@ def calc_ave_ext(starpair_list, path, min_number=1):
     average.save(path + "average_ext.fits")
 
 
-if __name__ == "__main__":
-
+def main():
     # commandline parser
     parser = argparse.ArgumentParser()
     parser.add_argument("redstarname", help="name of reddened star")
@@ -44,3 +43,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     calc_extinction(args.redstarname, args.compstarname, args.path)
+
+
+if __name__ == "__main__":
+    main()
