@@ -987,6 +987,7 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
+        # self.deredden()
 
     @staticmethod
     def _parse_dfile_line(line):
@@ -1125,6 +1126,7 @@ class StarData:
         pcolor=None,
         norm_wave_range=None,
         mlam4=False,
+        wavenum=False,
         exclude=[],
         yoffset=None,
         yoffset_type="multiply",
@@ -1152,6 +1154,9 @@ class StarData:
 
         mlam4 : boolean [default=False]
             plot the data multiplied by lambda^4 to remove the Rayleigh-Jeans slope
+
+        wavenum : boolean [default=False]
+            plot x axis as 1/wavelength as is standard for UV extinction curves
 
         exclude : list of strings [default=[]]
             Which data type(s) to exclude from the plot (e.g., IRS)
@@ -1243,6 +1248,11 @@ class StarData:
             # do not plot the excluded data type(s)
             if curtype in exclude:
                 continue
+
+            x = self.data[curtype].waves.value
+            if wavenum:
+                x = 1.0 / x
+
             # replace fluxes by NaNs for wavelength regions that need to be excluded from the plot, to avoid separate regions being connected artificially
             self.data[curtype].fluxes[self.data[curtype].npts == 0] = np.nan
             if mlam4:
@@ -1282,7 +1292,7 @@ class StarData:
             if curtype == "BAND":
                 # plot band data as points with errorbars
                 ax.errorbar(
-                    self.data[curtype].waves.value,
+                    x,
                     yplotvals,
                     yerr=ymult * yuncs,
                     fmt="o",
@@ -1292,7 +1302,7 @@ class StarData:
                 )
             else:
                 ax.plot(
-                    self.data[curtype].waves.value,
+                    x,
                     yplotvals,
                     "-",
                     color=pcolor,
@@ -1309,6 +1319,8 @@ class StarData:
                 ann_val = np.nanmedian(yplotvals[ann_indxs])
                 ann_val += (annotate_yoffset,)
                 ann_xval = 0.5 * np.sum(annotate_wave_range.value)
+                if wavenum:
+                    ann_xval = 1 / ann_xval
                 ax.text(
                     ann_xval,
                     ann_val,

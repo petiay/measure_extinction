@@ -286,6 +286,8 @@ def plot_spectrum(
     range=None,
     norm_range=None,
     exclude=[],
+    log=False,
+    wavenum=False,
     pdf=False,
 ):
     """
@@ -306,13 +308,19 @@ def plot_spectrum(
         Whether or not to indicate the HI-lines in the plot
 
     range : list of 2 floats [default=None]
-        Wavelength range to be plotted (in micron) - [min,max]
+        Wavelength range to be plotted - [min,max]
 
     norm_range : list of 2 floats [default=None]
         Wavelength range to use to normalize the data (in micron)- [min,max]
 
     exclude : list of strings [default=[]]
         List of data type(s) to exclude from the plot (e.g., IRS)
+
+    log : boolean [default=False]
+        Whether or not to plot the wavelengths on a log-scale
+
+    wavenum : boolean [default=False]
+        Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
 
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
@@ -339,7 +347,8 @@ def plot_spectrum(
     starobs = StarData("%s.dat" % star.lower(), path=path, use_corfac=True)
     if norm_range is not None:
         norm_range = norm_range * u.micron
-    starobs.plot(ax, norm_wave_range=norm_range, mlam4=mlam4, exclude=exclude)
+    starobs.plot(ax, norm_wave_range=norm_range, mlam4=mlam4, exclude=exclude,
+                 wavenum=wavenum)
     # plot HI-lines if requested
     if HI_lines:
         plot_HI(path, ax)
@@ -353,10 +362,15 @@ def plot_spectrum(
         outname = outname.replace(".pdf", "_zoom.pdf")
 
     # finish configuring the plot
-    ax.set_xscale("log")
+    if log:
+        ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_title(star.upper(), fontsize=50)
-    ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
+    if wavenum:
+        xlab = r"$1/\lambda$ [$\mu m^{-1}$]"
+    else:
+        xlab = r"$\lambda$ [$\mu m$]"
+    ax.set_xlabel(xlab, fontsize=1.5 * fontsize)
     if mlam4:
         ax.set_ylabel(
             r"$F(\lambda)\ \lambda^4$ [$ergs\ cm^{-2}\ s^{-1}\ \AA^{-1}\ \mu m^4$]",
@@ -402,7 +416,7 @@ def main():
     parser.add_argument(
         "--range",
         nargs="+",
-        help="wavelength range to be plotted (in micron)",
+        help="wavelength range to be plotted",
         type=float,
         default=None,
     )
@@ -427,6 +441,9 @@ def main():
     )
     parser.add_argument(
         "--log", help="plot wavelengths on a log-scale", action="store_true"
+    )
+    parser.add_argument(
+        "--wavenum", help="plot wavenumbers = 1/wavelengths", action="store_true"
     )
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
@@ -459,9 +476,9 @@ def main():
                 args.norm_range,
                 args.exclude,
                 args.log,
+                args.wavenum,
                 args.pdf,
             )
-
 
 
 if __name__ == "__main__":
