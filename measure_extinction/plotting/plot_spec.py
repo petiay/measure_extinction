@@ -379,7 +379,7 @@ def plot_spectrum(
         plt.show()
 
 
-if __name__ == "__main__":
+def main():
     # commandline parser
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -461,3 +461,8 @@ if __name__ == "__main__":
                 args.log,
                 args.pdf,
             )
+
+
+
+if __name__ == "__main__":
+    main()

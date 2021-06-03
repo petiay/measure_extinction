@@ -664,7 +664,7 @@ def plot_extinction(
         plt.show()
 
 
-if __name__ == "__main__":
+def main():
     # commandline parser
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -747,3 +747,7 @@ if __name__ == "__main__":
                 args.exclude,
                 args.pdf,
             )
+
+
+if __name__ == "__main__":
+    main()
