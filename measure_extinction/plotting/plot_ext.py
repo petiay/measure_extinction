@@ -377,6 +377,7 @@ def plot_multi_extinction(
     log=False,
     text_offsets=[],
     text_angles=[],
+    wavenum=False,
     pdf=False,
 ):
     """
@@ -423,6 +424,9 @@ def plot_multi_extinction(
     text_angles : list of integers [default=[]]
         List of the same length as starpair_list with rotation angles for the annotated text
 
+    wavenum : boolean [default=False]
+        Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
+
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
 
@@ -443,7 +447,10 @@ def plot_multi_extinction(
     plt.rc("axes.formatter", min_exponent=2)
 
     # create the plot
-    fig, ax = plt.subplots(figsize=(15, len(starpair_list) * 1.25))
+    ysize = 6
+    if spread:
+        ysize += len(starpair_list) * 1.25
+    fig, ax = plt.subplots(figsize=(8, ysize))
     colors = plt.get_cmap("tab10")
 
     # set default text offsets and angles
@@ -487,10 +494,12 @@ def plot_multi_extinction(
             yoffset=yoffset,
             annotate_key=ann_key,
             annotate_wave_range=ann_range,
-            annotate_text=extdata.red_file.split(".")[0].upper(),
+            annotate_text=extdata.red_file.split(".")[0].upper() + extdata.comp_file.split(".")[0].upper(),
+            # annotate_text=extdata.red_file.split(".")[0].upper(),
             annotate_yoffset=text_offsets[i],
             annotate_rotation=text_angles[i],
             annotate_color=colors(i % 10),
+            wavenum=wavenum,
         )
 
         # overplot a fitted model if requested
@@ -535,11 +544,17 @@ def plot_multi_extinction(
     # finish configuring the plot
     if log:
         ax.set_xscale("log")
-    ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
+    if wavenum:
+        xlab = r"$1/\lambda$ [$\mu m^{-1}$]"
+    else:
+        xlab = r"$\lambda$ [$\mu m$]"
+    plt.xlabel(xlab, fontsize=1.5 * fontsize)
     ylabel = extdata._get_ext_ytitle(ytype=extdata.type)
     if spread:
         ylabel += " + offset"
     ax.set_ylabel(ylabel, fontsize=1.5 * fontsize)
+
+    fig.tight_layout()
 
     # show the figure or save it to a pdf file
     if pdf:
@@ -561,6 +576,7 @@ def plot_extinction(
     range=None,
     exclude=[],
     log=False,
+    wavenum=False,
     pdf=False,
 ):
     """
@@ -595,6 +611,9 @@ def plot_extinction(
     log : boolean [default=False]
         Whether or not to plot the wavelengths on a log scale
 
+    wavenum : boolean [default=False]
+        Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
+
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
 
@@ -619,7 +638,13 @@ def plot_extinction(
 
     # read in and plot the extinction curve data for this star
     extdata = ExtData("%s%s_ext.fits" % (path, starpair.lower()))
-    extdata.plot(ax, alax=alax, exclude=exclude, color="k")
+    extdata.plot(
+        ax,
+        alax=alax,
+        exclude=exclude,
+        color="k",
+        wavenum=wavenum,
+    )
 
     # define the output name
     outname = "%s_ext_%s.pdf" % (starpair.lower(), extdata.type)
@@ -653,8 +678,15 @@ def plot_extinction(
     )
     if log:
         ax.set_xscale("log")
-    plt.xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
-    ax.set_ylabel(extdata._get_ext_ytitle(ytype=extdata.type), fontsize=1.5 * fontsize)
+    if wavenum:
+        xlab = r"$1/\lambda$ [$\mu m^{-1}$]"
+    else:
+        xlab = r"$\lambda$ [$\mu m$]"
+    plt.xlabel(xlab, fontsize=1.5 * fontsize)
+    ax.set_ylabel(
+        extdata._get_ext_ytitle(ytype=extdata.type),
+        fontsize=1.5 * fontsize,
+    )
 
     # show the figure or save it to a pdf file
     if pdf:
@@ -710,21 +742,30 @@ def main():
         type=str,
         default=[],
     )
+    parser.add_argument(
+        "--log", help="plot wavelengths on a log-scale", action="store_true"
+    )
+    parser.add_argument(
+        "--wavenum", help="plot wavenumbers = 1/wavelengths", action="store_true"
+    )
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
+
     if args.onefig:  # plot all curves in the same figure
         plot_multi_extinction(
             args.starpair_list,
             args.path,
-            args.alax,
-            args.average,
-            args.extmodels,
-            args.fitmodel,
-            args.HI_lines,
-            args.range,
-            args.spread,
-            args.exclude,
-            args.pdf,
+            alax=args.alax,
+            average=args.average,
+            extmodels=args.extmodels,
+            fitmodel=args.fitmodel,
+            HI_lines=args.HI_lines,
+            range=args.range,
+            spread=args.spread,
+            exclude=args.exclude,
+            wavenum=args.wavenum,
+            log=args.log,
+            pdf=args.pdf,
         )
     else:  # plot all curves separately
         if args.spread:
@@ -739,13 +780,15 @@ def main():
             plot_extinction(
                 starpair,
                 args.path,
-                args.alax,
-                args.extmodels,
-                args.fitmodel,
-                args.HI_lines,
-                args.range,
-                args.exclude,
-                args.pdf,
+                alax=args.alax,
+                extmodels=args.extmodels,
+                fitmodel=args.fitmodel,
+                HI_lines=args.HI_lines,
+                range=args.range,
+                exclude=args.exclude,
+                wavenum=args.wavenum,
+                log=args.log,
+                pdf=args.pdf,
             )
 
 
