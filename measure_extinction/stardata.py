@@ -840,7 +840,8 @@ class StarData:
         whether or not the LXD scaling factor has been set manually, default = False
     """
 
-    def __init__(self, datfile, path="", photonly=False, use_corfac=True):
+    def __init__(self, datfile, path="", photonly=False, use_corfac=True,
+                 deredden=False):
         """
         Parameters
         ----------
@@ -856,6 +857,10 @@ class StarData:
         use_corfac: boolean
             Modify the spectra based on precomputed correction factors
             Currently only affects Spitzer/IRS data and SpeX data
+
+        deredden : boolean [default=False]
+           Deredden the data based on dereddening parameters given in the DAT file.
+           Generally used to deredden standards.
         """
         self.file = datfile
         self.path = path
@@ -867,13 +872,20 @@ class StarData:
         self.photonly = photonly
         self.use_corfac = use_corfac
         self.LXD_man = False
+        self.dereddened = deredden
 
         if self.file is not None:
-            self.read()
+            self.read(deredden=deredden)
 
-    def read(self):
+    def read(self, deredden=False):
         """
         Populate the object from a DAT file + spectral files
+
+        Parameters
+        ----------
+        deredden : boolean [default=False]
+           Deredden the data based on dereddening parameters given in the DAT file.
+           Generally used to deredden standards.
         """
 
         # open and read all the lines in the file
@@ -987,7 +999,10 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-        # self.deredden()
+
+        # if desired and the necessary dereddening parameters are present
+        if deredden:
+            self.deredden()
 
     @staticmethod
     def _parse_dfile_line(line):
@@ -1032,8 +1047,9 @@ class StarData:
             optnir_axav_x = 1.0 / self.data["BAND"].waves[gvals]
             optnir_axav_y = optnirext(optnir_axav_x)
             fm = self.deredden_params["FM90"]
+            optnir_sindxs = np.argsort(optnir_axav_x)
 
-            xrange = np.flip(1.0 * u.micron / optnirext.x_range)
+            xrange = np.flip(1.0 / np.array(optnirext.x_range)) * u.micron
             for curtype in self.data.keys():
                 cwaves = self.data[curtype].waves
                 gvals = (cwaves > xrange[0]) & (cwaves < xrange[1])
@@ -1047,20 +1063,20 @@ class StarData:
                         fm[3],
                         fm[4],
                         fm[5],
-                        optnir_axav_x,
-                        optnir_axav_y,
+                        optnir_axav_x.value[optnir_sindxs],
+                        optnir_axav_y[optnir_sindxs],
                         optnirext.x_range,
                         "F99_method",
                     )
-                    print(self.data[curtype].waves[gvals])
-                    print(alav)
+                    self.data[curtype].fluxes[gvals] /= 10 ** (
+                        -0.4 * alav * self.deredden_params["AV"]
+                    )
                 else:
                     warnings.warn(f"{curtype} cannot be dereddened", UserWarning)
         else:
             warnings.warn(
                 "cannont deredden as no dereddening parameters set", UserWarning
             )
-        exit()
 
     def get_flat_data_arrays(self, req_datasources):
         """

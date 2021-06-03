@@ -105,6 +105,8 @@ def plot_multi_spectra(
     class_offset=True,
     text_offsets=[],
     text_angles=[],
+    wavenum=False,
+    deredden=False,
     pdf=False,
     outname="all_spec.pdf",
 ):
@@ -152,6 +154,13 @@ def plot_multi_spectra(
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
 
+    wavenum : boolean [default=False]
+        Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
+
+    deredden : boolean [default=False]
+       Deredden the data based on dereddening parameters given in the DAT file.
+       Generally used to deredden standards.
+
     outname : string [default="all_spec.pdf"]
         Name for the output pdf file
 
@@ -185,7 +194,9 @@ def plot_multi_spectra(
 
     for i, star in enumerate(starlist):
         # read in all bands and spectra for this star
-        starobs = StarData("%s.dat" % star.lower(), path=path, use_corfac=True)
+        starobs = StarData(
+            "%s.dat" % star.lower(), path=path, use_corfac=True, deredden=deredden
+        )
 
         # spread out the spectra if requested
         # add extra whitespace when the luminosity class changes from main sequence to giant
@@ -205,17 +216,25 @@ def plot_multi_spectra(
         (waves, fluxes, flux_uncs) = starobs.get_flat_data_arrays(
             starobs.data.keys() - (exclude + exclude2)
         )
+        if wavenum:
+            x = 1 / waves
+        else:
+            x = waves
         if range is not None:
-            waves = waves[waves >= range[0]]
-        min_wave = waves[0]
+            x = x[x >= range[0]]
+        min_x = x[0]
         # find out which data type corresponds with this wavelength
         for data_type in starobs.data.keys():
             if data_type in exclude:
                 continue
-            used_waves = starobs.data[data_type].waves[starobs.data[data_type].npts > 0]
-            if min_wave in used_waves.value:
+            if wavenum:
+                cx = 1.0 / starobs.data[data_type].waves
+            else:
+                cx = starobs.data[data_type].waves
+            used_x = cx[starobs.data[data_type].npts > 0]
+            if min_x in used_x.value:
                 ann_key = data_type
-        ann_range = [min_wave, min_wave] * u.micron
+        ann_range = [min_x, min_x] * u.micron
 
         # plot the spectrum
         starobs.plot(
@@ -223,6 +242,7 @@ def plot_multi_spectra(
             pcolor=colors(i % 10),
             norm_wave_range=norm_range,
             mlam4=mlam4,
+            wavenum=wavenum,
             exclude=exclude,
             yoffset=yoffset,
             yoffset_type="add",
@@ -248,7 +268,11 @@ def plot_multi_spectra(
         ax.set_yscale("log")
     if log:
         ax.set_xscale("log")
-    ax.set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
+    if wavenum:
+        xlab = r"$1/\lambda$ [$\mu m^{-1}$]"
+    else:
+        xlab = r"$\lambda$ [$\mu m$]"
+    ax.set_xlabel(xlab, fontsize=1.5 * fontsize)
     ylabel = r"$F(\lambda)$"
 
     if norm_range is not None:
@@ -288,6 +312,7 @@ def plot_spectrum(
     exclude=[],
     log=False,
     wavenum=False,
+    deredden=False,
     pdf=False,
 ):
     """
@@ -322,6 +347,10 @@ def plot_spectrum(
     wavenum : boolean [default=False]
         Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
 
+    deredden : boolean [default=False]
+       Deredden the data based on dereddening parameters given in the DAT file.
+       Generally used to deredden standards.
+
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
 
@@ -344,11 +373,14 @@ def plot_spectrum(
     fig, ax = plt.subplots(figsize=(13, 10))
 
     # read in and plot all bands and spectra for this star
-    starobs = StarData("%s.dat" % star.lower(), path=path, use_corfac=True)
+    starobs = StarData(
+        "%s.dat" % star.lower(), path=path, use_corfac=True, deredden=deredden
+    )
     if norm_range is not None:
         norm_range = norm_range * u.micron
-    starobs.plot(ax, norm_wave_range=norm_range, mlam4=mlam4, exclude=exclude,
-                 wavenum=wavenum)
+    starobs.plot(
+        ax, norm_wave_range=norm_range, mlam4=mlam4, exclude=exclude, wavenum=wavenum
+    )
     # plot HI-lines if requested
     if HI_lines:
         plot_HI(path, ax)
@@ -445,6 +477,11 @@ def main():
     parser.add_argument(
         "--wavenum", help="plot wavenumbers = 1/wavelengths", action="store_true"
     )
+    parser.add_argument(
+        "--deredden",
+        help="deredden the data based on saved parameters",
+        action="store_true",
+    )
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
 
@@ -459,6 +496,8 @@ def main():
             spread=args.spread,
             exclude=args.exclude,
             log=args.log,
+            wavenum=args.wavenum,
+            deredden=args.deredden,
             pdf=args.pdf,
         )
     else:  # plot all spectra separately
@@ -470,14 +509,15 @@ def main():
             plot_spectrum(
                 star,
                 args.path,
-                args.mlam4,
-                args.HI_lines,
-                args.range,
-                args.norm_range,
-                args.exclude,
-                args.log,
-                args.wavenum,
-                args.pdf,
+                mlam4=args.mlam4,
+                HI_lines=args.HI_lines,
+                range=args.range,
+                norm_range=args.norm_range,
+                exclude=args.exclude,
+                log=args.log,
+                wavenum=args.wavenum,
+                deredden=args.deredden,
+                pdf=args.pdf,
             )
 
 
