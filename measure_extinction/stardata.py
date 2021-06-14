@@ -1075,7 +1075,7 @@ class StarData:
                     warnings.warn(f"{curtype} cannot be dereddened", UserWarning)
         else:
             warnings.warn(
-                "cannont deredden as no dereddening parameters set", UserWarning
+                "cannot deredden as no dereddening parameters set", UserWarning
             )
 
     def get_flat_data_arrays(self, req_datasources):
