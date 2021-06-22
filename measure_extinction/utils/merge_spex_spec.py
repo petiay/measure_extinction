@@ -45,9 +45,6 @@ def merge_spex(starname, inpath, outpath):
             format="ascii",
             names=["WAVELENGTH", "FLUX", "ERROR", "FLAG"],
         )
-        # if the error is smaller than 1% of the flux, set the error to 1% of the flux (i.e. set maximum SNR to 100)
-        SNR_max = table["ERROR"] < 0.01 * table["FLUX"]
-        table["ERROR"][SNR_max] = 0.01 * table["FLUX"][SNR_max]
         spex_merged = merge_spex_obsspec(table, mask)
         spex_file = os.path.basename(filename).split(".")[0] + "_spex.fits"
         spex_merged.write("%s/%s" % (outpath, spex_file), overwrite=True)

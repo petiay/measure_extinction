@@ -269,6 +269,8 @@ def merge_spex_obsspec(obstable, mask=[], output_resolution=2000):
     npts[obstable["FLAG"] != 0] = 0
     # take out data points with NaN fluxes
     npts[np.isnan(fluxes)] = 0
+    # quadratically add 1 percent uncertainty to account for unknown uncertainties
+    uncs = np.sqrt(uncs ** 2 + (0.01 * fluxes) ** 2)
     # take out data points with low SNR
     npts[np.less(fluxes / uncs, 10, where=~np.isnan(fluxes / uncs))] = 0
     # take out wavelength regions affected by the atmosphere
