@@ -834,28 +834,29 @@ class ExtData:
             )
             columns = fits.ColDefs([col1, col2, col3])
             tbhdu = fits.BinTableHDU.from_columns(columns)
-            # add the paramaters and their uncertainties
-            for i, param in enumerate(self.model["params"]):
-                # add numbers to make sure all keywords are unique
-                tbhdu.header.set(
-                    param.name[:6] + str(i).zfill(2),
-                    param.value,
-                    param.name
-                    + " | bounds="
-                    + str(param.bounds)
-                    + " | fixed="
-                    + str(param.fixed),
-                )
-                tbhdu.header.set(
-                    param.name[0] + "_MUNC" + str(i).zfill(2),
-                    param.unc_minus,
-                    param.name + " lower uncertainty",
-                )
-                tbhdu.header.set(
-                    param.name[0] + "_PUNC" + str(i).zfill(2),
-                    param.unc_plus,
-                    param.name + " upper uncertainty",
-                )
+            if "params" in self.model.keys():
+                # add the paramaters and their uncertainties
+                for i, param in enumerate(self.model["params"]):
+                    # add numbers to make sure all keywords are unique
+                    tbhdu.header.set(
+                        param.name[:6] + str(i).zfill(2),
+                        param.value,
+                        param.name
+                        + " | bounds="
+                        + str(param.bounds)
+                        + " | fixed="
+                        + str(param.fixed),
+                    )
+                    tbhdu.header.set(
+                        param.name[0] + "_MUNC" + str(i).zfill(2),
+                        param.unc_minus,
+                        param.name + " lower uncertainty",
+                    )
+                    tbhdu.header.set(
+                        param.name[0] + "_PUNC" + str(i).zfill(2),
+                        param.unc_plus,
+                        param.name + " upper uncertainty",
+                    )
             tbhdu.header.set("MOD_TYPE", self.model["type"], "Type of fitted model")
             if "chi2" in self.model.keys():
                 tbhdu.header.set(
