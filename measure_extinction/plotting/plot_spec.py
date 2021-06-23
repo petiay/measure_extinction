@@ -66,7 +66,8 @@ def zoom(ax, range):
         Axes of plot for which new limits need to be set
 
     range : list of 2 floats
-        Wavelength range to be plotted (in micron) - [min,max]
+        Wavelength range to be plotted [min, max]
+        in micron when plotting wavelengths or in 1/micron when plotting wavenumber
 
     Returns
     -------
@@ -128,7 +129,8 @@ def plot_multi_spectra(
         Whether or not to indicate the HI-lines in the plot
 
     range : list of 2 floats [default=None]
-        Wavelength range to be plotted (in micron) - [min,max]
+        Wavelength range to be plotted [min, max]
+        in micron when plotting wavelengths or in 1/micron when plotting wavenumber
 
     norm_range : list of 2 floats [default=None]
         Wavelength range to use to normalize the data (in micron)- [min,max]
