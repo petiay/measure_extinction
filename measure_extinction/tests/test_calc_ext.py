@@ -12,7 +12,7 @@ def test_calc_extinction():
     compstarname = "HD204172"
 
     # calculate the extinction curve
-    calc_extinction(redstarname, compstarname, data_path)
+    calc_extinction(redstarname, compstarname, data_path, savepath=data_path)
 
     # check if an extinction curve has been calculated and saved to a fits file
     assert os.path.isfile(
