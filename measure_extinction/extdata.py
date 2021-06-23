@@ -929,17 +929,11 @@ class ExtData:
 
         # get the fitted model if available
         if "MODEXT" in extnames:
-<<<<<<< HEAD
             data = hdulist["MODEXT"].data
             hdr = hdulist["MODEXT"].header
             self.model["waves"] = data["MOD_WAVE"]
             self.model["exts"] = data["MOD_EXT"]
             self.model["residuals"] = data["RESIDUAL"]
-=======
-            self.model["waves"] = hdulist["MODEXT"].data["MOD_WAVE"]
-            self.model["exts"] = hdulist["MODEXT"].data["MOD_EXT"]
-            self.model["residuals"] = hdulist["MODEXT"].data["RESIDUAL"]
->>>>>>> 7f8d6d3... removing micron stuff as not working
             self.model["params"] = []
             paramkeys = [
                 "AMPLIT00",
