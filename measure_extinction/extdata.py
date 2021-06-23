@@ -805,11 +805,7 @@ class ExtData:
         # write the portions of the extinction curve from each dataset
         # individual extensions so that the full info is perserved
         for curname in self.exts.keys():
-            col1 = fits.Column(
-                name="WAVELENGTH",
-                format="E",
-                array=self.waves[curname].to(u.micron).value,
-            )
+            col1 = fits.Column(name="WAVELENGTH", format="E", array=self.waves[curname])
             col2 = fits.Column(name="EXT", format="E", array=self.exts[curname])
             col3 = fits.Column(name="UNC", format="E", array=self.uncs[curname])
             col4 = fits.Column(name="NPTS", format="E", array=self.npts[curname])
@@ -831,11 +827,7 @@ class ExtData:
 
         # write the fitted model if available
         if self.model:
-            col1 = fits.Column(
-                name="MOD_WAVE",
-                format="E",
-                array=self.model["waves"].to(u.micron).value,
-            )
+            col1 = fits.Column(name="MOD_WAVE", format="E", array=self.model["waves"])
             col2 = fits.Column(name="MOD_EXT", format="E", array=self.model["exts"])
             col3 = fits.Column(
                 name="RESIDUAL", format="E", array=self.model["residuals"]
@@ -937,11 +929,17 @@ class ExtData:
 
         # get the fitted model if available
         if "MODEXT" in extnames:
+<<<<<<< HEAD
             data = hdulist["MODEXT"].data
             hdr = hdulist["MODEXT"].header
             self.model["waves"] = data["MOD_WAVE"]
             self.model["exts"] = data["MOD_EXT"]
             self.model["residuals"] = data["RESIDUAL"]
+=======
+            self.model["waves"] = hdulist["MODEXT"].data["MOD_WAVE"]
+            self.model["exts"] = hdulist["MODEXT"].data["MOD_EXT"]
+            self.model["residuals"] = hdulist["MODEXT"].data["RESIDUAL"]
+>>>>>>> 7f8d6d3... removing micron stuff as not working
             self.model["params"] = []
             paramkeys = [
                 "AMPLIT00",
