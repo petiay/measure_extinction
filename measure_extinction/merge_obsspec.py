@@ -274,10 +274,10 @@ def merge_spex_obsspec(obstable, mask=[], output_resolution=2000):
     # take out data points with low SNR
     npts[np.less(fluxes / uncs, 10, where=~np.isnan(fluxes / uncs))] = 0
     # take out wavelength regions affected by the atmosphere
-    npts[np.logical_and(1.354e4 < waves, waves < 1.411e4)] = 0
-    npts[np.logical_and(1.805e4 < waves, waves < 1.947e4)] = 0
-    npts[np.logical_and(2.522e4 < waves, waves < 2.875e4)] = 0
-    npts[np.logical_and(4.014e4 < waves, waves < 4.594e4)] = 0
+    npts[np.logical_and(1.347e4 < waves, waves < 1.415e4)] = 0
+    npts[np.logical_and(1.798e4 < waves, waves < 1.949e4)] = 0
+    npts[np.logical_and(2.514e4 < waves, waves < 2.880e4)] = 0
+    npts[np.logical_and(4.000e4 < waves, waves < 4.594e4)] = 0
     # take out data points that need to be masked
     for region in mask:
         npts[(waves > region[0] * 1e4) & (waves < region[1] * 1e4)] = 0
