@@ -21,6 +21,7 @@ def plot_average(
     ax=None,
     extmodels=False,
     fitmodel=False,
+    res=False,
     HI_lines=False,
     range=None,
     exclude=[],
@@ -50,6 +51,9 @@ def plot_average(
     fitmodel: boolean [default=False]
         Whether or not to overplot a fitted model
 
+    res : boolean [default=False]
+        Whether or not to plot the residuals of the fitting (only useful when fitmodel=True)
+
     HI_lines : boolean [default=False]
         Whether or not to indicate the HI-lines in the plot
 
@@ -57,7 +61,7 @@ def plot_average(
         Wavelength range to be plotted (in micron) - [min,max]
 
     exclude : list of strings [default=[]]
-        List of data type(s) to exclude from the plot (e.g., IRS)
+        List of data type(s) to exclude from the plot (e.g., "IRS", "IRAC1")
 
     log : boolean [default=False]
         Whether or not to plot the wavelengths on a log-scale
@@ -118,7 +122,7 @@ def plot_average(
 
         # overplot a fitted model if requested
         if fitmodel:
-            plot_fitmodel(average, res=True)
+            plot_fitmodel(average, res=res)
 
         # plot HI-lines if requested
         if HI_lines:
@@ -238,6 +242,7 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
                 extdata.model["params"][0].value,
                 extdata.model["params"][2].value,
             )
+
         else:
             labeltxt = "fitted model"
         plt.plot(
@@ -417,7 +422,7 @@ def plot_multi_extinction(
         Whether or not to spread the extinction curves out by adding a vertical offset to each curve
 
     exclude : list of strings [default=[]]
-        List of data type(s) to exclude from the plot (e.g., IRS)
+        List of data type(s) to exclude from the plot (e.g., "IRS", "IRAC1")
 
     log : boolean [default=False]
         Whether or not to plot the wavelengths on a log-scale
@@ -471,8 +476,13 @@ def plot_multi_extinction(
             yoffset = 0.0
 
         # determine where to add the name of the star
-        # find the shortest plotted wavelength
-        (waves, exts, ext_uncs) = extdata.get_fitdata(extdata.waves.keys() - exclude)
+        # find the shortest plotted wavelength, and give preference to spectral data when available
+        exclude2 = []
+        if "BAND" in extdata.waves.keys() and len(extdata.waves.keys()) > 1:
+            exclude2 = ["BAND"]
+        (waves, exts, ext_uncs) = extdata.get_fitdata(
+            extdata.waves.keys() - (exclude + exclude2)
+        )
         if range is not None:
             waves = waves[waves.value >= range[0]]
         min_wave = waves[-1]
@@ -602,7 +612,7 @@ def plot_extinction(
         Wavelength range to be plotted (in micron) - [min,max]
 
     exclude : list of strings [default=[]]
-        List of data type(s) to exclude from the plot (e.g., IRS)
+        List of data type(s) to exclude from the plot (e.g., "IRS", "IRAC1")
 
     log : boolean [default=False]
         Whether or not to plot the wavelengths on a log scale
