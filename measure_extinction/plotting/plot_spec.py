@@ -387,6 +387,9 @@ def plot_spectrum(
     else:
         plt.show()
 
+    # return the figure and axes for additional manipulations
+    return fig, ax
+
 
 if __name__ == "__main__":
     # commandline parser
