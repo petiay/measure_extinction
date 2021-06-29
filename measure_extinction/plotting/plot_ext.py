@@ -438,7 +438,7 @@ def plot_multi_extinction(
         Whether or not to give all curves a different color
     wavenum : boolean [default=False]
         Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
-    
+
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
 
