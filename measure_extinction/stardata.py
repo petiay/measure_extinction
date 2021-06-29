@@ -6,10 +6,12 @@ from collections import OrderedDict
 
 import numpy as np
 
-# from astropy.io import fits
 from astropy.table import Table
 from astropy import constants as const
 import astropy.units as u
+
+from dust_extinction.parameter_averages import CCM89
+from dust_extinction.shapes import _curve_F99_method
 
 __all__ = ["StarData", "BandData", "SpecData"]
 
@@ -838,7 +840,8 @@ class StarData:
         whether or not the LXD scaling factor has been set manually, default = False
     """
 
-    def __init__(self, datfile, path="", photonly=False, use_corfac=True):
+    def __init__(self, datfile, path="", photonly=False, use_corfac=True,
+                 deredden=False):
         """
         Parameters
         ----------
@@ -854,6 +857,10 @@ class StarData:
         use_corfac: boolean
             Modify the spectra based on precomputed correction factors
             Currently only affects Spitzer/IRS data and SpeX data
+
+        deredden : boolean [default=False]
+           Deredden the data based on dereddening parameters given in the DAT file.
+           Generally used to deredden standards.
         """
         self.file = datfile
         self.path = path
@@ -861,16 +868,24 @@ class StarData:
         self.model_params = {}
         self.data = {}
         self.corfac = {}
+        self.deredden_params = {}
         self.photonly = photonly
         self.use_corfac = use_corfac
         self.LXD_man = False
+        self.dereddened = deredden
 
         if self.file is not None:
-            self.read()
+            self.read(deredden=deredden)
 
-    def read(self):
+    def read(self, deredden=False):
         """
         Populate the object from a DAT file + spectral files
+
+        Parameters
+        ----------
+        deredden : boolean [default=False]
+           Deredden the data based on dereddening parameters given in the DAT file.
+           Generally used to deredden standards.
         """
 
         # open and read all the lines in the file
@@ -907,6 +922,15 @@ class StarData:
                     self.corfac["IRS_maxwave"] = float(cpair[1])
                 elif cpair[0] == "corfac_irs":
                     self.corfac["IRS"] = float(cpair[1])
+                elif cpair[0].find("dered") != -1:
+                    if cpair[0].find("RV") != -1:
+                        self.deredden_params["RV"] = float(cpair[1])
+                    elif cpair[0].find("AV") != -1:
+                        self.deredden_params["AV"] = float(cpair[1])
+                    elif cpair[0].find("FM") != -1:
+                        self.deredden_params["FM90"] = [
+                            float(cfm) for cfm in cpair[1].split("  ")
+                        ]
 
         # read the spectra
         if not self.photonly:
@@ -976,6 +1000,10 @@ class StarData:
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
 
+        # if desired and the necessary dereddening parameters are present
+        if deredden:
+            self.deredden()
+
     @staticmethod
     def _parse_dfile_line(line):
         """
@@ -999,6 +1027,56 @@ class StarData:
                 if colpos == 0:
                     colpos = len(line)
                 return (line[0 : eqpos - 1].strip(), line[eqpos + 1 : colpos].strip())
+
+    def deredden(self):
+        """
+        Remove the effects of extinction from all the data.
+        Prime use to deredden a standard star for a small amount of extinction.
+        Information on the extinction curve to use is given in the DAT_file.
+        Uses FM90 parameters for the UV portion of the extinction curve
+        and CCM89 extinction values for the optical/NIR based on R(V).
+        A(V) values used for dust column.
+        """
+        if self.deredden_params:
+            # deredden the BANDs and IUE/STIS/FUSE data
+            #  will need to add other options if/when dereddening expanded
+
+            # info for dereddening model (F99 method)
+            optnirext = CCM89()
+            gvals = self.data["BAND"].waves < 3.0 * u.micron
+            optnir_axav_x = 1.0 / self.data["BAND"].waves[gvals]
+            optnir_axav_y = optnirext(optnir_axav_x)
+            fm = self.deredden_params["FM90"]
+            optnir_sindxs = np.argsort(optnir_axav_x)
+
+            xrange = np.flip(1.0 / np.array(optnirext.x_range)) * u.micron
+            for curtype in self.data.keys():
+                cwaves = self.data[curtype].waves
+                gvals = (cwaves > xrange[0]) & (cwaves < xrange[1])
+                if np.any(gvals):
+                    alav = _curve_F99_method(
+                        self.data[curtype].waves[gvals],
+                        self.deredden_params["RV"],
+                        fm[0],
+                        fm[1],
+                        fm[2],
+                        fm[3],
+                        fm[4],
+                        fm[5],
+                        optnir_axav_x.value[optnir_sindxs],
+                        optnir_axav_y[optnir_sindxs],
+                        optnirext.x_range,
+                        "F99_method",
+                    )
+                    self.data[curtype].fluxes[gvals] /= 10 ** (
+                        -0.4 * alav * self.deredden_params["AV"]
+                    )
+                else:
+                    warnings.warn(f"{curtype} cannot be dereddened", UserWarning)
+        else:
+            warnings.warn(
+                "cannot deredden as no dereddening parameters set", UserWarning
+            )
 
     def get_flat_data_arrays(self, req_datasources):
         """
@@ -1064,6 +1142,7 @@ class StarData:
         pcolor=None,
         norm_wave_range=None,
         mlam4=False,
+        wavenum=False,
         exclude=[],
         yoffset=None,
         yoffset_type="multiply",
@@ -1091,6 +1170,9 @@ class StarData:
 
         mlam4 : boolean [default=False]
             plot the data multiplied by lambda^4 to remove the Rayleigh-Jeans slope
+
+        wavenum : boolean [default=False]
+            plot x axis as 1/wavelength as is standard for UV extinction curves
 
         exclude : list of strings [default=[]]
             List of data type(s) to exclude from the plot (e.g., "IRS", "IRAC1",...)
@@ -1182,6 +1264,11 @@ class StarData:
             # do not plot the excluded data type(s)
             if curtype in exclude:
                 continue
+
+            x = self.data[curtype].waves.value
+            if wavenum:
+                x = 1.0 / x
+
             # replace fluxes by NaNs for wavelength regions that need to be excluded from the plot, to avoid separate regions being connected artificially
             self.data[curtype].fluxes[self.data[curtype].npts == 0] = np.nan
             if mlam4:
@@ -1225,7 +1312,7 @@ class StarData:
                         yplotvals[i] = np.nan
                 # plot band data as points with errorbars
                 ax.errorbar(
-                    self.data[curtype].waves.value,
+                    x,
                     yplotvals,
                     yerr=ymult * yuncs,
                     fmt="o",
@@ -1235,7 +1322,7 @@ class StarData:
                 )
             else:
                 ax.plot(
-                    self.data[curtype].waves.value,
+                    x,
                     yplotvals,
                     "-",
                     color=pcolor,
@@ -1252,11 +1339,14 @@ class StarData:
                 ann_val = np.nanmedian(yplotvals[ann_indxs])
                 ann_val += (annotate_yoffset,)
                 ann_xval = 0.5 * np.sum(annotate_wave_range.value)
+                if wavenum:
+                    ann_xval = 1 / ann_xval
                 ax.text(
                     ann_xval,
                     ann_val,
                     annotate_text,
                     color=annotate_color,
-                    horizontalalignment="left",
+                    horizontalalignment="center",
                     rotation=annotate_rotation,
+                    fontsize=fontsize,
                 )
