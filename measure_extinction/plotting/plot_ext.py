@@ -519,7 +519,6 @@ def plot_multi_extinction(
             # annotate_text=extdata.red_file.split(".")[0].upper(),
             annotate_yoffset=text_offsets[i],
             annotate_rotation=text_angles[i],
-            annotate_color=pcolor,
             annotate_color=colors(i % 10),
             wavenum=wavenum,
         )
