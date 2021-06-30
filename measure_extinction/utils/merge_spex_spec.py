@@ -5,7 +5,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import argparse
 import pkg_resources
 import os
-
 from astropy.table import Table
 
 from measure_extinction.merge_obsspec import merge_spex_obsspec

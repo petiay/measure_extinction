@@ -21,6 +21,7 @@ def plot_average(
     ax=None,
     extmodels=False,
     fitmodel=False,
+    res=False,
     HI_lines=False,
     range=None,
     exclude=[],
@@ -50,6 +51,9 @@ def plot_average(
     fitmodel: boolean [default=False]
         Whether or not to overplot a fitted model
 
+    res : boolean [default=False]
+        Whether or not to plot the residuals of the fitting (only useful when fitmodel=True)
+
     HI_lines : boolean [default=False]
         Whether or not to indicate the HI-lines in the plot
 
@@ -57,7 +61,7 @@ def plot_average(
         Wavelength range to be plotted (in micron) - [min,max]
 
     exclude : list of strings [default=[]]
-        List of data type(s) to exclude from the plot (e.g., IRS)
+        List of data type(s) to exclude from the plot (e.g., "IRS", "IRAC1")
 
     log : boolean [default=False]
         Whether or not to plot the wavelengths on a log-scale
@@ -95,8 +99,8 @@ def plot_average(
     # make a new plot if requested
     if pdf:
         # plotting setup for easier to read plots
-        fontsize = 18
-        font = {"size": fontsize}
+        fs = 20
+        font = {"size": fs}
         plt.rc("font", **font)
         plt.rc("lines", linewidth=1)
         plt.rc("axes", linewidth=2)
@@ -105,9 +109,11 @@ def plot_average(
         plt.rc("ytick.major", width=2, size=10)
         plt.rc("ytick.minor", width=1, size=5)
         plt.rc("axes.formatter", min_exponent=2)
+        plt.rc("xtick", direction="in", labelsize=fs * 0.8)
+        plt.rc("ytick", direction="in", labelsize=fs * 0.8)
 
         # create the plot
-        fig, ax = plt.subplots(figsize=(13, 10))
+        fig, ax = plt.subplots(figsize=(10, 7))
         average.plot(ax, exclude=exclude, color="k")
 
         # plot Milky Way extinction models if requested
@@ -116,7 +122,7 @@ def plot_average(
 
         # overplot a fitted model if requested
         if fitmodel:
-            plot_fitmodel(average, res=True)
+            plot_fitmodel(average, res=res)
 
         # plot HI-lines if requested
         if HI_lines:
@@ -129,10 +135,8 @@ def plot_average(
         # finish configuring the plot
         if log:
             ax.set_xscale("log")
-        plt.xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.5 * fontsize)
-        ax.set_ylabel(
-            average._get_ext_ytitle(ytype=average.type), fontsize=1.5 * fontsize
-        )
+        plt.xlabel(r"$\lambda$ [$\mu m$]", fontsize=fs)
+        ax.set_ylabel(average._get_ext_ytitle(ytype=average.type), fontsize=fs)
         fig.savefig(path + "average_ext.pdf", bbox_inches="tight")
 
         # return the figure and axes for additional manipulations
@@ -234,20 +238,22 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
                 extdata.model["params"][3].value,
             )
         elif extdata.model["type"] == "pow_alav":
-            labeltxt = r"$%5.2f \lambda ^{-%5.2f}$" % (
+            labeltxt = r"$%5.2f \,\lambda^{-%5.2f}$" % (
                 extdata.model["params"][0].value,
                 extdata.model["params"][2].value,
             )
+
         else:
             labeltxt = "fitted model"
         plt.plot(
             extdata.model["waves"],
             extdata.model["exts"] + yoffset,
             "-",
-            lw=2,
-            color="firebrick",
+            lw=3,
+            color="crimson",
             alpha=0.8,
             label=labeltxt,
+            zorder=5,
         )
 
         # plot the underlying powerlaw if a Drude was fitted
@@ -267,8 +273,11 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
 
         # plot the residuals if requested
         if res:
+            plt.setp(plt.gca().get_xticklabels(), visible=False)
             plt.axes([0.125, 0, 0.775, 0.11], sharex=plt.gca())
-            plt.scatter(extdata.model["waves"], extdata.model["residuals"], s=0.5)
+            plt.scatter(
+                extdata.model["waves"], extdata.model["residuals"], s=0.5, color="k"
+            )
             plt.axhline(ls="--", c="k", alpha=0.5)
             plt.axhline(y=0.05, ls=":", c="k", alpha=0.5)
             plt.axhline(y=-0.05, ls=":", c="k", alpha=0.5)
@@ -377,6 +386,7 @@ def plot_multi_extinction(
     log=False,
     text_offsets=[],
     text_angles=[],
+    multicolor=False,
     wavenum=False,
     pdf=False,
 ):
@@ -413,7 +423,7 @@ def plot_multi_extinction(
         Whether or not to spread the extinction curves out by adding a vertical offset to each curve
 
     exclude : list of strings [default=[]]
-        List of data type(s) to exclude from the plot (e.g., IRS)
+        List of data type(s) to exclude from the plot (e.g., "IRS", "IRAC1")
 
     log : boolean [default=False]
         Whether or not to plot the wavelengths on a log-scale
@@ -424,6 +434,8 @@ def plot_multi_extinction(
     text_angles : list of integers [default=[]]
         List of the same length as starpair_list with rotation angles for the annotated text
 
+    multicolor : boolean [default=False]
+        Whether or not to give all curves a different color
     wavenum : boolean [default=False]
         Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
 
@@ -470,8 +482,13 @@ def plot_multi_extinction(
             yoffset = 0.0
 
         # determine where to add the name of the star
-        # find the shortest plotted wavelength
-        (waves, exts, ext_uncs) = extdata.get_fitdata(extdata.waves.keys() - exclude)
+        # find the shortest plotted wavelength, and give preference to spectral data when available
+        exclude2 = []
+        if "BAND" in extdata.waves.keys() and len(extdata.waves.keys()) > 1:
+            exclude2 = ["BAND"]
+        (waves, exts, ext_uncs) = extdata.get_fitdata(
+            extdata.waves.keys() - (exclude + exclude2)
+        )
         if range is not None:
             waves = waves[waves.value >= range[0]]
         min_wave = waves[-1]
@@ -485,9 +502,13 @@ def plot_multi_extinction(
         ann_range = [min_wave, min_wave] * u.micron
 
         # plot the extinction curve
+        if multicolor:
+            pcolor = colors(i % 10)
+        else:
+            pcolor = "k"
         extdata.plot(
             ax,
-            color=colors(i % 10),
+            color=pcolor,
             alpha=0.7,
             alax=alax,
             exclude=exclude,
@@ -606,7 +627,7 @@ def plot_extinction(
         Wavelength range to be plotted (in micron) - [min,max]
 
     exclude : list of strings [default=[]]
-        List of data type(s) to exclude from the plot (e.g., IRS)
+        List of data type(s) to exclude from the plot (e.g., "IRS", "IRAC1")
 
     log : boolean [default=False]
         Whether or not to plot the wavelengths on a log scale
@@ -634,7 +655,7 @@ def plot_extinction(
     plt.rc("axes.formatter", min_exponent=2)
 
     # create the plot
-    fig, ax = plt.subplots(figsize=(13, 10))
+    fig, ax = plt.subplots(figsize=(10, 7))
 
     # read in and plot the extinction curve data for this star
     extdata = ExtData("%s%s_ext.fits" % (path, starpair.lower()))
@@ -694,6 +715,9 @@ def plot_extinction(
         plt.close()
     else:
         plt.show()
+
+    # return the figure and axes for additional manipulations
+    return fig, ax
 
 
 def main():
