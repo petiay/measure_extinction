@@ -525,6 +525,10 @@ class ExtData:
             warnings.warn(
                 "attempt to normalize a non-E(lambda-V) curve with A(V)", UserWarning
             )
+        elif self.type != "elx":
+            warnings.warn(
+                "attempt to normalize a non E(lambda-V) curve with A(V)", UserWarning
+            )
         else:
             if av is None:
                 if "AV" not in self.columns.keys():
@@ -534,7 +538,7 @@ class ExtData:
                 self.exts[curname] = (self.exts[curname] / av) + 1
                 self.uncs[curname] /= av
             # update the extinction curve type
-            self.type = "alav"
+            self.type = "alax"
 
     def get_fitdata(
         self,
