@@ -1163,7 +1163,8 @@ class ExtData:
             if curtype in exclude:
                 continue
             # replace extinction values by NaNs for wavelength regions that need to be excluded from the plot
-            self.exts[curtype][self.npts[curtype] == 0] = np.nan
+            if np.sum(self.npts[curtype] == 0) > 0:
+                self.exts[curtype][self.npts[curtype] == 0] = np.nan
             x = self.waves[curtype].to(u.micron).value
             y = self.exts[curtype]
             yu = self.uncs[curtype]
