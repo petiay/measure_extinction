@@ -236,6 +236,7 @@ def get_percentile_params(samples):
 
     # add in E(B-V) and N(HI)/A(V) and N(HI)/E(B-V)
     samples_shape = samples.shape
+    ndim = samples_shape[1]
     new_samples_shape = (samples_shape[0], samples_shape[1] + 3)
     new_samples = np.zeros(new_samples_shape)
     new_samples[:, 0:ndim] = samples
