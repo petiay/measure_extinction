@@ -414,13 +414,16 @@ class ExtData:
             else:
                 self.calc_elx_spectra(redstar, compstar, cursrc, rel_band=rel_band)
 
-    def trans_elv_elvebv(self):
+    def trans_elv_elvebv(self, ebv=None):
         """
         Transform E(lambda-V) to E(lambda -V)/E(B-V) by
-        normalizing by E(lambda-B).
+        normalizing by E(B-V)).
 
         Parameters
         ----------
+        ebv : float [default = None]
+            value of E(B-V) to use - otherwise take it from the columns of the object
+            or calculate it from the E(lambda-V) curve
 
         Returns
         -------
@@ -428,20 +431,28 @@ class ExtData:
         """
         if self.type_rel_band != "V":
             warnings.warn("attempt to normalize a non-elv curve with ebv", UserWarning)
+        elif self.type != "elx":
+            warnings.warn(
+                "attempt to normalize a non E(lambda-V) curve with E(B-V)", UserWarning
+            )
         else:
-            # determine the index for the B band
-            dwaves = np.absolute(self.waves["BAND"] - 0.438 * u.micron)
-            sindxs = np.argsort(dwaves)
-            bindx = sindxs[0]
-            if dwaves[bindx] > 0.02 * u.micron:
-                warnings.warn("no B band measurement in E(l-V)", UserWarning)
-            else:
-                # normalize each portion of the extinction curve
-                ebv = self.exts["BAND"][bindx]
-                for curname in self.exts.keys():
-                    self.exts[curname] /= ebv
-                    self.uncs[curname] /= ebv
-                self.type = "elvebv"
+            if ebv is None:
+                # determine the index for the B band
+                dwaves = np.absolute(self.waves["BAND"] - 0.438 * u.micron)
+                sindxs = np.argsort(dwaves)
+                bindx = sindxs[0]
+                if dwaves[bindx] > 0.02 * u.micron:
+                    warnings.warn("no B band measurement in E(l-V)", UserWarning)
+                else:
+                    # normalize each portion of the extinction curve
+                    ebv = self.exts["BAND"][bindx]
+            elif "EBV" in self.columns.keys():
+                ebv = _get_column_val(self.columns["EBV"])
+
+            for curname in self.exts.keys():
+                self.exts[curname] /= ebv
+                self.uncs[curname] /= ebv
+            self.type = "elvebv"
 
     def calc_AV(self, akav=0.112):
         """
@@ -809,7 +820,7 @@ class ExtData:
         # write the portions of the extinction curve from each dataset
         # individual extensions so that the full info is perserved
         for curname in self.exts.keys():
-            col1 = fits.Column(name="WAVELENGTH", format="E", array=self.waves[curname])
+            col1 = fits.Column(name="WAVELENGTH", format="E", array=self.waves[curname].to(u.micron))
             col2 = fits.Column(name="EXT", format="E", array=self.exts[curname])
             col3 = fits.Column(name="UNC", format="E", array=self.uncs[curname])
             col4 = fits.Column(name="NPTS", format="E", array=self.npts[curname])
@@ -831,7 +842,7 @@ class ExtData:
 
         # write the fitted model if available
         if self.model:
-            col1 = fits.Column(name="MOD_WAVE", format="E", array=self.model["waves"])
+            col1 = fits.Column(name="MOD_WAVE", format="E", array=self.model["waves"].to(u.micron))
             col2 = fits.Column(name="MOD_EXT", format="E", array=self.model["exts"])
             col3 = fits.Column(
                 name="RESIDUAL", format="E", array=self.model["residuals"]
@@ -1094,6 +1105,7 @@ class ExtData:
         legend_key=None,
         legend_label=None,
         fontsize=None,
+        model=False,
     ):
         """
         Plot an extinction curve
@@ -1210,6 +1222,16 @@ class ExtData:
                     rotation_mode="anchor",
                     fontsize=fontsize,
                 )
+
+            # plot the model if desired
+            if model:
+                x = 1.0 / self.model["waves"]  # .to(u.micron).value
+                y = self.model["exts"]
+
+                y = y / normval + yoffset
+                yu = yu / normval
+
+                pltax.plot(x, y, "-", color=color, alpha=alpha)
 
     def fit_band_ext(self):
         """
