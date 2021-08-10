@@ -414,45 +414,23 @@ class ExtData:
             else:
                 self.calc_elx_spectra(redstar, compstar, cursrc, rel_band=rel_band)
 
-    def trans_elv_elvebv(self, ebv=None):
+    def calc_EBV(self):
         """
-        Transform E(lambda-V) to E(lambda -V)/E(B-V) by
-        normalizing by E(B-V)).
-
-        Parameters
-        ----------
-        ebv : float [default = None]
-            value of E(B-V) to use - otherwise take it from the columns of the object
-            or calculate it from the E(lambda-V) curve
+        Calculate E(B-V) from the observed extinction curve
 
         Returns
         -------
-        Updates self.(exts, uncs)
+        Updates self.columns["EBV"]
         """
-        if self.type_rel_band != "V":
-            warnings.warn("attempt to normalize a non-elv curve with ebv", UserWarning)
-        elif self.type != "elx":
-            warnings.warn(
-                "attempt to normalize a non E(lambda-V) curve with E(B-V)", UserWarning
-            )
-        else:
-            if ebv is None:
-                # determine the index for the B band
-                dwaves = np.absolute(self.waves["BAND"] - 0.438 * u.micron)
-                sindxs = np.argsort(dwaves)
-                bindx = sindxs[0]
-                if dwaves[bindx] > 0.02 * u.micron:
-                    warnings.warn("no B band measurement in E(l-V)", UserWarning)
-                else:
-                    # normalize each portion of the extinction curve
-                    ebv = self.exts["BAND"][bindx]
-            elif "EBV" in self.columns.keys():
-                ebv = _get_column_val(self.columns["EBV"])
-
-            for curname in self.exts.keys():
-                self.exts[curname] /= ebv
-                self.uncs[curname] /= ebv
-            self.type = "elvebv"
+        if "EBV" not in self.columns.keys():
+            # determine the index for the B band
+            dwaves = np.absolute(self.waves["BAND"] - 0.438 * u.micron)
+            sindxs = np.argsort(dwaves)
+            bindx = sindxs[0]
+            if dwaves[bindx] > 0.02 * u.micron:
+                warnings.warn("no B band measurement in E(l-V)", UserWarning)
+            else:
+                self.columns["EBV"] = self.exts["BAND"][bindx]
 
     def calc_AV(self, akav=0.112):
         """
@@ -479,7 +457,7 @@ class ExtData:
         else:
             dwaves = np.absolute(self.waves["BAND"] - 2.19 * u.micron)
             kindx = dwaves.argmin()
-            if dwaves[kindx] > 0.02 * u.micron:
+            if dwaves[kindx] > 0.04 * u.micron:
                 warnings.warn(
                     "No K band measurement available in E(lambda-V)!", stacklevel=2
                 )
@@ -503,16 +481,44 @@ class ExtData:
             self.calc_AV()
         av = _get_column_val(self.columns["AV"])
 
-        # obtain E(B-V)
-        dwaves = np.absolute(self.waves["BAND"] - 0.438 * u.micron)
-        bindx = dwaves.argmin()
-        if dwaves[bindx] > 0.02 * u.micron:
+        # obtain or calculate A(V)
+        if "EBV" not in self.columns.keys():
+            self.calc_EBV()
+        ebv = _get_column_val(self.columns["EBV"])
+
+        self.columns["RV"] = av / ebv
+
+    def trans_elv_elvebv(self, ebv=None):
+        """
+        Transform E(lambda-V) to E(lambda -V)/E(B-V) by
+        normalizing by E(B-V)).
+
+        Parameters
+        ----------
+        ebv : float [default = None]
+            value of E(B-V) to use - otherwise take it from the columns of the object
+            or calculate it from the E(lambda-V) curve
+
+        Returns
+        -------
+        Updates self.(exts, uncs)
+        """
+        if self.type_rel_band != "V":
+            warnings.warn("attempt to normalize a non-elv curve with ebv", UserWarning)
+        elif self.type != "elx":
             warnings.warn(
-                "No B band measurement available in E(lambda-V)!", stacklevel=2
+                "attempt to normalize a non E(lambda-V) curve with E(B-V)", UserWarning
             )
         else:
-            ebv = self.exts["BAND"][bindx]
-            self.columns["RV"] = av / ebv
+            if ebv is None:
+                if "EBV" in self.columns.keys():
+                    self.calc_ebv()
+                ebv = _get_column_val(self.columns["EBV"])
+
+            for curname in self.exts.keys():
+                self.exts[curname] /= ebv
+                self.uncs[curname] /= ebv
+            self.type = "elvebv"
 
     def trans_elv_alav(self, av=None, akav=0.112):
         """
@@ -1232,6 +1238,13 @@ class ExtData:
                 yu = yu / normval
 
                 pltax.plot(x, y, "-", color=color, alpha=alpha)
+
+            if wavenum:
+                xtitle = r"$1/\lambda$ $[\mu m^{-1}]$"
+            else:
+                xtitle = r"$\lambda$ $[\mu m]$"
+            pltax.set_xlabel(xtitle)
+            pltax.set_ylabel(self._get_ext_ytitle())
 
     def fit_band_ext(self):
         """
