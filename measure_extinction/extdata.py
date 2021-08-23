@@ -851,9 +851,11 @@ class ExtData:
 
         # write the fitted model if available
         if self.model:
-            col1 = fits.Column(
-                name="MOD_WAVE", format="E", array=self.model["waves"].to(u.micron)
-            )
+            if isinstance(self.model["waves"], u.Quantity):
+                outvals = self.model["waves"].to(u.micron)
+            else:
+                outvals = self.model["waves"]
+            col1 = fits.Column(name="MOD_WAVE", format="E", array=outvals)
             col2 = fits.Column(name="MOD_EXT", format="E", array=self.model["exts"])
             col3 = fits.Column(
                 name="RESIDUAL", format="E", array=self.model["residuals"]
