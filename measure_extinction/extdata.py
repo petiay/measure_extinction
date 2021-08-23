@@ -703,60 +703,32 @@ class ExtData:
                 else:
                     print(ckey + " not supported for saving extcurves")
         else:  # save the column info if available in the extdata object
-            if "AV" in self.columns.keys():
-                hname.append("AV")
-                hcomment.append("V-band extinction A(V)")
-                if isinstance(self.columns["AV"], tuple):
-                    hval.append(self.columns["AV"][0])
-                    if len(self.columns["AV"]) == 2:
-                        hname.append("AV_UNC")
-                        hcomment.append("A(V) uncertainty")
-                        hval.append(self.columns["AV"][1])
-                    elif len(self.columns["AV"]) == 3:
-                        hname.append("AV_MUNC")
-                        hcomment.append("A(V) lower uncertainty")
-                        hval.append(self.columns["AV"][1])
-                        hname.append("AV_PUNC")
-                        hcomment.append("A(V) upper uncertainty")
-                        hval.append(self.columns["AV"][2])
-                else:
-                    hval.append(self.columns["AV"])
-            if "RV" in self.columns.keys():
-                hname.append("RV")
-                hcomment.append("total-to-selective extintion R(V)")
-                if isinstance(self.columns["RV"], tuple):
-                    hval.append(self.columns["RV"][0])
-                    if len(self.columns["RV"]) == 2:
-                        hname.append("RV_UNC")
-                        hcomment.append("R(V) uncertainty")
-                        hval.append(self.columns["RV"][1])
-                    elif len(self.columns["RV"]) == 3:
-                        hname.append("RV_MUNC")
-                        hcomment.append("R(V) lower uncertainty")
-                        hval.append(self.columns["RV"][1])
-                        hname.append("RV_PUNC")
-                        hcomment.append("R(V) upper uncertainty")
-                        hval.append(self.columns["RV"][2])
-                else:
-                    hval.append(self.columns["RV"])
-            if "EBV" in self.columns.keys():
-                hname.append("EBV")
-                hcomment.append("color excess E(B-V)")
-                if isinstance(self.columns["EBV"], tuple):
-                    hval.append(self.columns["EBV"][0])
-                    if len(self.columns["EBV"]) == 2:
-                        hname.append("EBV_UNC")
-                        hcomment.append("E(B-V) uncertainty")
-                        hval.append(self.columns["EBV"][1])
-                    elif len(self.columns["EBV"]) == 3:
-                        hname.append("EBV_MUNC")
-                        hcomment.append("E(B-V) lower uncertainty")
-                        hval.append(self.columns["EBV"][1])
-                        hname.append("EBV_PUNC")
-                        hcomment.append("E(B-V) upper uncertainty")
-                        hval.append(self.columns["EBV"][2])
-                else:
-                    hval.append(self.columns["EBV"])
+            colkeys = ["AV", "RV", "EBV", "LOGHI"]
+            colinfo = [
+                "V-band extinction A(V)",
+                "total-to-selective extintion R(V)",
+                "color excess E(B-V)",
+                "log10 of the HI column density N(HI)",
+            ]
+            for i, ckey in enumerate(colkeys):
+                if ckey in self.columns.keys():
+                    hname.append(f"{ckey}")
+                    hcomment.append(f"{colinfo[i]}")
+                    if isinstance(self.columns[f"{ckey}"], tuple):
+                        hval.append(self.columns[f"{ckey}"][0])
+                        if len(self.columns[f"{ckey}"]) == 2:
+                            hname.append(f"{ckey}_UNC")
+                            hcomment.append(f"{ckey} uncertainty")
+                            hval.append(self.columns[f"{ckey}"][1])
+                        elif len(self.columns[f"{ckey}"]) == 3:
+                            hname.append(f"{ckey}_MUNC")
+                            hcomment.append(f"{ckey} lower uncertainty")
+                            hval.append(self.columns[f"{ckey}"][1])
+                            hname.append(f"{ckey}_PUNC")
+                            hcomment.append(f"{ckey} upper uncertainty")
+                            hval.append(self.columns[f"{ckey}"][2])
+                    else:
+                        hval.append(self.columns[f"{ckey}"])
 
         # legacy save param keywords
         if fm90_best_params is not None:
