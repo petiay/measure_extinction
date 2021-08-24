@@ -513,7 +513,7 @@ class ExtData:
         else:
             if ebv is None:
                 if "EBV" not in self.columns.keys():
-                    self.calc_ebv()
+                    self.calc_EBV()
                 ebv = _get_column_val(self.columns["EBV"])
 
             for curname in self.exts.keys():
