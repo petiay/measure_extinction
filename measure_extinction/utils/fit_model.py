@@ -308,7 +308,6 @@ if __name__ == "__main__":
         "HI_gal",
         "HI_mw",
     ]
-    # params = [4.3, 4.0, 0.2, 1.0, 3.1, 0.5, 1.5, 0.5, 4.6, 1.0, 21.0, 19.0]
     params = [4.3, 2.09, 0.2, 0.75, 3.7, 2.5, 0.65, 0.26, 4.66, 0.86, 22.0, 19.0]
     plimits = [
         [modinfo.temps_min, modinfo.temps_max],
@@ -353,10 +352,6 @@ if __name__ == "__main__":
     ] / u.micron
     weights = {}
     for cspec in spectra_names:
-        # should probably be based on the observed uncs
-        # weights[cspec] = np.full(len(reddened_star.data[cspec].fluxes), 1.0)
-        # weights[cspec][reddened_star.data[cspec].npts <= 0] = 0.0
-
         # based on observed uncs
         weights[cspec] = np.full(len(reddened_star.data[cspec].fluxes), 0.0)
         gvals = reddened_star.data[cspec].npts > 0

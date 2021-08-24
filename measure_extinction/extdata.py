@@ -422,15 +422,14 @@ class ExtData:
         -------
         Updates self.columns["EBV"]
         """
-        if "EBV" not in self.columns.keys():
-            # determine the index for the B band
-            dwaves = np.absolute(self.waves["BAND"] - 0.438 * u.micron)
-            sindxs = np.argsort(dwaves)
-            bindx = sindxs[0]
-            if dwaves[bindx] > 0.02 * u.micron:
-                warnings.warn("no B band measurement in E(l-V)", UserWarning)
-            else:
-                self.columns["EBV"] = self.exts["BAND"][bindx]
+        # determine the index for the B band
+        dwaves = np.absolute(self.waves["BAND"] - 0.438 * u.micron)
+        sindxs = np.argsort(dwaves)
+        bindx = sindxs[0]
+        if dwaves[bindx] > 0.02 * u.micron:
+            warnings.warn("no B band measurement in E(l-V)", UserWarning)
+        else:
+            self.columns["EBV"] = self.exts["BAND"][bindx]
 
     def calc_AV(self, akav=0.112):
         """
@@ -481,7 +480,7 @@ class ExtData:
             self.calc_AV()
         av = _get_column_val(self.columns["AV"])
 
-        # obtain or calculate A(V)
+        # obtain or calculate E(B-V)
         if "EBV" not in self.columns.keys():
             self.calc_EBV()
         ebv = _get_column_val(self.columns["EBV"])
@@ -504,14 +503,16 @@ class ExtData:
         Updates self.(exts, uncs)
         """
         if self.type_rel_band != "V":
-            warnings.warn("attempt to normalize a non-elv curve with ebv", UserWarning)
+            warnings.warn(
+                "attempt to normalize a non E(lambda-V) curve with E(B-V)", UserWarning
+            )
         elif self.type != "elx":
             warnings.warn(
                 "attempt to normalize a non E(lambda-V) curve with E(B-V)", UserWarning
             )
         else:
             if ebv is None:
-                if "EBV" in self.columns.keys():
+                if "EBV" not in self.columns.keys():
                     self.calc_ebv()
                 ebv = _get_column_val(self.columns["EBV"])
 
@@ -702,60 +703,32 @@ class ExtData:
                 else:
                     print(ckey + " not supported for saving extcurves")
         else:  # save the column info if available in the extdata object
-            if "AV" in self.columns.keys():
-                hname.append("AV")
-                hcomment.append("V-band extinction A(V)")
-                if isinstance(self.columns["AV"], tuple):
-                    hval.append(self.columns["AV"][0])
-                    if len(self.columns["AV"]) == 2:
-                        hname.append("AV_UNC")
-                        hcomment.append("A(V) uncertainty")
-                        hval.append(self.columns["AV"][1])
-                    elif len(self.columns["AV"]) == 3:
-                        hname.append("AV_MUNC")
-                        hcomment.append("A(V) lower uncertainty")
-                        hval.append(self.columns["AV"][1])
-                        hname.append("AV_PUNC")
-                        hcomment.append("A(V) upper uncertainty")
-                        hval.append(self.columns["AV"][2])
-                else:
-                    hval.append(self.columns["AV"])
-            if "RV" in self.columns.keys():
-                hname.append("RV")
-                hcomment.append("total-to-selective extintion R(V)")
-                if isinstance(self.columns["RV"], tuple):
-                    hval.append(self.columns["RV"][0])
-                    if len(self.columns["RV"]) == 2:
-                        hname.append("RV_UNC")
-                        hcomment.append("R(V) uncertainty")
-                        hval.append(self.columns["RV"][1])
-                    elif len(self.columns["RV"]) == 3:
-                        hname.append("RV_MUNC")
-                        hcomment.append("R(V) lower uncertainty")
-                        hval.append(self.columns["RV"][1])
-                        hname.append("RV_PUNC")
-                        hcomment.append("R(V) upper uncertainty")
-                        hval.append(self.columns["RV"][2])
-                else:
-                    hval.append(self.columns["RV"])
-            if "EBV" in self.columns.keys():
-                hname.append("EBV")
-                hcomment.append("color excess E(B-V)")
-                if isinstance(self.columns["EBV"], tuple):
-                    hval.append(self.columns["EBV"][0])
-                    if len(self.columns["EBV"]) == 2:
-                        hname.append("EBV_UNC")
-                        hcomment.append("E(B-V) uncertainty")
-                        hval.append(self.columns["EBV"][1])
-                    elif len(self.columns["EBV"]) == 3:
-                        hname.append("EBV_MUNC")
-                        hcomment.append("E(B-V) lower uncertainty")
-                        hval.append(self.columns["EBV"][1])
-                        hname.append("EBV_PUNC")
-                        hcomment.append("E(B-V) upper uncertainty")
-                        hval.append(self.columns["EBV"][2])
-                else:
-                    hval.append(self.columns["EBV"])
+            colkeys = ["AV", "RV", "EBV", "LOGHI"]
+            colinfo = [
+                "V-band extinction A(V)",
+                "total-to-selective extintion R(V)",
+                "color excess E(B-V)",
+                "log10 of the HI column density N(HI)",
+            ]
+            for i, ckey in enumerate(colkeys):
+                if ckey in self.columns.keys():
+                    hname.append(f"{ckey}")
+                    hcomment.append(f"{colinfo[i]}")
+                    if isinstance(self.columns[f"{ckey}"], tuple):
+                        hval.append(self.columns[f"{ckey}"][0])
+                        if len(self.columns[f"{ckey}"]) == 2:
+                            hname.append(f"{ckey}_UNC")
+                            hcomment.append(f"{ckey} uncertainty")
+                            hval.append(self.columns[f"{ckey}"][1])
+                        elif len(self.columns[f"{ckey}"]) == 3:
+                            hname.append(f"{ckey}_MUNC")
+                            hcomment.append(f"{ckey} lower uncertainty")
+                            hval.append(self.columns[f"{ckey}"][1])
+                            hname.append(f"{ckey}_PUNC")
+                            hcomment.append(f"{ckey} upper uncertainty")
+                            hval.append(self.columns[f"{ckey}"][2])
+                    else:
+                        hval.append(self.columns[f"{ckey}"])
 
         # legacy save param keywords
         if fm90_best_params is not None:
@@ -826,7 +799,9 @@ class ExtData:
         # write the portions of the extinction curve from each dataset
         # individual extensions so that the full info is perserved
         for curname in self.exts.keys():
-            col1 = fits.Column(name="WAVELENGTH", format="E", array=self.waves[curname].to(u.micron))
+            col1 = fits.Column(
+                name="WAVELENGTH", format="E", array=self.waves[curname].to(u.micron)
+            )
             col2 = fits.Column(name="EXT", format="E", array=self.exts[curname])
             col3 = fits.Column(name="UNC", format="E", array=self.uncs[curname])
             col4 = fits.Column(name="NPTS", format="E", array=self.npts[curname])
@@ -848,7 +823,11 @@ class ExtData:
 
         # write the fitted model if available
         if self.model:
-            col1 = fits.Column(name="MOD_WAVE", format="E", array=self.model["waves"].to(u.micron))
+            if isinstance(self.model["waves"], u.Quantity):
+                outvals = self.model["waves"].to(u.micron)
+            else:
+                outvals = self.model["waves"]
+            col1 = fits.Column(name="MOD_WAVE", format="E", array=outvals)
             col2 = fits.Column(name="MOD_EXT", format="E", array=self.model["exts"])
             col3 = fits.Column(
                 name="RESIDUAL", format="E", array=self.model["residuals"]
@@ -935,8 +914,9 @@ class ExtData:
         for curkey in column_keys:
             if pheader.get(curkey):
                 if pheader.get("%s_UNC" % curkey):
-                    tunc = float(pheader.get(curkey)), float(
-                        pheader.get("%s_UNC" % curkey)
+                    tunc = (
+                        float(pheader.get(curkey)),
+                        float(pheader.get("%s_UNC" % curkey)),
                     )
                 elif pheader.get("%s_PUNC" % curkey):
                     tunc = (
@@ -1171,6 +1151,9 @@ class ExtData:
 
         fontsize : int [default=None]
             fontsize for plot
+
+        model : booelean
+            if set and the model exists, plot it
         """
         if alax:
             # transform the extinctions from E(lambda-V) to A(lambda)/A(V)
@@ -1231,11 +1214,12 @@ class ExtData:
 
             # plot the model if desired
             if model:
-                x = 1.0 / self.model["waves"]  # .to(u.micron).value
+                x = self.model["waves"]
+                if wavenum:
+                    x = 1.0 / x
                 y = self.model["exts"]
 
                 y = y / normval + yoffset
-                yu = yu / normval
 
                 pltax.plot(x, y, "-", color=color, alpha=alpha)
 
@@ -1336,13 +1320,10 @@ class ExtData:
                 bounds={"amplitude": amp_bounds, "alpha": index_bounds},
             )
         else:
-            func = (
-                PowerLaw1D(
-                    fixed={"x_0": True},
-                    bounds={"amplitude": amp_bounds, "alpha": index_bounds},
-                )
-                | AxAvToExv(bounds={"Av": AV_bounds})
-            )
+            func = PowerLaw1D(
+                fixed={"x_0": True},
+                bounds={"amplitude": amp_bounds, "alpha": index_bounds},
+            ) | AxAvToExv(bounds={"Av": AV_bounds})
 
         fit = LevMarLSQFitter()
         fit_result = fit(func, waves, exts, weights=1 / exts_unc)
