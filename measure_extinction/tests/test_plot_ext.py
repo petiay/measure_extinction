@@ -80,7 +80,7 @@ def test_plot_extinction():
         message + "with the default settings, has failed."
     )
 
-    assert os.path.isfile(data_path + starpair.lower() + "_ext_alav.pdf"), (
+    assert os.path.isfile(data_path + starpair.lower() + "_ext_alax.pdf"), (
         message + "in A(lambda)/A(V), has failed."
     )
 
@@ -92,7 +92,7 @@ def test_plot_extinction():
         message + "in one figure, with the default settings, has failed."
     )
 
-    assert os.path.isfile(data_path + "all_ext_alav.pdf"), (
+    assert os.path.isfile(data_path + "all_ext_alax.pdf"), (
         message + "in one figure, in A(lambda)/A(V), has failed."
     )
 
