@@ -1152,7 +1152,7 @@ class ExtData:
         fontsize : int [default=None]
             fontsize for plot
 
-        model : booelean
+        model : boolean
             if set and the model exists, plot it
         """
         if alax:
