@@ -96,12 +96,13 @@ class FitInfo(object):
 
         lnl = 0.0
         for cspec in hi_ext_modsed.keys():
+            gvals = self.weights[cspec] > 0
             lnl += -0.5 * np.sum(
                 np.square(
-                    obsdata.data[cspec].fluxes / norm_data
-                    - hi_ext_modsed[cspec] / norm_model
+                    obsdata.data[cspec].fluxes[gvals] / norm_data
+                    - hi_ext_modsed[cspec][gvals] / norm_model
                 )
-                * self.weights[cspec]
+                * self.weights[cspec][gvals]
             )
 
         return lnl
@@ -124,15 +125,15 @@ class FitInfo(object):
 
         # now use any priors
         lnp = 0.0
-        if fitinfo.parameter_priors is not None:
-            for ptype in fitinfo.parameter_priors.keys():
-                pk = fitinfo.parameter_names.index(ptype)
+        if self.parameter_priors is not None:
+            for ptype in self.parameter_priors.keys():
+                pk = self.parameter_names.index(ptype)
                 lnp += (
                     -0.5
                     * (
                         (
-                            (params[pk] - fitinfo.parameter_priors[ptype][0])
-                            / fitinfo.parameter_priors[ptype][1]
+                            (params[pk] - self.parameter_priors[ptype][0])
+                            / self.parameter_priors[ptype][1]
                         )
                     )
                     ** 2
@@ -183,6 +184,13 @@ def fit_model_parser():
         nargs=2,
         help="Spectral type prior: log(g) sigma_log(g)",
     )
+    parser.add_argument(
+        "--splogz",
+        metavar=("logz", "logz_unc"),
+        type=float,
+        nargs=2,
+        help="Spectral type prior: log(Z) sigma_log(Z)",
+    )
     parser.add_argument("--velocity", type=float, default=0.0, help="Stellar velocity")
     parser.add_argument(
         "--relband", default="V", help="Band to use for relative extinction measurement"
@@ -202,7 +210,7 @@ def get_best_fit_params(sampler):
     """
     Determine the best fit parameters given an emcee sampler object
     """
-    max_lnp = -1e6
+    max_lnp = -1e30
     nwalkers = len(sampler.lnprobability)
     for k in range(nwalkers):
         tmax_lnp = np.max(sampler.lnprobability[k])
@@ -228,6 +236,7 @@ def get_percentile_params(samples):
 
     # add in E(B-V) and N(HI)/A(V) and N(HI)/E(B-V)
     samples_shape = samples.shape
+    ndim = samples_shape[1]
     new_samples_shape = (samples_shape[0], samples_shape[1] + 3)
     new_samples = np.zeros(new_samples_shape)
     new_samples[:, 0:ndim] = samples
@@ -299,18 +308,18 @@ if __name__ == "__main__":
         "HI_gal",
         "HI_mw",
     ]
-    params = [4.4, 4.0, 0.2, 1.0, 3.1, 0.679, 2.991, 0.319, 4.592, 0.922, 21.0, 19.0]
+    params = [4.3, 2.09, 0.2, 0.75, 3.7, 2.5, 0.65, 0.26, 4.66, 0.86, 22.0, 19.0]
     plimits = [
         [modinfo.temps_min, modinfo.temps_max],
         [modinfo.gravs_min, modinfo.gravs_max],
         [modinfo.mets_min, modinfo.mets_max],
         [0.0, 4.0],
         [2.0, 6.0],
-        [-0.5, 1.5],
-        [0.0, 6.0],
-        [-0.2, 2.0],
-        [4.55, 4.65],
+        [-0.1, 5.0],
         [0.0, 2.5],
+        [0.0, 1.0],
+        [4.5, 4.9],
+        [0.6, 1.5],
         [17.0, 24.0],
         [17.0, 22.0],
     ]
@@ -321,6 +330,9 @@ if __name__ == "__main__":
     if args.splogg:
         ppriors["logg"] = args.splogg
         params[1] = args.splogg[0]
+    if args.splogz:
+        ppriors["logZ"] = args.splogz
+        params[2] = args.splogz[0]
 
     # cropping info for weights
     #  bad regions are defined as those were we know the models do not work
@@ -340,9 +352,10 @@ if __name__ == "__main__":
     ] / u.micron
     weights = {}
     for cspec in spectra_names:
-        # should probably be based on the observed uncs
-        weights[cspec] = np.full(len(reddened_star.data[cspec].fluxes), 1.0)
-        weights[cspec][reddened_star.data[cspec].npts <= 0] = 0.0
+        # based on observed uncs
+        weights[cspec] = np.full(len(reddened_star.data[cspec].fluxes), 0.0)
+        gvals = reddened_star.data[cspec].npts > 0
+        weights[cspec][gvals] = 1.0 / reddened_star.data[cspec].uncs[gvals].value
 
         x = 1.0 / reddened_star.data[cspec].waves
         for cexreg in ex_regions:
