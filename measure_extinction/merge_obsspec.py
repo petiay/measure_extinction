@@ -150,19 +150,17 @@ def merge_stis_obsspec(obstables, waveregion="UV", output_resolution=1000):
         # may want to add in the SYS-ERROR, but need to be careful
         # to propagate it correctly, SYS-ERROR will not reduce with
         # multiple spectra or measurements in a wavelength bin
-        cuncs = ctable["STAT-ERROR"].data
+        cuncs = ctable["STAT-ERROR"]
         cwaves = ctable["WAVELENGTH"].data
-        cfluxes = ctable["FLUX"].data
+        cfluxes = ctable["FLUX"]
         cnpts = ctable["NPTS"].data
         for k in range(n_waves):
-            (indxs,) = np.where(
-                (cwaves >= full_wave_min[k]) & (cwaves < full_wave_max[k]) & (cnpts > 0)
-            )
-            if len(indxs) > 0:
-                weights = 1.0 / np.square(cuncs[indxs])
-                full_flux[k] += np.sum(weights * cfluxes[indxs])
+            gvals = (cwaves >= full_wave_min[k]) & (cwaves < full_wave_max[k]) & (cnpts > 0)
+            if np.sum(gvals) > 0:
+                weights = 1.0 / np.square(cuncs[gvals].value)
+                full_flux[k] += np.sum(weights * cfluxes[gvals].value)
                 full_unc[k] += np.sum(weights)
-                full_npts[k] += len(indxs)
+                full_npts[k] += np.sum(gvals)
 
     # divide by the net weights
     (indxs,) = np.where(full_npts > 0)

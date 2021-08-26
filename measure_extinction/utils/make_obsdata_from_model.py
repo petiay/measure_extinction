@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import pkg_resources
 
 import numpy as np
@@ -9,7 +7,7 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
 from astropy.io import ascii
-from astropy.table import Table, Column
+from astropy.table import QTable, Column
 import astropy.units as u
 from astropy.convolution import Gaussian1DKernel, convolve
 from synphot import SpectralElement
@@ -263,14 +261,14 @@ def make_obsdata_from_model(
     #   means that SFlux is read in as a string
     # solution is to remove the rows with the problem and replace
     #   the fortran 'D' with an 'E' and then convert to floats
-    if mspec["SFlux"].dtype != np.float:
+    if mspec["SFlux"].dtype != float:
         indxs = [k for k in range(len(mspec)) if "D" not in mspec["SFlux"][k]]
         if len(indxs) > 0:
             indxs = [k for k in range(len(mspec)) if "D" in mspec["SFlux"][k]]
             mspec = mspec[indxs]
             new_strs = [cval.replace("D", "E") for cval in mspec["SFlux"].data]
             mspec["SFlux"] = new_strs
-            mspec["SFlux"] = mspec["SFlux"].astype(np.float)
+            mspec["SFlux"] = mspec["SFlux"].astype(float)
 
     # set the units
     mspec["Freq"].unit = u.Hz
@@ -291,11 +289,11 @@ def make_obsdata_from_model(
     )
 
     # save the full spectrum to a binary FITS table
-    otable = Table()
+    otable = QTable()
     otable["WAVELENGTH"] = Column(wave_r5000, unit=u.angstrom)
     otable["FLUX"] = Column(flux_r5000, unit=u.erg / (u.s * u.cm * u.cm * u.angstrom))
     otable["SIGMA"] = Column(
-        flux_r5000 * 0.0, unit=u.erg / (u.s * u.cm * u.cm * u.angstrom)
+        flux_r5000 * 0.01, unit=u.erg / (u.s * u.cm * u.cm * u.angstrom)
     )
     otable["NPTS"] = Column(npts_r5000)
     otable.write(
@@ -329,7 +327,7 @@ def make_obsdata_from_model(
     # Convolve data
     nflux = convolve(otable["FLUX"].data, g)
 
-    lrs_table = Table()
+    lrs_table = QTable()
     lrs_table["WAVELENGTH"] = otable["WAVELENGTH"]
     lrs_table["FLUX"] = nflux
     lrs_table["NPTS"] = otable["NPTS"]

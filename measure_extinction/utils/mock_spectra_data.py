@@ -32,7 +32,6 @@ def mock_stis_single_grating(moddata, gname="G140L", applylsfs=True):
     cmoddata : astropy.table
         Convolved and cropped model spectrum for the grating requested
     """
-
     if gname == "G140L":
         gtags = ["G140L_1200", "G140L_1500"]
         gwaves = [1200.0, 1500.0] * u.Angstrom
