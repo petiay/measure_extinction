@@ -17,6 +17,7 @@ import stsynphot as STS
 
 from measure_extinction.stardata import BandData
 from measure_extinction.merge_obsspec import merge_stis_obsspec, merge_irs_obsspec
+from measure_extinction.utils.mock_spectra_data import mock_stis_data
 
 __all__ = ["make_obsdata_from_model"]
 
@@ -305,28 +306,16 @@ def make_obsdata_from_model(
     specinfo = {}
 
     # create the ultraviolet HST/STIS mock observation
-    # first create the spectrum convolved to the STIS low resolution
-    # Resolution approximately 1000
-    stis_fwhm_pix = 5000.0 / 1000.0
-    g = Gaussian1DKernel(stddev=stis_fwhm_pix / 2.355)
+    stis_table = mock_stis_data(otable)
 
-    # Convolve data
-    nflux = convolve(otable["FLUX"].data, g)
-
-    stis_table = Table()
-    stis_table["WAVELENGTH"] = otable["WAVELENGTH"]
-    stis_table["FLUX"] = nflux
-    stis_table["NPTS"] = otable["NPTS"]
-    stis_table["STAT-ERROR"] = Column(np.full((len(stis_table)), 1.0))
-    stis_table["SYS-ERROR"] = otable["SIGMA"]
     # UV STIS obs
-    rb_stis_uv = merge_stis_obsspec([stis_table], waveregion="UV")
+    rb_stis_uv = merge_stis_obsspec(stis_table[0:2], waveregion="UV")
     rb_stis_uv["SIGMA"] = rb_stis_uv["FLUX"] * 0.0
     stis_uv_file = "%s_stis_uv.fits" % (output_filebase)
     rb_stis_uv.write("%s/Models/%s" % (output_path, stis_uv_file), overwrite=True)
     specinfo["STIS"] = stis_uv_file
     # Optical STIS obs
-    rb_stis_opt = merge_stis_obsspec([stis_table], waveregion="Opt")
+    rb_stis_opt = merge_stis_obsspec(stis_table[2:4], waveregion="Opt")
     rb_stis_opt["SIGMA"] = rb_stis_opt["FLUX"] * 0.0
     stis_opt_file = "%s_stis_opt.fits" % (output_filebase)
     rb_stis_opt.write("%s/Models/%s" % (output_path, stis_opt_file), overwrite=True)

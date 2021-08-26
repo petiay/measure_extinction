@@ -137,7 +137,7 @@ def merge_stis_obsspec(obstables, waveregion="UV", output_resolution=1000):
     if waveregion == "UV":
         wave_range = [1000.0, 3400.0] * u.angstrom
     elif waveregion == "Opt":
-        wave_range = [2900.0, 10250.0] * u.angstrom
+        wave_range = [2850.0, 10250.0] * u.angstrom
 
     iwave_range = wave_range.to(u.angstrom).value
     full_wave, full_wave_min, full_wave_max = _wavegrid(output_resolution, iwave_range)
