@@ -57,3 +57,22 @@ observed.  The specific code is `utils/make_obsdata_from_model.py`.
 This code uses the 'merge_obsspec' functions to transform the model SEDs
 to the observed spectral formats.
 The `utils/make_all_tlusty_obsdata.py` runs on the `*.flux.gz` tlusty files.
+
+STIS Mocking
+^^^^^^^^^^^^
+
+The HST STIS observations are simulated by convolving the high spectral
+resolution model spectra to the STIS resolution using STIS line-spread-fuctions (LSFs)
+retrieved from
+`STScI <https://www.stsci.edu/hst/instrumentation/stis/performance/spectral-resolution>`_.
+These line-spread functions are provided at specific wavelengths and are linearly
+interpolated/extrapolated for other wavelengths (see `utils/mock_spectra_data.py`
+for details.)
+
+STIS LSFs (52x2 slit):
+
+.. image:: images/stis_lsfs.png
+
+Example of mocked STIS observations:
+
+.. image:: images/

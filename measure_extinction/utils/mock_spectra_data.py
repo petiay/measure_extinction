@@ -5,8 +5,6 @@ import matplotlib.pyplot as plt
 from astropy.table import QTable
 import astropy.units as u
 
-from astropy.convolution import Gaussian1DKernel, convolve
-
 __all__ = ["mock_stis_data"]
 
 
@@ -190,12 +188,15 @@ if __name__ == "__main__":
         ax[i].plot(mockobs_wolsfs[i]["WAVELENGTH"], mockobs_wolsfs[i]["FLUX"], "k-")
 
         # old way of doing things
-        stis_fwhm_pix = 5000.0 / 1000.0
-        g = Gaussian1DKernel(stddev=stis_fwhm_pix / 2.355)
-        nflux = convolve(mockobs_wolsfs[i]["FLUX"].data, g)
-        ax[i].plot(mockobs_wolsfs[i]["WAVELENGTH"], nflux, "r:")
+        # stis_fwhm_pix = 5000.0 / 1000.0
+        # g = Gaussian1DKernel(stddev=stis_fwhm_pix / 2.355)
+        # nflux = convolve(mockobs_wolsfs[i]["FLUX"].data, g)
+        # ax[i].plot(mockobs_wolsfs[i]["WAVELENGTH"], nflux, "r:")
 
-        ax[i].plot(cmockobs["WAVELENGTH"], cmockobs["FLUX"], "b-", label="G140L")
+        ax[i].plot(cmockobs["WAVELENGTH"], cmockobs["FLUX"], "b-")
+        ax[i].set_ylabel("Flux")
+
+    ax[3].set_xlabel(r"$\lambda$ [$\AA$]")
 
     fig.tight_layout()
 
