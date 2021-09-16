@@ -73,6 +73,6 @@ STIS LSFs (52x2 slit):
 
 .. image:: images/stis_lsfs.png
 
-Example of mocked STIS observations:
+Example of mocked STIS observations for all four low-resolution grating settings:
 
-.. image:: images/
+.. image:: images/mock_stis_obs.png
