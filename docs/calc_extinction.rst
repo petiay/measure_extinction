@@ -152,7 +152,7 @@ and clearly shows the 2175 A absorption feature.
    ax.set_xscale('log')
    ax.set_ylim(1e-17, 1e-9)
    ax.set_xlabel('$\lambda$ [$\mu m$]')
-   ax.set_ylabel('$F(\lambda)$ [$ergs\ cm^{-2}\ s\ \AA$]')
+   ax.set_ylabel('$F(\lambda)$ [$ergs\ cm^{-2}\ s^{-1}\ \AA^{-1}$]')
    ax.tick_params('both', length=10, width=2, which='major')
    ax.tick_params('both', length=5, width=1, which='minor')
 
