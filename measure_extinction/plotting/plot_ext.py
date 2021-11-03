@@ -19,6 +19,7 @@ def plot_average(
     path,
     filename="average_ext.fits",
     ax=None,
+    rebin_fac=None,
     extmodels=False,
     fitmodel=False,
     res=False,
@@ -44,6 +45,9 @@ def plot_average(
 
     ax : AxesSubplot [default=None]
         Axes of plot on which to add the average extinction curve if pdf=False
+
+    rebin_fac: int [default=None]
+        factor by which to rebin extinction curve
 
     extmodels: boolean [default=False]
         Whether or not to overplot Milky Way extinction curve models
@@ -114,7 +118,7 @@ def plot_average(
 
         # create the plot
         fig, ax = plt.subplots(figsize=(10, 7))
-        average.plot(ax, exclude=exclude, color="k")
+        average.plot(ax, exclude=exclude, rebin_fac=rebin_fac, color="k")
 
         # plot Milky Way extinction models if requested
         if extmodels:
@@ -149,6 +153,8 @@ def plot_average(
             yoffset = 0
         average.plot(
             ax,
+            exclude=exclude,
+            rebin_fac=rebin_fac,
             color="k",
             alpha=0.6,
             yoffset=yoffset,
@@ -238,7 +244,7 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
                 extdata.model["params"][3].value,
             )
         elif extdata.model["type"] == "pow_alav":
-            labeltxt = r"$%5.2f \,\lambda^{-%5.2f}$" % (
+            labeltxt = r"$%5.3f \,\lambda^{-%5.2f}$" % (
                 extdata.model["params"][0].value,
                 extdata.model["params"][2].value,
             )
@@ -256,19 +262,6 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
             zorder=5,
         )
 
-        # plot the underlying powerlaw if a Drude was fitted
-        if "Drude" in extdata.model["type"]:
-            plt.plot(
-                extdata.model["waves"],
-                extdata.model["params"][0]
-                * extdata.model["params"][7]
-                * extdata.model["waves"] ** (-extdata.model["params"][2])
-                - extdata.model["params"][7],
-                ls="--",
-                color="olive",
-                alpha=0.6,
-                label="powerlaw",
-            )
         plt.legend(loc="lower left")
 
         # plot the residuals if requested
@@ -447,8 +440,8 @@ def plot_multi_extinction(
     Figure with extinction curves of multiple stars
     """
     # plotting setup for easier to read plots
-    fontsize = 18
-    font = {"size": fontsize}
+    fs = 18
+    font = {"size": fs}
     plt.rc("font", **font)
     plt.rc("lines", linewidth=1)
     plt.rc("axes", linewidth=2)
@@ -457,6 +450,8 @@ def plot_multi_extinction(
     plt.rc("ytick.major", width=2, size=10)
     plt.rc("ytick.minor", width=1, size=5)
     plt.rc("axes.formatter", min_exponent=2)
+    plt.rc("xtick", top=True, direction="in", labelsize=fs * 1.1)
+    plt.rc("ytick", right=True, direction="in", labelsize=fs * 1.1)
 
     # create the plot
     ysize = 6
@@ -515,8 +510,7 @@ def plot_multi_extinction(
             yoffset=yoffset,
             annotate_key=ann_key,
             annotate_wave_range=ann_range,
-            annotate_text=extdata.red_file.split(".")[0].upper() + extdata.comp_file.split(".")[0].upper(),
-            # annotate_text=extdata.red_file.split(".")[0].upper(),
+            annotate_text=extdata.red_file.split(".")[0].upper(),
             annotate_yoffset=text_offsets[i],
             annotate_rotation=text_angles[i],
             annotate_color=colors(i % 10),
@@ -569,11 +563,11 @@ def plot_multi_extinction(
         xlab = r"$1/\lambda$ [$\mu m^{-1}$]"
     else:
         xlab = r"$\lambda$ [$\mu m$]"
-    plt.xlabel(xlab, fontsize=1.5 * fontsize)
+    plt.xlabel(xlab, fontsize=1.5 * fs)
     ylabel = extdata._get_ext_ytitle(ytype=extdata.type)
     if spread:
         ylabel += " + offset"
-    ax.set_ylabel(ylabel, fontsize=1.5 * fontsize)
+    ax.set_ylabel(ylabel, fontsize=1.5 * fs)
 
     fig.tight_layout()
 
@@ -643,8 +637,8 @@ def plot_extinction(
     Figure with extinction curve
     """
     # plotting setup for easier to read plots
-    fontsize = 18
-    font = {"size": fontsize}
+    fs = 18
+    font = {"size": fs}
     plt.rc("font", **font)
     plt.rc("lines", linewidth=1)
     plt.rc("axes", linewidth=2)
@@ -653,6 +647,8 @@ def plot_extinction(
     plt.rc("ytick.major", width=2, size=10)
     plt.rc("ytick.minor", width=1, size=5)
     plt.rc("axes.formatter", min_exponent=2)
+    plt.rc("xtick", top=True, direction="in", labelsize=fs * 1.1)
+    plt.rc("ytick", right=True, direction="in", labelsize=fs * 1.1)
 
     # create the plot
     fig, ax = plt.subplots(figsize=(10, 7))
@@ -703,10 +699,10 @@ def plot_extinction(
         xlab = r"$1/\lambda$ [$\mu m^{-1}$]"
     else:
         xlab = r"$\lambda$ [$\mu m$]"
-    plt.xlabel(xlab, fontsize=1.5 * fontsize)
+    plt.xlabel(xlab, fontsize=1.5 * fs)
     ax.set_ylabel(
         extdata._get_ext_ytitle(ytype=extdata.type),
-        fontsize=1.5 * fontsize,
+        fontsize=1.5 * fs,
     )
 
     # show the figure or save it to a pdf file
