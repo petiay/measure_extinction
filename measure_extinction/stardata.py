@@ -840,8 +840,9 @@ class StarData:
         whether or not the LXD scaling factor has been set manually, default = False
     """
 
-    def __init__(self, datfile, path="", photonly=False, use_corfac=True,
-                 deredden=False):
+    def __init__(
+        self, datfile, path="", photonly=False, use_corfac=True, deredden=False
+    ):
         """
         Parameters
         ----------

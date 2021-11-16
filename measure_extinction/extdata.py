@@ -97,7 +97,7 @@ def _get_column_val(column):
         return float(column)
 
 
-def AverageExtData(extdatas, min_number=3):
+def AverageExtData(extdatas, min_number=3, mask=[]):
     """
     Generate the average extinction curve from a list of ExtData objects
 
@@ -108,6 +108,9 @@ def AverageExtData(extdatas, min_number=3):
 
     min_number : int [default=3]
         minimum number of extinction curves that are required to measure the average extinction; if less than min_number of curves are available at certain wavelengths, the average extinction will still be calculated, but the number of points (npts) at those wavelengths will be set to zero (e.g. used in the plotting)
+
+    mask : list of tuples [default=[]]
+        list of tuples with wavelength regions (in micron) that need to be masked, e.g. [(2.55,2.61),(3.01,3.10)]
 
     Returns
     -------
@@ -184,6 +187,12 @@ def AverageExtData(extdatas, min_number=3):
                 + " extinction curves was not reached for certain wavelengths, and the number of points (npts) for those wavelengths was set to 0.",
                 UserWarning,
             )
+        # take out data points in masked region(s)
+        for region in mask:
+            aveext.npts[src][
+                (aveext.waves[src].value >= region[0])
+                & (aveext.waves[src].value <= region[1])
+            ] = 0
 
     return aveext
 
@@ -1123,7 +1132,7 @@ class ExtData:
             additive offset for the data
 
         rebin_fac : int [default=None]
-            factor by which to rebin spectra
+            factor by which to rebin extinction curve
 
         annotate_key : string [default=None]
             type of data for which to annotate text (e.g., SpeX_LXD)
@@ -1320,10 +1329,13 @@ class ExtData:
                 bounds={"amplitude": amp_bounds, "alpha": index_bounds},
             )
         else:
-            func = PowerLaw1D(
-                fixed={"x_0": True},
-                bounds={"amplitude": amp_bounds, "alpha": index_bounds},
-            ) | AxAvToExv(bounds={"Av": AV_bounds})
+            func = (
+                PowerLaw1D(
+                    fixed={"x_0": True},
+                    bounds={"amplitude": amp_bounds, "alpha": index_bounds},
+                )
+                | AxAvToExv(bounds={"Av": AV_bounds})
+            )
 
         fit = LevMarLSQFitter()
         fit_result = fit(func, waves, exts, weights=1 / exts_unc)
