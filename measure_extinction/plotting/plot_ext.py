@@ -243,7 +243,7 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
                 extdata.model["params"][2].value,
                 extdata.model["params"][3].value,
             )
-        elif extdata.model["type"] == "pow_alav":
+        elif extdata.model["type"] == "pow_alax":
             labeltxt = r"$%5.3f \,\lambda^{-%5.2f}$" % (
                 extdata.model["params"][0].value,
                 extdata.model["params"][2].value,
@@ -261,7 +261,6 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
             label=labeltxt,
             zorder=5,
         )
-
         plt.legend(loc="lower left")
 
         # plot the residuals if requested
