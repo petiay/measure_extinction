@@ -1,15 +1,16 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import warnings
-
 import numpy as np
 import astropy.units as u
-from astropy.io import fits
-from scipy.optimize import curve_fit
 
+from astropy.io import fits
 from astropy.modeling.powerlaws import PowerLaw1D
 from astropy.modeling import Parameter
 from astropy.modeling.fitting import LevMarLSQFitter
+from scipy.optimize import curve_fit
+from scipy import stats
+
 from dust_extinction.conversions import AxAvToExv
 
 __all__ = ["ExtData", "AverageExtData"]
@@ -20,15 +21,43 @@ __all__ = ["ExtData", "AverageExtData"]
 _poss_datasources = ["BAND", "IUE", "FUSE", "STIS", "SpeX_SXD", "SpeX_LXD", "IRS"]
 
 
-def _rebin(a, rebin_fac):
+def _rebin(waves, exts, rebin_fac):
     """
-    Hack code to rebin a 1d array
+    Code to rebin a 1d extinction curve
+
+    Parameters
+    ----------
+    waves : np.ndarray
+        the wavelengths of the extinction curve
+
+    exts : np.ndarray
+        the extinction values of the extinction curve
+
+    rebin_fac : int
+        the factor by which to rebin the extinction curve
+
+    Returns
+    -------
+    The rebinned wavelengths and extinction values
     """
-    new_len = int(a.shape[0] / rebin_fac)
-    new_a = np.full((new_len), 0.0)
-    for i in range(new_len):
-        new_a[i] = np.mean(a[i * rebin_fac : ((i + 1) * rebin_fac) - 1])
-    return new_a
+    # calculate the number of bins
+    nbins = int(len(waves) / rebin_fac)
+
+    # take out nans from the extinction values and take out the corresponding wavelengths (otherwise all the wavelengths in a bin would be used to calculate the mean wavelength, while only the non-nan extinctions would be used to calculate the mean extinction)
+    mask = ~np.isnan(exts)
+    waves = waves[mask]
+    exts = exts[mask]
+
+    # calculate the mean wavelength and mean extinction in every bin
+    # caution: the new wavelength grid is not equally spaced, since the mean wavelength in every bin is calculated
+    new_waves, new_exts = stats.binned_statistic(
+        waves,
+        (waves, exts),
+        statistic="mean",
+        bins=nbins,
+    )[0]
+
+    return new_waves, new_exts
 
 
 def _flux_unc_as_mags(fluxes, uncs):
@@ -1132,7 +1161,7 @@ class ExtData:
             additive offset for the data
 
         rebin_fac : int [default=None]
-            factor by which to rebin extinction curve
+            factor by which to rebin the extinction curve
 
         annotate_key : string [default=None]
             type of data for which to annotate text (e.g., SpeX_LXD)
@@ -1196,8 +1225,7 @@ class ExtData:
                 )
             else:
                 if rebin_fac is not None:
-                    x = _rebin(x, rebin_fac)
-                    y = _rebin(y, rebin_fac)
+                    x, y = _rebin(x, y, rebin_fac)
 
                 pltax.plot(x, y, "-", color=color, alpha=alpha)
 
