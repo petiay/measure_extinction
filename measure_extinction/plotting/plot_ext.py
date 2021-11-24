@@ -243,7 +243,7 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
                 extdata.model["params"][2].value,
                 extdata.model["params"][3].value,
             )
-        elif extdata.model["type"] == "pow_alav":
+        elif extdata.model["type"] == "pow_alax":
             labeltxt = r"$%5.3f \,\lambda^{-%5.2f}$" % (
                 extdata.model["params"][0].value,
                 extdata.model["params"][2].value,
@@ -261,7 +261,6 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
             label=labeltxt,
             zorder=5,
         )
-
         plt.legend(loc="lower left")
 
         # plot the residuals if requested
@@ -381,6 +380,7 @@ def plot_multi_extinction(
     text_angles=[],
     multicolor=False,
     wavenum=False,
+    figsize=None,
     pdf=False,
 ):
     """
@@ -429,8 +429,12 @@ def plot_multi_extinction(
 
     multicolor : boolean [default=False]
         Whether or not to give all curves a different color
+
     wavenum : boolean [default=False]
         Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
+
+    figsize : tuple [default=None]
+        Tuple with figure size (e.g. (8,15))
 
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
@@ -454,10 +458,9 @@ def plot_multi_extinction(
     plt.rc("ytick", right=True, direction="in", labelsize=fs * 1.1)
 
     # create the plot
-    ysize = 6
-    if spread:
-        ysize += len(starpair_list) * 1.25
-    fig, ax = plt.subplots(figsize=(8, ysize))
+    if figsize is None:
+        figsize = (8, len(starpair_list))
+    fig, ax = plt.subplots(figsize=figsize)
     colors = plt.get_cmap("tab10")
 
     # set default text offsets and angles
@@ -513,7 +516,7 @@ def plot_multi_extinction(
             annotate_text=extdata.red_file.split(".")[0].upper(),
             annotate_yoffset=text_offsets[i],
             annotate_rotation=text_angles[i],
-            annotate_color=colors(i % 10),
+            annotate_color=pcolor,
             wavenum=wavenum,
         )
 
@@ -568,8 +571,6 @@ def plot_multi_extinction(
     if spread:
         ylabel += " + offset"
     ax.set_ylabel(ylabel, fontsize=1.5 * fs)
-
-    fig.tight_layout()
 
     # show the figure or save it to a pdf file
     if pdf:
