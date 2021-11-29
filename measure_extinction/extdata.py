@@ -560,7 +560,9 @@ class ExtData:
                     + np.square(fullav[1] / fullav[0])
                 )
                 self.exts[curname] = (self.exts[curname] / fullav[0]) + 1
-                self.uncs[curname] = tuncs * self.exts[curname]
+                # full/correct error propagration requires mulitplying the
+                # fractional unc by E(lambda-V)/A(V)
+                self.uncs[curname] = tuncs * np.absolute(self.exts[curname] - 1.0)
             # update the extinction curve type
             self.type = "alax"
 
