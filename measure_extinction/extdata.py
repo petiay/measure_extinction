@@ -552,9 +552,14 @@ class ExtData:
                 if "AV" not in self.columns.keys():
                     self.calc_AV(akav=akav)
                 av = _get_column_val(self.columns["AV"])
+            fullav = self.columns["AV"]
             for curname in self.exts.keys():
+                tuncs = np.sqrt(
+                    np.square(self.uncs[curname] / self.exts[curname])
+                    + np.square(fullav[1] / fullav[0])
+                )
                 self.exts[curname] = (self.exts[curname] / av) + 1
-                self.uncs[curname] /= av
+                self.uncs[curname] = tuncs * self.exts[curname]
             # update the extinction curve type
             self.type = "alax"
 
@@ -1320,10 +1325,13 @@ class ExtData:
                 bounds={"amplitude": amp_bounds, "alpha": index_bounds},
             )
         else:
-            func = PowerLaw1D(
-                fixed={"x_0": True},
-                bounds={"amplitude": amp_bounds, "alpha": index_bounds},
-            ) | AxAvToExv(bounds={"Av": AV_bounds})
+            func = (
+                PowerLaw1D(
+                    fixed={"x_0": True},
+                    bounds={"amplitude": amp_bounds, "alpha": index_bounds},
+                )
+                | AxAvToExv(bounds={"Av": AV_bounds})
+            )
 
         fit = LevMarLSQFitter()
         fit_result = fit(func, waves, exts, weights=1 / exts_unc)
