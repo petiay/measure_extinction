@@ -551,14 +551,15 @@ class ExtData:
             if av is None:
                 if "AV" not in self.columns.keys():
                     self.calc_AV(akav=akav)
-                av = _get_column_val(self.columns["AV"])
             fullav = self.columns["AV"]
+            if len(np.atleast_1d(fullav)) == 1:
+                fullav = np.array([fullav, 0.0])
             for curname in self.exts.keys():
                 tuncs = np.sqrt(
                     np.square(self.uncs[curname] / self.exts[curname])
                     + np.square(fullav[1] / fullav[0])
                 )
-                self.exts[curname] = (self.exts[curname] / av) + 1
+                self.exts[curname] = (self.exts[curname] / fullav[0]) + 1
                 self.uncs[curname] = tuncs * self.exts[curname]
             # update the extinction curve type
             self.type = "alax"
