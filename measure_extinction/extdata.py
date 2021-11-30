@@ -559,7 +559,7 @@ class ExtData:
             for curname in self.exts.keys():
                 # special case for the E(lambda - V) = 0 see below
                 zvals = (self.exts[curname] == 0) & (self.npts[curname] > 0)
-                # formal error propagration where zero extinctions do not
+                # formal error propagation where zero extinctions do not
                 # require separate treatment to avoid divide by zero errors
                 self.uncs[curname] = (
                     np.sqrt(
@@ -570,12 +570,13 @@ class ExtData:
                 )
 
                 self.exts[curname] = (self.exts[curname] / fullav[0]) + 1
-                # replace the V band uncertainty with the A(V) uncertainty
+                # replace the V band uncertainty with the fractional A(V) uncertainty
                 # as this is the only term nominally in the A(lam)/A(V) extinction
-                # that is by definition 1.
+                # that is by definition 1.  Fractional as the extinction at this
+                # wavelength is normalized to A(V).
                 #  zvals is defined to only be True for V band
                 if np.sum(zvals) > 0:
-                    self.uncs[curname][zvals] = fullav[1]
+                    self.uncs[curname][zvals] = fullav[1] / fullav[0]
 
             self.type = "alax"
 
