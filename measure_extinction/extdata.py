@@ -589,11 +589,33 @@ class ExtData:
             if av is None:
                 if "AV" not in self.columns.keys():
                     self.calc_AV(akav=akav)
-                av = _get_column_val(self.columns["AV"])
+            fullav = self.columns["AV"]
+            if len(np.atleast_1d(fullav)) == 1:
+                fullav = np.array([fullav, 0.0])
+            elif len(np.atleast_1d(fullav)) == 3:
+                fullav = np.array([fullav[0], 0.5 * (fullav[1] + fullav[2])])
             for curname in self.exts.keys():
-                self.exts[curname] = (self.exts[curname] / av) + 1
-                self.uncs[curname] /= av
-            # update the extinction curve type
+                # special case for the E(lambda - V) = 0 see below
+                zvals = (self.exts[curname] == 0) & (self.npts[curname] > 0)
+                # formal error propagation where zero extinctions do not
+                # require separate treatment to avoid divide by zero errors
+                self.uncs[curname] = (
+                    np.sqrt(
+                        np.square(self.uncs[curname])
+                        + np.square(self.exts[curname] * fullav[1] / fullav[0])
+                    )
+                    / fullav[0]
+                )
+
+                self.exts[curname] = (self.exts[curname] / fullav[0]) + 1
+                # replace the V band uncertainty with the fractional A(V) uncertainty
+                # as this is the only term nominally in the A(lam)/A(V) extinction
+                # that is by definition 1.  Fractional as the extinction at this
+                # wavelength is normalized to A(V).
+                #  zvals is defined to only be True for V band
+                if np.sum(zvals) > 0:
+                    self.uncs[curname][zvals] = fullav[1] / fullav[0]
+
             self.type = "alax"
 
     def get_fitdata(
