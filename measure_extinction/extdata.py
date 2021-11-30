@@ -557,15 +557,25 @@ class ExtData:
             elif len(np.atleast_1d(fullav)) == 3:
                 fullav = np.array([fullav[0], 0.5 * (fullav[1] + fullav[2])])
             for curname in self.exts.keys():
+                nzvals = self.exts[curname] != 0
+                zvals = (self.exts[curname] == 0) & (self.npts[curname] > 0)
                 tuncs = np.sqrt(
-                    np.square(self.uncs[curname] / self.exts[curname])
+                    np.square(self.uncs[curname][nzvals] / self.exts[curname][nzvals])
                     + np.square(fullav[1] / fullav[0])
                 )
                 self.exts[curname] = (self.exts[curname] / fullav[0]) + 1
                 # full/correct error propagration requires mulitplying the
                 # fractional unc by E(lambda-V)/A(V)
-                self.uncs[curname] = tuncs * np.absolute(self.exts[curname] - 1.0)
-            # update the extinction curve type
+                self.uncs[curname][nzvals] = tuncs * np.absolute(
+                    self.exts[curname][nzvals] - 1.0
+                )
+                # replace the V band uncertainty with the A(V) uncertainty
+                # as this is the only term nominally in the A(lam)/A(V) extinction
+                # that is by definition 1.
+                #  zvals is defined to only be True for V band
+                if np.sum(zvals) > 0:
+                    self.exts[curname][zvals] = fullav[1]
+
             self.type = "alax"
 
     def get_fitdata(
