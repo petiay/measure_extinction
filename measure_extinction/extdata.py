@@ -554,6 +554,8 @@ class ExtData:
             fullav = self.columns["AV"]
             if len(np.atleast_1d(fullav)) == 1:
                 fullav = np.array([fullav, 0.0])
+            elif len(np.atleast_1d(fullav)) == 3:
+                fullav = np.array([fullav[0], 0.5 * (fullav[1] + fullav[2])])
             for curname in self.exts.keys():
                 tuncs = np.sqrt(
                     np.square(self.uncs[curname] / self.exts[curname])
