@@ -166,6 +166,22 @@ class FitInfo(object):
         else:
             return lnp + fitinfo.lnlike(params, obsdata, modeldata)
 
+    def check_param_limits(self, params):
+        """
+        Check the parameters are within the parameter limits
+
+        Parameters
+        ----------
+        params : floats
+            parameters of the model
+        """
+        # make sure the parameters are within the limits
+        for k, cplimit in enumerate(self.parameter_limits):
+            if (params[k] < cplimit[0]) | (params[k] > cplimit[1]):
+                print(
+                    "param limits excedded", self.parameter_names[k], params[k], cplimit
+                )
+
 
 def fit_model_parser():
     parser = argparse.ArgumentParser()
