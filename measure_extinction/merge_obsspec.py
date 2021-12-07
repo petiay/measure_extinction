@@ -155,7 +155,9 @@ def merge_stis_obsspec(obstables, waveregion="UV", output_resolution=1000):
         cfluxes = ctable["FLUX"]
         cnpts = ctable["NPTS"].data
         for k in range(n_waves):
-            gvals = (cwaves >= full_wave_min[k]) & (cwaves < full_wave_max[k]) & (cnpts > 0)
+            gvals = (
+                (cwaves >= full_wave_min[k]) & (cwaves < full_wave_max[k]) & (cnpts > 0)
+            )
             if np.sum(gvals) > 0:
                 weights = 1.0 / np.square(cuncs[gvals].value)
                 full_flux[k] += np.sum(weights * cfluxes[gvals].value)
@@ -263,6 +265,7 @@ def merge_spex_obsspec(obstable, mask=[], output_resolution=2000):
     fluxes = obstable["FLUX"].data
     uncs = obstable["ERROR"].data
     npts = np.full((len(obstable["FLUX"])), 1.0)
+
     # take out data points that were "flagged" as bad by SpeXtool (i.e. FLAG is not zero)
     npts[obstable["FLAG"] != 0] = 0
     # take out data points with NaN fluxes
