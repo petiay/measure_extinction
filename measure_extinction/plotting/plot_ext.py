@@ -683,7 +683,7 @@ def plot_extinction(
 
     # overplot a fitted model if requested
     if fitmodel:
-        plot_fitmodel(extdata, res=True)
+        plot_fitmodel(extdata, alax=alax, res=True)
 
     # plot HI-lines if requested
     if HI_lines:
