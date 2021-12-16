@@ -215,7 +215,7 @@ def plot_extmodels(extdata, alax=False):
         plt.legend(bbox_to_anchor=(0.99, 0.9))
 
 
-def plot_fitmodel(extdata, yoffset=0, res=False):
+def plot_fitmodel(extdata, alax=False, yoffset=0, res=False):
     """
     Overplot a fitted model if available
 
@@ -223,6 +223,9 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
     ----------
     extdata : ExtData
         Extinction data under consideration
+
+    alax : boolean [default=False]
+        Whether or not to plot A(lambda)/A(X) instead of E(lambda-X)
 
     yoffset : float [default=0]
         Offset of the corresponding extinction curve (in order to match the model to the curve)
@@ -248,12 +251,19 @@ def plot_fitmodel(extdata, yoffset=0, res=False):
                 extdata.model["params"][0].value,
                 extdata.model["params"][2].value,
             )
-
         else:
             labeltxt = "fitted model"
+
+        # obtain the model extinctions
+        mod_ext = extdata.model["exts"]
+
+        # if the plot needs to be in A(lambda)/A(V), the model extinctions need to be converted to match the data
+        if alax:
+            mod_ext = (mod_ext / extdata.columns["AV"][0]) + 1
+
         plt.plot(
             extdata.model["waves"],
-            extdata.model["exts"] + yoffset,
+            mod_ext + yoffset,
             "-",
             lw=3,
             color="crimson",
@@ -522,7 +532,7 @@ def plot_multi_extinction(
 
         # overplot a fitted model if requested
         if fitmodel:
-            plot_fitmodel(extdata, yoffset=yoffset)
+            plot_fitmodel(extdata, alax=alax, yoffset=yoffset)
 
     # overplot Milky Way extinction curve models if requested
     if extmodels:
@@ -673,7 +683,7 @@ def plot_extinction(
 
     # overplot a fitted model if requested
     if fitmodel:
-        plot_fitmodel(extdata, res=True)
+        plot_fitmodel(extdata, alax=alax, res=True)
 
     # plot HI-lines if requested
     if HI_lines:
