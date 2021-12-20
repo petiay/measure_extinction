@@ -74,6 +74,7 @@ def test_calc_AV_RV():
 
     # calculate A(V)
     ext.calc_AV()
+    print(ext.columns["AV"])
     np.testing.assert_almost_equal(ext.columns["AV"], 2.5626900237367805)
 
     # calculate R(V)
@@ -144,3 +145,7 @@ def test_fit_spex_ext():  # only for alax=False (for now)
         (0.8680132704511972, 2.023865293614347, 2.5626900237367805),
     )
     np.testing.assert_almost_equal(extdata.columns["AV"], 2.5626900237367805)
+
+
+if __name__ == '__main__':
+    test_calc_AV_RV()
