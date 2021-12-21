@@ -489,8 +489,7 @@ class ExtData:
         if dwaves[bindx] > 0.02 * u.micron:
             warnings.warn("no B band measurement in E(l-V)", UserWarning)
         else:
-            self.columns["EBV"] = (self.exts["BAND"][bindx],
-                                   self.uncs["BAND"][bindx])
+            self.columns["EBV"] = (self.exts["BAND"][bindx], self.uncs["BAND"][bindx])
 
     def calc_AV(self, akav=0.112):
         """
@@ -512,6 +511,8 @@ class ExtData:
         # if SpeX extinction curve is available: compute A(V) by fitting the NIR extintion curve with a powerlaw.
         if "SpeX_SXD" in self.waves.keys() or "SpeX_LXD" in self.waves.keys():
             self.fit_spex_ext()
+            if not isinstance(self.columns["AV"], tuple):
+                self.columns["AV"] = (self.columns["AV"], 0.0)
 
         # if no SpeX spectrum is available: compute A(V) from E(K-V)
         else:
@@ -553,7 +554,7 @@ class ExtData:
         ebv = _get_column_plus_unc(self.columns["EBV"])
 
         rv = av[0] / ebv[0]
-        rvunc = rv * np.sqrt( (av[1] / av[0]) ** 2 + (ebv[1]/ ebv[0]) ** 2)
+        rvunc = rv * np.sqrt((av[1] / av[0]) ** 2 + (ebv[1] / ebv[0]) ** 2)
         self.columns["RV"] = (rv, rvunc)
 
     def trans_elv_elvebv(self, ebv=None):
@@ -583,14 +584,15 @@ class ExtData:
             if ebv is None:
                 if "EBV" not in self.columns.keys():
                     self.calc_EBV()
-                fullebv = _get_column_val(self.columns["EBV"])
+                fullebv = _get_column_plus_unc(self.columns["EBV"])
             else:
-                fullebv = _get_column_val(ebv)
+                fullebv = _get_column_plus_unc(ebv)
 
             for curname in self.exts.keys():
                 self.uncs[curname] = (self.exts[curname] / fullebv[0]) * np.sqrt(
-                        np.square(self.uncs[curname] / self.exts[curname])
-                        + np.square(fullebv[1] / fullebv[0]))
+                    np.square(self.uncs[curname] / self.exts[curname])
+                    + np.square(fullebv[1] / fullebv[0])
+                )
                 self.exts[curname] /= fullebv[0]
 
             self.type = "elvebv"
@@ -1373,7 +1375,7 @@ class ExtData:
         self.model["residuals"] = exts - self.model["exts"]
         self.model["params"] = tuple(fit_result[0])
         if self.type != "alav":
-            self.columns["AV"] = fit_result[0][2]
+            self.columns["AV"] = (fit_result[0][2], 0.0)
 
     def fit_spex_ext(
         self, amp_bounds=(-1.5, 1.5), index_bounds=(0.0, 5.0), AV_bounds=(0.0, 6.0)
@@ -1437,4 +1439,4 @@ class ExtData:
                 fit_result.alpha_0.value,
                 fit_result.Av_1.value,
             )
-            self.columns["AV"] = fit_result.Av_1.value
+            self.columns["AV"] = (fit_result.Av_1.value, 0.0)
