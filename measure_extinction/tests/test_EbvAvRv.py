@@ -2,6 +2,7 @@ import numpy as np
 import astropy.units as u
 from measure_extinction.extdata import ExtData
 
+
 def test_calc_ebv():
     text = ExtData()
     text.waves["BAND"] = np.array([0.438, 0.555]) * u.micron
