@@ -763,10 +763,11 @@ class ExtData:
                 else:
                     print(ckey + " not supported for saving extcurves")
         else:  # save the column info if available in the extdata object
-            colkeys = ["AV", "RV", "EBV", "LOGHI"]
+            colkeys = ["AV", "RV", "IRV", "EBV", "LOGHI"]
             colinfo = [
                 "V-band extinction A(V)",
                 "total-to-selective extintion R(V)",
+                "selective-to-total 1/R(V)",
                 "color excess E(B-V)",
                 "log10 of the HI column density N(HI)",
             ]
@@ -970,7 +971,7 @@ class ExtData:
         self.red_file = pheader.get("R_FILE")
         self.comp_file = pheader.get("C_FILE")
 
-        column_keys = ["AV", "EBV", "RV", "LOGHI", "LOGHIMW", "NHIAV"]
+        column_keys = ["AV", "EBV", "RV", "IRV", "LOGHI", "LOGHIMW", "NHIAV"]
         for curkey in column_keys:
             if pheader.get(curkey):
                 if pheader.get("%s_UNC" % curkey):
