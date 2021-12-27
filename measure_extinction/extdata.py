@@ -528,6 +528,40 @@ class ExtData:
                 avunc = np.absolute(av * (self.uncs["BAND"][kindx] / ekv))
                 self.columns["AV"] = (av, avunc)
 
+    def calc_AV_JHK(self):
+        """
+        Calculate A(V) from the observed extinction curve:
+            - extrapolate from J, H, & K photometry
+            - assumes functional from from Rieke, Rieke, & Paul (1989)
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        Updates self.columns["AV"]
+        """
+        # J, H, K
+        rrp89_waves = np.array([1.25, 1.6, 2.2]) * u.micron
+        rrp89_alav = [0.2815534, 0.17475728, 0.11197411]
+
+        avs = []
+        avs_unc = []
+        for cwave, calav in zip(rrp89_waves, rrp89_alav):
+            dwaves = np.absolute(self.waves["BAND"] - cwave)
+            kindx = dwaves.argmin()
+            if dwaves[kindx] < 0.1 * u.micron:
+                cav = self.exts["BAND"][kindx] / (calav - 1)
+                cavunc = np.absolute(cav * (self.uncs["BAND"][kindx] / calav))
+                avs.append(cav)
+                avs_unc.append(cavunc)
+
+        if len(avs) > 0:
+            weights = 1.0 / np.square(avs_unc)
+            av = np.average(avs, weights=weights)
+            avunc = np.sqrt(1.0 / np.sum(weights))
+            self.columns["AV"] = (av, avunc)
+
     def calc_RV(self):
         """
         Calculate R(V) from the observed extinction curve
