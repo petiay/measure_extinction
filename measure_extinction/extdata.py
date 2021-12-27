@@ -552,7 +552,9 @@ class ExtData:
             kindx = dwaves.argmin()
             if dwaves[kindx] < 0.1 * u.micron:
                 cav = self.exts["BAND"][kindx] / (calav - 1)
-                cavunc = np.absolute(cav * (self.uncs["BAND"][kindx] / calav))
+                cavunc = np.absolute(
+                    cav * (self.uncs["BAND"][kindx] / self.exts["BAND"][kindx])
+                )
                 avs.append(cav)
                 avs_unc.append(cavunc)
 
