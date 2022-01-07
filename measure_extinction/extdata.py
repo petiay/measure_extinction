@@ -685,6 +685,12 @@ class ExtData:
                 if np.sum(zvals) > 0:
                     self.uncs[curname][zvals] = fullav[1] / fullav[0]
 
+                # make sure measuremnts with npts = 0 have zero exts and uncs
+                zvals = self.npts[curname] <= 0
+                if np.sum(zvals) > 0:
+                    self.exts[curname][zvals] = 0.0
+                    self.uncs[curname][zvals] = 0.0
+
             self.type = "alax"
 
     def get_fitdata(
