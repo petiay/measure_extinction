@@ -200,7 +200,8 @@ def plot_extmodels(extdata, alax=False):
             y = curve(x) / axav
         else:
             # compute A(V)
-            extdata.calc_AV()
+            if "AV" not in extdata.columns["AV"]:
+                extdata.calc_AV()
             # convert the model curve from A(lambda)/A(V) to E(lambda-V), using the computed A(V) of the data.
             y = (curve(x) - 1) * extdata.columns["AV"][0]
         plt.plot(

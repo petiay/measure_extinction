@@ -532,7 +532,7 @@ class ExtData:
         """
         Calculate A(V) from the observed extinction curve:
             - extrapolate from J, H, & K photometry
-            - assumes functional from from Rieke, Rieke, & Paul (1989)
+            - assumes functional from Rieke, Rieke, & Paul (1989)
 
         Parameters
         ----------
@@ -563,6 +563,11 @@ class ExtData:
             av = np.average(avs, weights=weights)
             avunc = np.sqrt(1.0 / np.sum(weights))
             self.columns["AV"] = (av, avunc)
+        else:
+            warnings.warn(
+                "No JHK band measurement available in E(lambda-V) so no A(V) measurement",
+                stacklevel=2,
+            )
 
     def calc_RV(self):
         """
