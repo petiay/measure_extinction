@@ -840,8 +840,9 @@ class StarData:
         whether or not the LXD scaling factor has been set manually, default = False
     """
 
-    def __init__(self, datfile, path="", photonly=False, use_corfac=True,
-                 deredden=False):
+    def __init__(
+        self, datfile, path="", photonly=False, use_corfac=True, deredden=False
+    ):
         """
         Parameters
         ----------
@@ -1148,6 +1149,7 @@ class StarData:
         yoffset_type="multiply",
         annotate_key=None,
         annotate_wave_range=None,
+        annotate_alignment="left",
         annotate_text=None,
         annotate_rotation=0.0,
         annotate_yoffset=0.0,
@@ -1189,11 +1191,14 @@ class StarData:
         annotate_wave_range : list of 2 floats [default=None]
             min/max wavelength range for the annotation of the text
 
+        annotate_alignment : string [default="left"]
+            horizontal alignment of the annotated text ("left", "center", "right")
+
         annotate_text : string [default=None]
             text to annotate
 
         annotate_rotation : float [default=0.0]
-            annotation angle
+            rotation angle of the annotated text
 
         annotate_yoffset : float [default=0.0]
             y-offset for the annotated text
@@ -1346,7 +1351,7 @@ class StarData:
                     ann_val,
                     annotate_text,
                     color=annotate_color,
-                    horizontalalignment="center",
+                    horizontalalignment=annotate_alignment,
                     rotation=annotate_rotation,
                     fontsize=fontsize,
                 )

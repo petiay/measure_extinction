@@ -1,15 +1,16 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import warnings
-
 import numpy as np
 import astropy.units as u
-from astropy.io import fits
-from scipy.optimize import curve_fit
 
+from astropy.io import fits
 from astropy.modeling.powerlaws import PowerLaw1D
 from astropy.modeling import Parameter
 from astropy.modeling.fitting import LevMarLSQFitter
+from scipy.optimize import curve_fit
+from scipy import stats
+
 from dust_extinction.conversions import AxAvToExv
 
 __all__ = ["ExtData", "AverageExtData"]
@@ -20,15 +21,43 @@ __all__ = ["ExtData", "AverageExtData"]
 _poss_datasources = ["BAND", "IUE", "FUSE", "STIS", "SpeX_SXD", "SpeX_LXD", "IRS"]
 
 
-def _rebin(a, rebin_fac):
+def _rebin(waves, exts, rebin_fac):
     """
-    Hack code to rebin a 1d array
+    Code to rebin a 1d extinction curve
+
+    Parameters
+    ----------
+    waves : np.ndarray
+        the wavelengths of the extinction curve
+
+    exts : np.ndarray
+        the extinction values of the extinction curve
+
+    rebin_fac : int
+        the factor by which to rebin the extinction curve
+
+    Returns
+    -------
+    The rebinned wavelengths and extinction values
     """
-    new_len = int(a.shape[0] / rebin_fac)
-    new_a = np.full((new_len), 0.0)
-    for i in range(new_len):
-        new_a[i] = np.mean(a[i * rebin_fac : ((i + 1) * rebin_fac) - 1])
-    return new_a
+    # calculate the number of bins
+    nbins = int(len(waves) / rebin_fac)
+
+    # take out nans from the extinction values and take out the corresponding wavelengths (otherwise all the wavelengths in a bin would be used to calculate the mean wavelength, while only the non-nan extinctions would be used to calculate the mean extinction)
+    mask = ~np.isnan(exts)
+    waves = waves[mask]
+    exts = exts[mask]
+
+    # calculate the mean wavelength and mean extinction in every bin
+    # caution: the new wavelength grid is not equally spaced, since the mean wavelength in every bin is calculated
+    new_waves, new_exts = stats.binned_statistic(
+        waves,
+        (waves, exts),
+        statistic="mean",
+        bins=nbins,
+    )[0]
+
+    return new_waves, new_exts
 
 
 def _flux_unc_as_mags(fluxes, uncs):
@@ -97,7 +126,7 @@ def _get_column_val(column):
         return float(column)
 
 
-def AverageExtData(extdatas, min_number=3):
+def AverageExtData(extdatas, min_number=3, mask=[]):
     """
     Generate the average extinction curve from a list of ExtData objects
 
@@ -108,6 +137,9 @@ def AverageExtData(extdatas, min_number=3):
 
     min_number : int [default=3]
         minimum number of extinction curves that are required to measure the average extinction; if less than min_number of curves are available at certain wavelengths, the average extinction will still be calculated, but the number of points (npts) at those wavelengths will be set to zero (e.g. used in the plotting)
+
+    mask : list of tuples [default=[]]
+        list of tuples with wavelength regions (in micron) that need to be masked, e.g. [(2.55,2.61),(3.01,3.10)]
 
     Returns
     -------
@@ -184,6 +216,12 @@ def AverageExtData(extdatas, min_number=3):
                 + " extinction curves was not reached for certain wavelengths, and the number of points (npts) for those wavelengths was set to 0.",
                 UserWarning,
             )
+        # take out data points in masked region(s)
+        for region in mask:
+            aveext.npts[src][
+                (aveext.waves[src].value >= region[0])
+                & (aveext.waves[src].value <= region[1])
+            ] = 0
 
     return aveext
 
@@ -551,11 +589,33 @@ class ExtData:
             if av is None:
                 if "AV" not in self.columns.keys():
                     self.calc_AV(akav=akav)
-                av = _get_column_val(self.columns["AV"])
+            fullav = self.columns["AV"]
+            if len(np.atleast_1d(fullav)) == 1:
+                fullav = np.array([fullav, 0.0])
+            elif len(np.atleast_1d(fullav)) == 3:
+                fullav = np.array([fullav[0], 0.5 * (fullav[1] + fullav[2])])
             for curname in self.exts.keys():
-                self.exts[curname] = (self.exts[curname] / av) + 1
-                self.uncs[curname] /= av
-            # update the extinction curve type
+                # special case for the E(lambda - V) = 0 see below
+                zvals = (self.exts[curname] == 0) & (self.npts[curname] > 0)
+                # formal error propagation where zero extinctions do not
+                # require separate treatment to avoid divide by zero errors
+                self.uncs[curname] = (
+                    np.sqrt(
+                        np.square(self.uncs[curname])
+                        + np.square(self.exts[curname] * fullav[1] / fullav[0])
+                    )
+                    / fullav[0]
+                )
+
+                self.exts[curname] = (self.exts[curname] / fullav[0]) + 1
+                # replace the V band uncertainty with the fractional A(V) uncertainty
+                # as this is the only term nominally in the A(lam)/A(V) extinction
+                # that is by definition 1.  Fractional as the extinction at this
+                # wavelength is normalized to A(V).
+                #  zvals is defined to only be True for V band
+                if np.sum(zvals) > 0:
+                    self.uncs[curname][zvals] = fullav[1] / fullav[0]
+
             self.type = "alax"
 
     def get_fitdata(
@@ -703,10 +763,11 @@ class ExtData:
                 else:
                     print(ckey + " not supported for saving extcurves")
         else:  # save the column info if available in the extdata object
-            colkeys = ["AV", "RV", "EBV", "LOGHI"]
+            colkeys = ["AV", "RV", "IRV", "EBV", "LOGHI"]
             colinfo = [
                 "V-band extinction A(V)",
                 "total-to-selective extintion R(V)",
+                "selective-to-total 1/R(V)",
                 "color excess E(B-V)",
                 "log10 of the HI column density N(HI)",
             ]
@@ -910,7 +971,7 @@ class ExtData:
         self.red_file = pheader.get("R_FILE")
         self.comp_file = pheader.get("C_FILE")
 
-        column_keys = ["AV", "EBV", "RV", "LOGHI", "LOGHIMW", "NHIAV"]
+        column_keys = ["AV", "EBV", "RV", "IRV", "LOGHI", "LOGHIMW", "NHIAV"]
         for curkey in column_keys:
             if pheader.get(curkey):
                 if pheader.get("%s_UNC" % curkey):
@@ -1123,7 +1184,7 @@ class ExtData:
             additive offset for the data
 
         rebin_fac : int [default=None]
-            factor by which to rebin spectra
+            factor by which to rebin the extinction curve
 
         annotate_key : string [default=None]
             type of data for which to annotate text (e.g., SpeX_LXD)
@@ -1187,8 +1248,7 @@ class ExtData:
                 )
             else:
                 if rebin_fac is not None:
-                    x = _rebin(x, rebin_fac)
-                    y = _rebin(y, rebin_fac)
+                    x, y = _rebin(x, y, rebin_fac)
 
                 pltax.plot(x, y, "-", color=color, alpha=alpha)
 
@@ -1320,10 +1380,13 @@ class ExtData:
                 bounds={"amplitude": amp_bounds, "alpha": index_bounds},
             )
         else:
-            func = PowerLaw1D(
-                fixed={"x_0": True},
-                bounds={"amplitude": amp_bounds, "alpha": index_bounds},
-            ) | AxAvToExv(bounds={"Av": AV_bounds})
+            func = (
+                PowerLaw1D(
+                    fixed={"x_0": True},
+                    bounds={"amplitude": amp_bounds, "alpha": index_bounds},
+                )
+                | AxAvToExv(bounds={"Av": AV_bounds})
+            )
 
         fit = LevMarLSQFitter()
         fit_result = fit(func, waves, exts, weights=1 / exts_unc)
