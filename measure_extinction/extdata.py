@@ -698,6 +698,65 @@ class ExtData:
 
             self.type = "alax"
 
+    def rebin_constres(self, source, waverange, resolution):
+        """
+        Rebin the source extinction curve it a fixed spectral resolution
+        and min/max wavelength range.
+
+        Parameters
+        ----------
+        source : str
+            source of extinction (i.e. "IUE", "IRS")
+        waverange : [float, float]
+            Min/max of wavelength range
+        resolution : float
+            Spectral resolution of rebinned extinction curve
+
+        Returns
+        -------
+        measure_extinction ExtData
+            Object with source extinciton curve rebinned
+
+        """
+        if source == "BAND":
+            raise ValueError("BAND extinction cannot be rebinned")
+
+        if source not in ext.exts.keys():
+            warnings.warn(f"{source} extinction not present")
+        else:
+            # setup new wavelength grid
+            full_wave, full_wave_min, full_wave_max = _wavegrid(
+                resolution, waverange.to(u.micron).value
+            )
+            n_waves = len(full_wave)
+
+            # setup the new rebinned vectors
+            new_waves = full_wave * u.micron
+            new_exts = np.zeros((n_waves), dtype=float)
+            new_uncs = np.zeros((n_waves), dtype=float)
+            new_npts = np.zeros((n_waves), dtype=int)
+
+            # rebin using a weighted average
+            owaves = self.waves[source].to(u.micron).value
+            for k in range(n_waves):
+                (indxs,) = np.where(
+                    (owaves >= full_wave_min[k])
+                    & (owaves < full_wave_max[k])
+                    & (self.uncs[source] > 0.0)
+                )
+                if len(indxs) > 0:
+                    weights = 1.0 / np.square(self.uncs[source][indxs])
+                    sweights = np.sum(weights)
+                    new_exts[k] = np.sum(weights * self.exts[source][indxs]) / sweights
+                    new_uncs[k] = 1.0 / np.sqrt(sweights)
+                    new_npts[k] = np.sum(self.npts[source][indxs])
+
+            # update source values
+            self.waves[source] = new_waves
+            self.exts[source] = new_exts
+            self.uncs[source] = new_uncs
+            self.npts[source] = new_npts
+
     def get_fitdata(
         self,
         req_datasources,
