@@ -861,11 +861,11 @@ class ExtData:
                             hcomment.append(f"{ckey} uncertainty")
                             hval.append(self.columns[f"{ckey}"][1])
                         elif len(self.columns[f"{ckey}"]) == 3:
-                            hname.append(f"{ckey}_MUNC")
-                            hcomment.append(f"{ckey} lower uncertainty")
-                            hval.append(self.columns[f"{ckey}"][1])
                             hname.append(f"{ckey}_PUNC")
                             hcomment.append(f"{ckey} upper uncertainty")
+                            hval.append(self.columns[f"{ckey}"][1])
+                            hname.append(f"{ckey}_MUNC")
+                            hcomment.append(f"{ckey} lower uncertainty")
                             hval.append(self.columns[f"{ckey}"][2])
                     else:
                         hval.append(self.columns[f"{ckey}"])
