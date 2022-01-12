@@ -130,7 +130,7 @@ def plot_average(
 
         # plot HI-lines if requested
         if HI_lines:
-            plot_HI(path, ax)
+            plot_HI(ax, wavenum=wavenum)
 
         # zoom in on a specific region if requested
         if range is not None:
@@ -294,7 +294,7 @@ def plot_fitmodel(extdata, alax=False, yoffset=0, res=False):
         )
 
 
-def plot_HI(path, ax):
+def plot_HI(ax, wavenum=False):
     """
     Indicate the HI-lines on the plot (between 912A and 10 micron)
 
@@ -302,12 +302,15 @@ def plot_HI(path, ax):
     ----------
     ax : AxesSubplot
         Axes of plot for which to add the HI-lines
+    wavenum : boolean [default=False]
+        Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
 
     Returns
     -------
     Indicates HI-lines on the plot
     """
     # read in HI-lines
+    path = pkg_resources.resource_filename("measure_extinction", "data/")
     table = pd.read_table(path + "HI_lines.list", sep=r"\s+", comment="#")
     # group lines by series
     series_groups = table.groupby("n'")
@@ -327,10 +330,19 @@ def plot_HI(path, ax):
     for name, series in series_groups:
         # plot the lines
         for wave in series.wavelength:
-            ax.axvline(wave, color=colors(name - 1), lw=0.05, alpha=0.4)
+            if wavenum:
+                x = 1.0 / wave
+            else:
+                x = wave
+            ax.axvline(x, color=colors(name - 1), lw=0.05, alpha=0.4)
         # add the name of the series
+        mwave = series.wavelength.mean()
+        if wavenum:
+            xm = 1.0 / mwave
+        else:
+            xm = mwave
         ax.text(
-            series.wavelength.mean(),
+            xm,
             0.04,
             series_names[name],
             transform=ax.get_xaxis_transform(),
@@ -563,7 +575,7 @@ def plot_multi_extinction(
 
     # plot HI-lines if requested
     if HI_lines:
-        plot_HI(path, ax)
+        plot_HI(ax, wavenum=wavenum)
 
     # zoom in on a specific region if requested
     if range is not None:
@@ -688,7 +700,7 @@ def plot_extinction(
 
     # plot HI-lines if requested
     if HI_lines:
-        plot_HI(path, ax)
+        plot_HI(ax, wavenum=wavenum)
 
     # zoom in on a specific region if requested
     if range is not None:
