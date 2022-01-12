@@ -697,14 +697,15 @@ def plot_extinction(
 
     # finish configuring the plot
     ax.set_title(starpair.split("_")[0], fontsize=50)
-    ax.text(
-        0.99,
-        0.95,
-        "comparison: " + starpair.split("_")[1],
-        fontsize=25,
-        horizontalalignment="right",
-        transform=ax.transAxes,
-    )
+    if len(starpair.split("_")) > 1:
+        ax.text(
+            0.99,
+            0.95,
+            "comparison: " + starpair.split("_")[1],
+            fontsize=25,
+            horizontalalignment="right",
+            transform=ax.transAxes,
+        )
     if log:
         ax.set_xscale("log")
     if wavenum:
