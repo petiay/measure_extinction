@@ -33,8 +33,27 @@ The photometry is stored in the dedicated BandData class to
 provide specific capabilities needed for handling photometric data.
 The spectroscopy is stored in SpecData class.
 
+The details of the data stored are:
+
+* file: name of DAT file
+* path: path of DAT file
+* data: dictionary of BandData and SpecData objects containing the stellar data
+* sptype: spectral type of star from DAT file
+* use_corfac: boolean for determining if corfacs should be used
+* corfac: dictonary of correction factors for spectral data
+* dereddened: boolean if the data has been dereddened
+* dereddenParams: dictionary of FM90 and CCM89 dereddening parameters
+* model_parameters: stellar atmosphere model parameters (for model based data)
+
 Member Functions
 ----------------
+
+The member functions of StarData include:
+
+* read: read in the data on a star based on a DAT formatted file
+* deredden: deredden the data based on FM90 (UV) and CCM89 (optical/NIR)
+* get_flat_data_arrays: get waves, fluxes, uncs as vectors combining all the data
+* plot: plot the stellar data given a matplotlib plot object
 
 BandData
 ========
@@ -45,8 +64,28 @@ Member Functions
 SpecData
 ========
 
+A spectrum is stored as part of `measure_extinction.extdata.SpecData`.
+The details of the data stored are:
+
+* waves: wavelengths with units
+* n_waves: number of wavelengths
+* wave_range: min/max of waves with units
+* fluxes: fluxes versus wavelengths with units
+* uncs: flux uncertainties versus wavelength with units
+* npts: number of measurements versus wavelength
+
 Member Functions
 ----------------
+
+The member functions of SpecData include:
+
+* read_spectra: generic read for a spectrum in a specifically formatted FITS file
+* read_fuse: read a FUSE spectrum
+* read_iue: read an IUE spectrum (includes cutting data > 3200 A)
+* read_stis: read a Hubble/STIS spectrum
+* read_spex: read a IRTF/SpeX spectrum (includes scaling by corfacs)
+* read_irs: read a Spitzer/IRS spectrum (includes scaling by corfacs, cutting above some waelength)
+* rebin_constres: rebin spectrum to a constant input resolution
 
 ExtData
 =======
@@ -69,9 +108,9 @@ Specfic times stored include (where src = data source),
 Member Functions
 ----------------
 
-There are a number of member functions for ExtData.
+The member functions of ExtData include:
 
-* calc_elx: calculate E(lambda-X) for all data sources present in both reddened and comparision StarData objects
+* calc_elx: calculate E(lambda-X) for all data sources present in both reddened and comparison StarData objects
 * calc_elx_bands: calculate E(lambda-X) for the "BAND" data
 * calc_elx_spectra: calculate E(lambda-X) for a single spectral data source
 * calc_EBV: determine E(B-V) based on E(lambda-V) "BAND" data
@@ -79,8 +118,13 @@ There are a number of member functions for ExtData.
 * calc_RV: determine R(V) using calc_EBV and calc_AV as needed
 * trans_elv_elvebv: calculate E(lambda-V)/E(B-V) based on E(lambda-V) and E(B-V)
 * trans_elv_alav: calculate A(lambda)/A(V) based on E(lambda-V) and A(V)
-* rebin_constres: rebin one data source extinction data to a constant resolution
+* rebin_constres: rebin one data source extinction data to a constant input resolution
 * get_fitdata: gets a tuple of vectors with (wavelengths, exts, uncs) that is useful for fitting
 * save: save the extinction curve to a FITS file
 * read: read an extinction curve from a FITS file
 * plot: plot the extinction curve given a matplotlib plot object
+
+.. note::
+   ExtData partially supports extinction curves relative to an arbitrary band.
+   Some member functions only support extinction curve relative to V band.
+   Work continues to update the code to allow arbitrary bands for all functions.
