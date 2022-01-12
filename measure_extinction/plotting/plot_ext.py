@@ -616,6 +616,7 @@ def plot_extinction(
     exclude=[],
     log=False,
     wavenum=False,
+    rebin_res=None,
     pdf=False,
 ):
     """
@@ -653,6 +654,9 @@ def plot_extinction(
     wavenum : boolean [default=False]
         Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
 
+    resolution : float
+        Spectral resolution to rebin extinction curves
+
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
 
@@ -677,8 +681,18 @@ def plot_extinction(
     # create the plot
     fig, ax = plt.subplots(figsize=(10, 7))
 
-    # read in and plot the extinction curve data for this star
+    # read in extinction curve data for this star
     extdata = ExtData("%s%s_ext.fits" % (path, starpair.lower()))
+
+    # rebin if desired
+    if rebin_res is not None:
+        for src in extdata.exts.keys():
+            if src != "BAND":
+                rebin_waverange = np.array([min(extdata.waves[src]).to(u.micron).value,
+                       max(extdata.waves[src]).to(u.micron).value]) * u.micron
+                extdata.rebin_constres(src, rebin_waverange, rebin_res)
+
+    # plot extinction curve data
     extdata.plot(
         ax,
         alax=alax,
@@ -793,6 +807,12 @@ def main():
     parser.add_argument(
         "--wavenum", help="plot wavenumbers = 1/wavelengths", action="store_true"
     )
+    parser.add_argument(
+        "--rebin_res",
+        help="resolution in wavelength for rebinning spectral extinction",
+        type=float,
+        default=None,
+    )
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
 
@@ -833,6 +853,7 @@ def main():
                 exclude=args.exclude,
                 wavenum=args.wavenum,
                 log=args.log,
+                rebin_res=args.rebin_res,
                 pdf=args.pdf,
             )
 

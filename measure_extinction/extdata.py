@@ -12,6 +12,7 @@ from scipy.optimize import curve_fit
 from scipy import stats
 
 from dust_extinction.conversions import AxAvToExv
+from measure_extinction.merge_obsspec import _wavegrid
 
 __all__ = ["ExtData", "AverageExtData"]
 
@@ -721,7 +722,7 @@ class ExtData:
         if source == "BAND":
             raise ValueError("BAND extinction cannot be rebinned")
 
-        if source not in ext.exts.keys():
+        if source not in self.exts.keys():
             warnings.warn(f"{source} extinction not present")
         else:
             # setup new wavelength grid
@@ -735,6 +736,12 @@ class ExtData:
             new_exts = np.zeros((n_waves), dtype=float)
             new_uncs = np.zeros((n_waves), dtype=float)
             new_npts = np.zeros((n_waves), dtype=int)
+
+            # check if uncetainties defined and set to
+            nouncs = False
+            if np.sum(self.uncs[source] > 0.0) == 0:
+                nouncs = True
+                self.uncs[source] = np.full((len(self.waves[source])), 1.0)
 
             # rebin using a weighted average
             owaves = self.waves[source].to(u.micron).value
@@ -750,6 +757,9 @@ class ExtData:
                     new_exts[k] = np.sum(weights * self.exts[source][indxs]) / sweights
                     new_uncs[k] = 1.0 / np.sqrt(sweights)
                     new_npts[k] = np.sum(self.npts[source][indxs])
+
+            if nouncs:
+                new_uncs = np.full((n_waves), 0.0)
 
             # update source values
             self.waves[source] = new_waves
