@@ -266,7 +266,7 @@ class ExtData:
     comp_file : string
         comparison star filename
 
-    columns : list of tuples of column measurements
+    columns : dict of tuples of column measurements
         measurements are A(V), R(V), N(HI), etc.
         tuples are measurement, uncertainty
 
