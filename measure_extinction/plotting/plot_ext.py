@@ -425,6 +425,7 @@ def plot_multi_extinction(
     multicolor=False,
     wavenum=False,
     figsize=None,
+    rebin_res=None,
     pdf=False,
 ):
     """
@@ -479,6 +480,9 @@ def plot_multi_extinction(
 
     figsize : tuple [default=None]
         Tuple with figure size (e.g. (8,15))
+
+    rebin_res : float
+        Spectral resolution to rebin extinction curves
 
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
@@ -675,7 +679,7 @@ def plot_extinction(
     wavenum : boolean [default=False]
         Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
 
-    resolution : float
+    rebin_res : float
         Spectral resolution to rebin extinction curves
 
     pdf : boolean [default=False]
@@ -865,6 +869,7 @@ def main():
             exclude=args.exclude,
             wavenum=args.wavenum,
             log=args.log,
+            rebin_res=args.rebin_res,
             pdf=args.pdf,
         )
     else:  # plot all curves separately

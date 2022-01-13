@@ -110,6 +110,7 @@ def plot_multi_spectra(
     wavenum=False,
     deredden=False,
     pdf=False,
+    rebin_res=None,
     outname="all_spec.pdf",
 ):
     """
@@ -167,6 +168,9 @@ def plot_multi_spectra(
        Deredden the data based on dereddening parameters given in the DAT file.
        Generally used to deredden standards.
 
+    rebin_res : float
+        Spectral resolution for rebinning spectra
+
     outname : string [default="all_spec.pdf"]
         Name for the output pdf file
 
@@ -201,7 +205,7 @@ def plot_multi_spectra(
     for i, star in enumerate(starlist):
         # read in all bands and spectra for this star
         starobs = StarData(
-            "%s.dat" % star.lower(), path=path, use_corfac=True, deredden=deredden
+            "%s.dat" % star, path=path, use_corfac=True, deredden=deredden
         )
 
         # spread out the spectra if requested
@@ -323,6 +327,7 @@ def plot_spectrum(
     log=False,
     wavenum=False,
     deredden=False,
+    rebin_res=None,
     pdf=False,
 ):
     """
@@ -361,6 +366,9 @@ def plot_spectrum(
        Deredden the data based on dereddening parameters given in the DAT file.
        Generally used to deredden standards.
 
+    rebin_res : float
+        Spectral resolution for rebinning spectra
+
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
 
@@ -383,20 +391,29 @@ def plot_spectrum(
     fig, ax = plt.subplots(figsize=(13, 10))
 
     # read in and plot all bands and spectra for this star
-    starobs = StarData(
-        "%s.dat" % star.lower(), path=path, use_corfac=True, deredden=deredden
-    )
+    starobs = StarData("%s.dat" % star, path=path, use_corfac=True, deredden=deredden)
     if norm_range is not None:
         norm_range = norm_range * u.micron
+    # rebin spectra if desired
+    if rebin_res is not None:
+        gkeys = list(starobs.data.keys())
+        gkeys.remove("BAND")
+        for src in gkeys:
+            starobs.data[src].rebin_constres(starobs.data[src].wave_range, rebin_res)
+
     starobs.plot(
-        ax, norm_wave_range=norm_range, mlam4=mlam4, exclude=exclude, wavenum=wavenum
+        ax,
+        norm_wave_range=norm_range,
+        mlam4=mlam4,
+        exclude=exclude,
+        wavenum=wavenum,
     )
     # plot HI-lines if requested
     if HI_lines:
         plot_HI(path, ax)
 
     # define the output name
-    outname = star.lower() + "_spec.pdf"
+    outname = star + "_spec.pdf"
 
     # zoom in on a specific region if requested
     if range is not None:
@@ -495,6 +512,12 @@ def main():
         help="deredden the data based on saved parameters",
         action="store_true",
     )
+    parser.add_argument(
+        "--rebin_res",
+        help="resolution in wavelength for rebinning spectral extinction",
+        type=float,
+        default=None,
+    )
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
 
@@ -511,6 +534,7 @@ def main():
             log=args.log,
             wavenum=args.wavenum,
             deredden=args.deredden,
+            rebin_res=args.rebin_res,
             pdf=args.pdf,
         )
     else:  # plot all spectra separately
@@ -530,6 +554,7 @@ def main():
                 log=args.log,
                 wavenum=args.wavenum,
                 deredden=args.deredden,
+                rebin_res=args.rebin_res,
                 pdf=args.pdf,
             )
 

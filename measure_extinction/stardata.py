@@ -809,15 +809,13 @@ class SpecData:
         self.fluxes = self.fluxes.value * (u.Jy)
         self.uncs = self.uncs.value * (u.Jy)
 
-    def rebin_constres(self, source, waverange, resolution):
+    def rebin_constres(self, waverange, resolution):
         """
         Rebin the spectrum it a fixed spectral resolution
         and min/max wavelength range.
 
         Parameters
         ----------
-        source : str
-            source of extinction (i.e. "IUE", "IRS")
         waverange : [float, float]
             Min/max of wavelength range
         resolution : float
@@ -850,16 +848,16 @@ class SpecData:
                 & (self.uncs > 0.0)
             )
             if len(indxs) > 0:
-                weights = 1.0 / np.square(self.uncs[indxs])
+                weights = 1.0 / np.square(self.uncs[indxs].value)
                 sweights = np.sum(weights)
-                new_fluxes[k] = np.sum(weights * self.fluxes[indxs]) / sweights
+                new_fluxes[k] = np.sum(weights * self.fluxes[indxs].value) / sweights
                 new_uncs[k] = 1.0 / np.sqrt(sweights)
                 new_npts[k] = np.sum(self.npts[indxs])
 
-        # update source values
+        # update values
         self.waves = new_waves
-        self.fluxes = new_fluxes
-        self.uncs = new_uncs
+        self.fluxes = new_fluxes * self.fluxes.unit
+        self.uncs = new_uncs * self.uncs.unit
         self.npts = new_npts
 
 
