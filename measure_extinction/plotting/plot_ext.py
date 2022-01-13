@@ -128,11 +128,11 @@ def plot_average(
 
         # plot Milky Way extinction models if requested
         if extmodels:
-            plot_extmodels(average, alax=True)
+            plot_extmodels(average, alax=True, wavenum=wavenum)
 
         # overplot a fitted model if requested
         if fitmodel:
-            plot_fitmodel(average, res=res)
+            plot_fitmodel(average, res=res, wavenum=wavenum)
 
         # plot HI-lines if requested
         if HI_lines:
@@ -172,7 +172,7 @@ def plot_average(
 
         # overplot a fitted model if requested
         if fitmodel:
-            plot_fitmodel(average, yoffset=yoffset)
+            plot_fitmodel(average, yoffset=yoffset, wavenum=wavenum)
 
 
 def plot_extmodels(extdata, alax=False, wavenum=False):
@@ -195,8 +195,6 @@ def plot_extmodels(extdata, alax=False, wavenum=False):
     Overplots extinction curve models
     """
     x = np.arange(0.1, 3.33, 0.01) * u.micron
-    if wavenum:
-        x = 1 / x
     Rvs = [2.0, 3.1, 4.0, 5.0]
     style = ["--", "-", ":", "-."]
     for i, cRv in enumerate(Rvs):
@@ -216,8 +214,12 @@ def plot_extmodels(extdata, alax=False, wavenum=False):
             # convert the model curve from A(lambda)/A(V) to E(lambda-V), using the computed A(V) of the data.
             y = (curve(x) - 1) * extdata.columns["AV"][0]
 
+        if wavenum:
+            px = 1 / x
+        else:
+            px = x
         plt.plot(
-            x.value,
+            px.value,
             y,
             style[i],
             color="k",
@@ -225,7 +227,8 @@ def plot_extmodels(extdata, alax=False, wavenum=False):
             linewidth=1,
             label="R(V) = {:4.1f}".format(cRv),
         )
-        plt.legend(bbox_to_anchor=(0.99, 0.9))
+        # allow to find the best position (supports regular and wavenum)
+        plt.legend()
 
 
 def plot_fitmodel(extdata, alax=False, yoffset=0, res=False, wavenum=False):
@@ -563,12 +566,12 @@ def plot_multi_extinction(
 
         # overplot a fitted model if requested
         if fitmodel:
-            plot_fitmodel(extdata, alax=alax, yoffset=yoffset)
+            plot_fitmodel(extdata, alax=alax, yoffset=yoffset, wavenum=wavenum)
 
     # overplot Milky Way extinction curve models if requested
     if extmodels:
         if alax:
-            plot_extmodels(extdata, alax)
+            plot_extmodels(extdata, alax, wavenum=wavenum)
         else:
             warnings.warn(
                 "Overplotting Milky Way extinction curve models on a figure with multiple observed extinction curves in E(lambda-V) units is disabled, because the model curves in these units are different for every star, and would overload the plot. Please, do one of the following if you want to overplot Milky Way extinction curve models: 1) Use the flag --alax to plot ALL curves in A(lambda)/A(V) units, OR 2) Plot all curves separately by removing the flag --onefig.",
@@ -735,11 +738,11 @@ def plot_extinction(
 
     # plot Milky Way extinction models if requested
     if extmodels:
-        plot_extmodels(extdata, alax)
+        plot_extmodels(extdata, alax, wavenum=wavenum)
 
     # overplot a fitted model if requested
     if fitmodel:
-        plot_fitmodel(extdata, alax=alax, res=True)
+        plot_fitmodel(extdata, alax=alax, res=True, wavenum=wavenum)
 
     # plot HI-lines if requested
     if HI_lines:
