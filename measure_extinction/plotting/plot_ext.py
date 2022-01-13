@@ -700,7 +700,11 @@ def plot_extinction(
     fig, ax = plt.subplots(figsize=(10, 7))
 
     # read in extinction curve data for this star
-    extdata = ExtData("%s%s_ext.fits" % (path, starpair.lower()))
+    if "_ext.fits" not in starpair:
+        fname = "%s%s_ext.fits" % (path, starpair.lower())
+    else:
+        fname = starpair
+    extdata = ExtData(fname)
 
     # rebin if desired
     if rebin_res is not None:
@@ -747,12 +751,15 @@ def plot_extinction(
         outname = outname.replace(".pdf", "_zoom.pdf")
 
     # finish configuring the plot
-    ax.set_title(starpair.split("_")[0], fontsize=50)
-    if len(starpair.split("_")) > 1:
+    if extdata.red_file == "":
+        ax.set_title(starpair, fontsize=50)
+    else:
+        ax.set_title(extdata.red_file.replace(".dat", ""), fontsize=50)
+    if extdata.comp_file != "":
         ax.text(
             0.99,
             0.95,
-            "comparison: " + starpair.split("_")[1],
+            "comparison: " + extdata.comp_file.replace(".dat", ""),
             fontsize=25,
             horizontalalignment="right",
             transform=ax.transAxes,
