@@ -13,6 +13,8 @@ import astropy.units as u
 from dust_extinction.parameter_averages import CCM89
 from dust_extinction.shapes import _curve_F99_method
 
+from measure_extinction.merge_obsspec import _wavegrid
+
 __all__ = ["StarData", "BandData", "SpecData"]
 
 # Jy to ergs/(cm^2 s A)
@@ -806,7 +808,6 @@ class SpecData:
         # add units
         self.fluxes = self.fluxes.value * (u.Jy)
         self.uncs = self.uncs.value * (u.Jy)
-
 
     def rebin_constres(self, source, waverange, resolution):
         """

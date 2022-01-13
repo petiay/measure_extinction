@@ -12,6 +12,7 @@ from scipy.optimize import curve_fit
 from scipy import stats
 
 from dust_extinction.conversions import AxAvToExv
+
 from measure_extinction.merge_obsspec import _wavegrid
 
 __all__ = ["ExtData", "AverageExtData"]
