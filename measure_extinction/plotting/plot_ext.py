@@ -30,6 +30,7 @@ def plot_average(
     spread=False,
     annotate_key=None,
     annotate_wave_range=None,
+    wavenum=False,
     pdf=False,
 ):
     """
@@ -79,6 +80,9 @@ def plot_average(
     annotate_wave_range : list of 2 floats [default=None]
         min/max wavelength range for the annotation of the text (only relevant when pdf=False and ax=None)
 
+    wavenum : boolean [default=False]
+        Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
+
     pdf : boolean [default=False]
         - If False, the average extinction curve will be overplotted on the current plot (defined by ax)
         - If True, the average extinction curve will be plotted in a separate plot and saved as a pdf
@@ -118,7 +122,9 @@ def plot_average(
 
         # create the plot
         fig, ax = plt.subplots(figsize=(10, 7))
-        average.plot(ax, exclude=exclude, rebin_fac=rebin_fac, color="k")
+        average.plot(
+            ax, exclude=exclude, rebin_fac=rebin_fac, color="k", wavenum=wavenum
+        )
 
         # plot Milky Way extinction models if requested
         if extmodels:
@@ -139,7 +145,7 @@ def plot_average(
         # finish configuring the plot
         if log:
             ax.set_xscale("log")
-        plt.xlabel(r"$\lambda$ [$\mu m$]", fontsize=fs)
+        ax.xaxis.label.set_size(fs)
         ax.set_ylabel(average._get_ext_ytitle(ytype=average.type), fontsize=fs)
         fig.savefig(path + "average_ext.pdf", bbox_inches="tight")
 
@@ -169,7 +175,7 @@ def plot_average(
             plot_fitmodel(average, yoffset=yoffset)
 
 
-def plot_extmodels(extdata, alax=False):
+def plot_extmodels(extdata, alax=False, wavenum=False):
     """
     Plot Milky Way extinction curve models of Cardelli, Clayton, and Mathis (1989, ApJ, 345, 245), only possible for wavelengths between 0.1 and 3.33 micron
 
@@ -181,11 +187,16 @@ def plot_extmodels(extdata, alax=False):
     alax : boolean [default=False]
         Whether or not to plot A(lambda)/A(X) instead of E(lambda-X)
 
+    wavenum : boolean [default=False]
+        Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
+
     Returns
     -------
     Overplots extinction curve models
     """
     x = np.arange(0.1, 3.33, 0.01) * u.micron
+    if wavenum:
+        x = 1 / x
     Rvs = [2.0, 3.1, 4.0, 5.0]
     style = ["--", "-", ":", "-."]
     for i, cRv in enumerate(Rvs):
@@ -204,6 +215,7 @@ def plot_extmodels(extdata, alax=False):
                 extdata.calc_AV()
             # convert the model curve from A(lambda)/A(V) to E(lambda-V), using the computed A(V) of the data.
             y = (curve(x) - 1) * extdata.columns["AV"][0]
+
         plt.plot(
             x.value,
             y,
@@ -216,7 +228,7 @@ def plot_extmodels(extdata, alax=False):
         plt.legend(bbox_to_anchor=(0.99, 0.9))
 
 
-def plot_fitmodel(extdata, alax=False, yoffset=0, res=False):
+def plot_fitmodel(extdata, alax=False, yoffset=0, res=False, wavenum=False):
     """
     Overplot a fitted model if available
 
@@ -233,6 +245,9 @@ def plot_fitmodel(extdata, alax=False, yoffset=0, res=False):
 
     res : boolean [default=False]
         Whether or not to plot the residuals of the fitting (only useful when plotting a single extinction curve)
+
+    wavenum : boolean [default=False]
+        Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
 
     Returns
     -------
@@ -262,8 +277,13 @@ def plot_fitmodel(extdata, alax=False, yoffset=0, res=False):
         if alax:
             mod_ext = (mod_ext / extdata.columns["AV"][0]) + 1
 
+        if wavenum:
+            x = 1 / extdata.model["waves"]
+        else:
+            x = extdata.model["waves"]
+
         plt.plot(
-            extdata.model["waves"],
+            x,
             mod_ext + yoffset,
             "-",
             lw=3,
@@ -278,9 +298,7 @@ def plot_fitmodel(extdata, alax=False, yoffset=0, res=False):
         if res:
             plt.setp(plt.gca().get_xticklabels(), visible=False)
             plt.axes([0.125, 0, 0.775, 0.11], sharex=plt.gca())
-            plt.scatter(
-                extdata.model["waves"], extdata.model["residuals"], s=0.5, color="k"
-            )
+            plt.scatter(x, extdata.model["residuals"], s=0.5, color="k")
             plt.axhline(ls="--", c="k", alpha=0.5)
             plt.axhline(y=0.05, ls=":", c="k", alpha=0.5)
             plt.axhline(y=-0.05, ls=":", c="k", alpha=0.5)
@@ -688,8 +706,15 @@ def plot_extinction(
     if rebin_res is not None:
         for src in extdata.exts.keys():
             if src != "BAND":
-                rebin_waverange = np.array([min(extdata.waves[src]).to(u.micron).value,
-                       max(extdata.waves[src]).to(u.micron).value]) * u.micron
+                rebin_waverange = (
+                    np.array(
+                        [
+                            min(extdata.waves[src]).to(u.micron).value,
+                            max(extdata.waves[src]).to(u.micron).value,
+                        ]
+                    )
+                    * u.micron
+                )
                 extdata.rebin_constres(src, rebin_waverange, rebin_res)
 
     # plot extinction curve data
