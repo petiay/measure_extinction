@@ -126,6 +126,28 @@ def _get_column_val(column):
         return float(column)
 
 
+def _get_column_plus_unc(column):
+    """
+
+    Parameters
+    ----------
+    column : float or tuple
+        gives the column or (column, unc) or (column, punc, munc)
+
+    Returns
+    -------
+    column: tuple
+        (column, unc)
+    """
+    if isinstance(column, tuple):
+        if len(column) == 3:
+            return (column[0], 0.5 * (column[1] + column[2]))
+        else:
+            return column
+    else:
+        return (column, 0.0)
+
+
 def AverageExtData(extdatas, min_number=3, mask=[]):
     """
     Generate the average extinction curve from a list of ExtData objects
@@ -467,7 +489,7 @@ class ExtData:
         if dwaves[bindx] > 0.02 * u.micron:
             warnings.warn("no B band measurement in E(l-V)", UserWarning)
         else:
-            self.columns["EBV"] = self.exts["BAND"][bindx]
+            self.columns["EBV"] = (self.exts["BAND"][bindx], self.uncs["BAND"][bindx])
 
     def calc_AV(self, akav=0.112):
         """
@@ -489,6 +511,8 @@ class ExtData:
         # if SpeX extinction curve is available: compute A(V) by fitting the NIR extintion curve with a powerlaw.
         if "SpeX_SXD" in self.waves.keys() or "SpeX_LXD" in self.waves.keys():
             self.fit_spex_ext()
+            if not isinstance(self.columns["AV"], tuple):
+                self.columns["AV"] = (self.columns["AV"], 0.0)
 
         # if no SpeX spectrum is available: compute A(V) from E(K-V)
         else:
@@ -500,7 +524,50 @@ class ExtData:
                 )
             else:
                 ekv = self.exts["BAND"][kindx]
-                self.columns["AV"] = ekv / (akav - 1)
+                av = ekv / (akav - 1)
+                avunc = np.absolute(av * (self.uncs["BAND"][kindx] / ekv))
+                self.columns["AV"] = (av, avunc)
+
+    def calc_AV_JHK(self):
+        """
+        Calculate A(V) from the observed extinction curve:
+            - extrapolate from J, H, & K photometry
+            - assumes functional form from Rieke, Rieke, & Paul (1989)
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        Updates self.columns["AV"]
+        """
+        # J, H, K
+        rrp89_waves = np.array([1.25, 1.6, 2.2]) * u.micron
+        rrp89_alav = [0.2815534, 0.17475728, 0.11197411]
+
+        avs = []
+        avs_unc = []
+        for cwave, calav in zip(rrp89_waves, rrp89_alav):
+            dwaves = np.absolute(self.waves["BAND"] - cwave)
+            kindx = dwaves.argmin()
+            if dwaves[kindx] < 0.1 * u.micron:
+                cav = self.exts["BAND"][kindx] / (calav - 1)
+                cavunc = np.absolute(
+                    cav * (self.uncs["BAND"][kindx] / self.exts["BAND"][kindx])
+                )
+                avs.append(cav)
+                avs_unc.append(cavunc)
+
+        if len(avs) > 0:
+            weights = 1.0 / np.square(avs_unc)
+            av = np.average(avs, weights=weights)
+            avunc = np.sqrt(1.0 / np.sum(weights))
+            self.columns["AV"] = (av, avunc)
+        else:
+            warnings.warn(
+                "No JHK band measurement available in E(lambda-V) so no A(V) measurement",
+                stacklevel=2,
+            )
 
     def calc_RV(self):
         """
@@ -516,14 +583,16 @@ class ExtData:
         # obtain or calculate A(V)
         if "AV" not in self.columns.keys():
             self.calc_AV()
-        av = _get_column_val(self.columns["AV"])
+        av = _get_column_plus_unc(self.columns["AV"])
 
         # obtain or calculate E(B-V)
         if "EBV" not in self.columns.keys():
             self.calc_EBV()
-        ebv = _get_column_val(self.columns["EBV"])
+        ebv = _get_column_plus_unc(self.columns["EBV"])
 
-        self.columns["RV"] = av / ebv
+        rv = av[0] / ebv[0]
+        rvunc = rv * np.sqrt((av[1] / av[0]) ** 2 + (ebv[1] / ebv[0]) ** 2)
+        self.columns["RV"] = (rv, rvunc)
 
     def trans_elv_elvebv(self, ebv=None):
         """
@@ -552,11 +621,17 @@ class ExtData:
             if ebv is None:
                 if "EBV" not in self.columns.keys():
                     self.calc_EBV()
-                ebv = _get_column_val(self.columns["EBV"])
+                fullebv = _get_column_plus_unc(self.columns["EBV"])
+            else:
+                fullebv = _get_column_plus_unc(ebv)
 
             for curname in self.exts.keys():
-                self.exts[curname] /= ebv
-                self.uncs[curname] /= ebv
+                self.uncs[curname] = (self.exts[curname] / fullebv[0]) * np.sqrt(
+                    np.square(self.uncs[curname] / self.exts[curname])
+                    + np.square(fullebv[1] / fullebv[0])
+                )
+                self.exts[curname] /= fullebv[0]
+
             self.type = "elvebv"
 
     def trans_elv_alav(self, av=None, akav=0.112):
@@ -589,11 +664,10 @@ class ExtData:
             if av is None:
                 if "AV" not in self.columns.keys():
                     self.calc_AV(akav=akav)
-            fullav = self.columns["AV"]
-            if len(np.atleast_1d(fullav)) == 1:
-                fullav = np.array([fullav, 0.0])
-            elif len(np.atleast_1d(fullav)) == 3:
-                fullav = np.array([fullav[0], 0.5 * (fullav[1] + fullav[2])])
+                fullav = _get_column_plus_unc(self.columns["AV"])
+            else:
+                fullav = _get_column_plus_unc(av)
+
             for curname in self.exts.keys():
                 # special case for the E(lambda - V) = 0 see below
                 zvals = (self.exts[curname] == 0) & (self.npts[curname] > 0)
@@ -615,6 +689,12 @@ class ExtData:
                 #  zvals is defined to only be True for V band
                 if np.sum(zvals) > 0:
                     self.uncs[curname][zvals] = fullav[1] / fullav[0]
+
+                # make sure measurements with npts = 0 have zero exts and uncs
+                zvals = self.npts[curname] <= 0
+                if np.sum(zvals) > 0:
+                    self.exts[curname][zvals] = 0.0
+                    self.uncs[curname][zvals] = 0.0
 
             self.type = "alax"
 
@@ -782,11 +862,11 @@ class ExtData:
                             hcomment.append(f"{ckey} uncertainty")
                             hval.append(self.columns[f"{ckey}"][1])
                         elif len(self.columns[f"{ckey}"]) == 3:
-                            hname.append(f"{ckey}_MUNC")
-                            hcomment.append(f"{ckey} lower uncertainty")
-                            hval.append(self.columns[f"{ckey}"][1])
                             hname.append(f"{ckey}_PUNC")
                             hcomment.append(f"{ckey} upper uncertainty")
+                            hval.append(self.columns[f"{ckey}"][1])
+                            hname.append(f"{ckey}_MUNC")
+                            hcomment.append(f"{ckey} lower uncertainty")
                             hval.append(self.columns[f"{ckey}"][2])
                     else:
                         hval.append(self.columns[f"{ckey}"])
@@ -1339,7 +1419,7 @@ class ExtData:
         self.model["residuals"] = exts - self.model["exts"]
         self.model["params"] = tuple(fit_result[0])
         if self.type != "alav":
-            self.columns["AV"] = fit_result[0][2]
+            self.columns["AV"] = (fit_result[0][2], 0.0)
 
     def fit_spex_ext(
         self, amp_bounds=(-1.5, 1.5), index_bounds=(0.0, 5.0), AV_bounds=(0.0, 6.0)
@@ -1403,4 +1483,4 @@ class ExtData:
                 fit_result.alpha_0.value,
                 fit_result.Av_1.value,
             )
-            self.columns["AV"] = fit_result.Av_1.value
+            self.columns["AV"] = (fit_result.Av_1.value, 0.0)
