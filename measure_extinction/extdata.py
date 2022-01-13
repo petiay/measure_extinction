@@ -532,7 +532,7 @@ class ExtData:
         """
         Calculate A(V) from the observed extinction curve:
             - extrapolate from J, H, & K photometry
-            - assumes functional from Rieke, Rieke, & Paul (1989)
+            - assumes functional form from Rieke, Rieke, & Paul (1989)
 
         Parameters
         ----------
