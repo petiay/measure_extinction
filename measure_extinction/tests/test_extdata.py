@@ -74,11 +74,11 @@ def test_calc_AV_RV():
 
     # calculate A(V)
     ext.calc_AV()
-    np.testing.assert_almost_equal(ext.columns["AV"], 2.5626900237367805)
+    np.testing.assert_almost_equal(ext.columns["AV"][0], 2.5626900237367805)
 
     # calculate R(V)
     ext.calc_RV()
-    np.testing.assert_almost_equal(ext.columns["RV"], 2.614989769244703)
+    np.testing.assert_almost_equal(ext.columns["RV"][0], 2.614989769244703)
 
 
 def test_hierarch_keyword():
@@ -119,7 +119,7 @@ def test_fit_band_ext():  # only for alax=False (for now)
         extdata.model["params"],
         (0.7593262393303228, 1.345528276482045, 2.6061368004634025),
     )
-    np.testing.assert_almost_equal(extdata.columns["AV"], 2.6061368004634025)
+    np.testing.assert_almost_equal(extdata.columns["AV"][0], 2.6061368004634025)
 
 
 def test_fit_spex_ext():  # only for alax=False (for now)
@@ -143,4 +143,4 @@ def test_fit_spex_ext():  # only for alax=False (for now)
         extdata.model["params"],
         (0.8680132704511972, 2.023865293614347, 2.5626900237367805),
     )
-    np.testing.assert_almost_equal(extdata.columns["AV"], 2.5626900237367805)
+    np.testing.assert_almost_equal(extdata.columns["AV"][0], 2.5626900237367805)
