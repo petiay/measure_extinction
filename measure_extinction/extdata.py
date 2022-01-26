@@ -536,9 +536,6 @@ class ExtData:
             - extrapolate from J, H, & K photometry
             - assumes functional form from Rieke, Rieke, & Paul (1989)
 
-        Parameters
-        ----------
-
         Returns
         -------
         Updates self.columns["AV"]
@@ -574,9 +571,6 @@ class ExtData:
     def calc_RV(self):
         """
         Calculate R(V) from the observed extinction curve
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -628,8 +622,10 @@ class ExtData:
                 fullebv = _get_column_plus_unc(ebv)
 
             for curname in self.exts.keys():
-                self.uncs[curname] = (self.exts[curname] / fullebv[0]) * np.sqrt(
-                    np.square(self.uncs[curname] / self.exts[curname])
+                # only compute where there is data and exts is not zero
+                gvals = (self.exts[curname] != 0) & (self.npts[curname] > 0)
+                self.uncs[curname][gvals] = (self.exts[curname][gvals] / fullebv[0]) * np.sqrt(
+                    np.square(self.uncs[curname][gvals] / self.exts[curname][gvals])
                     + np.square(fullebv[1] / fullebv[0])
                 )
                 self.exts[curname] /= fullebv[0]
@@ -1444,9 +1440,6 @@ class ExtData:
     def fit_band_ext(self):
         """
         Fit the observed NIR extinction curve with a powerlaw model, based on the band data between 1 and 40 micron
-
-        Parameters
-        ----------
 
         Returns
         -------
