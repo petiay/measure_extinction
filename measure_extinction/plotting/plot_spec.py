@@ -168,7 +168,7 @@ def plot_multi_spectra(
        Deredden the data based on dereddening parameters given in the DAT file.
        Generally used to deredden standards.
 
-    rebin_res : float
+    rebin_res : float [default=None]
         Spectral resolution for rebinning spectra
 
     outname : string [default="all_spec.pdf"]
@@ -207,6 +207,13 @@ def plot_multi_spectra(
         starobs = StarData(
             "%s.dat" % star, path=path, use_corfac=True, deredden=deredden
         )
+
+        # rebin spectra if desired
+        if rebin_res is not None:
+            gkeys = list(starobs.data.keys())
+            gkeys.remove("BAND")
+            for src in gkeys:
+                starobs.data[src].rebin_constres(starobs.data[src].wave_range, rebin_res)
 
         # spread out the spectra if requested
         # add extra whitespace when the luminosity class changes from main sequence to giant
@@ -366,7 +373,7 @@ def plot_spectrum(
        Deredden the data based on dereddening parameters given in the DAT file.
        Generally used to deredden standards.
 
-    rebin_res : float
+    rebin_res : float [default=None]
         Spectral resolution for rebinning spectra
 
     pdf : boolean [default=False]
@@ -514,7 +521,7 @@ def main():
     )
     parser.add_argument(
         "--rebin_res",
-        help="resolution in wavelength for rebinning spectral extinction",
+        help="resolution in wavelength for rebinning spectra",
         type=float,
         default=None,
     )

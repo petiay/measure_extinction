@@ -12,6 +12,8 @@ def test_spec_rebin_constres():
     # fake some simple data
     # flux values alternate between 1 and 2
     tres = 1000
+    # start at 1.001 to get an even number of points
+    # needed as the a and b arrays have to be equal
     twaves, tmp, tmp = _wavegrid(tres, [1.001, 10.0])
     spec.waves = twaves * u.micron
     n_test = len(twaves)
@@ -24,7 +26,7 @@ def test_spec_rebin_constres():
     spec.uncs = spec.fluxes * 0.05
     spec.npts = np.full((n_test), 1)
 
-    # rebin it using the ExtData member function
+    # rebin it using the SpecData member function
     gres = tres / 2.0
     rwaverange = [1.0, 10.0] * u.micron
     spec.rebin_constres(rwaverange, gres)
@@ -46,6 +48,8 @@ def test_ext_rebin_constres():
     # fake some simple data
     # ext values alternate between 1 and 2
     tres = 1000
+    # start at 1.001 to get an even number of points
+    # needed as the a and b arrays have to be equal
     twaves, tmp, tmp = _wavegrid(tres, [1.001, 10.0])
     ext.waves["TEST"] = twaves * u.micron
     n_test = len(twaves)
@@ -72,7 +76,3 @@ def test_ext_rebin_constres():
     # test all but the end elements as edge effects mean they will be different
     # weighted average with fractional weights gives 1.2 (equal weights would give 1.5)
     np.testing.assert_equal(ext.exts["TEST"][1:-1], np.full(len(nres) - 1, 1.2))
-
-
-if __name__ == "__main__":
-    test_spec_rebin_constres()

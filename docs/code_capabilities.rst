@@ -4,7 +4,7 @@ Code Capabilities
 =================
 
 The code is built around two classes.
-StarData is for photometry and spectrosocpy of a single star.
+StarData is for photometry and spectroscopy of a single star.
 ExtData is for calculating and storing the extinction curve for a single
 sightline.
 
@@ -17,10 +17,10 @@ NASA's Infrared Telescope SpeX Instrument ("SpeX_SXD", "SpeX_LXD"),
 and Spitzer Infrared Spectrograph ("IRS")
 The strings in "" give the dictionary key.
 
-This package assumes the spectral data from a specific source is one the
+This package assumes the spectral data from a specific source is on the
 same wavelength grid for all stars/sightlines.
 This simplifies the extinction calculations.
-Code to do this is done for some data sources can be found in
+Code to do this for some data sources can be found in
 `measure_extinction.merge_obsspec`.
 
 StarData
@@ -33,14 +33,15 @@ The photometry is stored in the dedicated BandData class to
 provide specific capabilities needed for handling photometric data.
 The spectroscopy is stored in SpecData class.
 
-The details of the data stored are:
+The details of the data stored include:
 
 * file: name of DAT file
 * path: path of DAT file
 * data: dictionary of BandData and SpecData objects containing the stellar data
+* photonly: only photometry used (all spectroscopic data ignored)
 * sptype: spectral type of star from DAT file
 * use_corfac: boolean for determining if corfacs should be used
-* corfac: dictonary of correction factors for spectral data
+* corfac: dictionary of correction factors for spectral data
 * dereddened: boolean if the data has been dereddened
 * dereddenParams: dictionary of FM90 and CCM89 dereddening parameters
 * model_parameters: stellar atmosphere model parameters (for model based data)
@@ -64,7 +65,7 @@ Member Functions
 SpecData
 ========
 
-A spectrum is stored as part of `measure_extinction.extdata.SpecData`.
+A spectrum is stored as part of `measure_extinction.stardata.SpecData`.
 The details of the data stored are:
 
 * waves: wavelengths with units
@@ -84,7 +85,7 @@ The member functions of SpecData include:
 * read_iue: read an IUE spectrum (includes cutting data > 3200 A)
 * read_stis: read a Hubble/STIS spectrum
 * read_spex: read a IRTF/SpeX spectrum (includes scaling by corfacs)
-* read_irs: read a Spitzer/IRS spectrum (includes scaling by corfacs, cutting above some waelength)
+* read_irs: read a Spitzer/IRS spectrum (includes scaling by corfacs, cutting above some wavelength)
 * rebin_constres: rebin spectrum to a constant input resolution
 
 ExtData
@@ -92,7 +93,7 @@ ExtData
 
 The data that is stored as part of `measure_extinction.extdata.ExtData`
 is the extinction curve from each source and associated details.
-Specfic times stored include (where src = data source),
+Specific details stored include (where src = data source),
 
 * type: type of extinction measurement (e.g., elx, elxebv, alax)
 * type_rel_band: photometric band that is used for the relative extinction measurement (usually V band)

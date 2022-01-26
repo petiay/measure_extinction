@@ -811,15 +811,15 @@ class SpecData:
 
     def rebin_constres(self, waverange, resolution):
         """
-        Rebin the spectrum it a fixed spectral resolution
+        Rebin the spectrum to a fixed spectral resolution
         and min/max wavelength range.
 
         Parameters
         ----------
         waverange : [float, float]
-            Min/max of wavelength range
+            Min/max of wavelength range with units
         resolution : float
-            Spectral resolution of rebinned extinction curve
+            Spectral resolution of rebinned spectrum
 
         Returns
         -------
@@ -845,7 +845,7 @@ class SpecData:
             (indxs,) = np.where(
                 (owaves >= full_wave_min[k])
                 & (owaves < full_wave_max[k])
-                & (self.uncs > 0.0)
+                & (self.npts > 0.0)
             )
             if len(indxs) > 0:
                 weights = 1.0 / np.square(self.uncs[indxs].value)
@@ -882,6 +882,9 @@ class StarData:
 
     data : dict of key:BandData or SpecData
         key gives the type of data (e.g., BAND, IUE, IRS)
+
+    photonly: boolean
+        Only read in the photometry (no spectroscopy)
 
     corfac : dict of key:correction factors
         key gives the type (e.g., IRS, IRS_slope)

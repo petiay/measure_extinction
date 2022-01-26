@@ -679,8 +679,8 @@ def plot_extinction(
     wavenum : boolean [default=False]
         Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
 
-    rebin_res : float
-        Spectral resolution to rebin extinction curves
+    rebin_res : float [default=None]
+        Spectral resolution to rebin extinction curve
 
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file

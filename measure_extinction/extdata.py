@@ -702,7 +702,7 @@ class ExtData:
 
     def rebin_constres(self, source, waverange, resolution):
         """
-        Rebin the source extinction curve it a fixed spectral resolution
+        Rebin the source extinction curve to a fixed spectral resolution
         and min/max wavelength range.
 
         Parameters
@@ -710,14 +710,14 @@ class ExtData:
         source : str
             source of extinction (i.e. "IUE", "IRS")
         waverange : [float, float]
-            Min/max of wavelength range
+            Min/max of wavelength range with units
         resolution : float
             Spectral resolution of rebinned extinction curve
 
         Returns
         -------
         measure_extinction ExtData
-            Object with source extinciton curve rebinned
+            Object with source extinction curve rebinned
 
         """
         if source == "BAND":
@@ -738,7 +738,8 @@ class ExtData:
             new_uncs = np.zeros((n_waves), dtype=float)
             new_npts = np.zeros((n_waves), dtype=int)
 
-            # check if uncetainties defined and set to
+            # check if uncertainties defined and set temporarily to 1
+            # needed to avoid infinite weights
             nouncs = False
             if np.sum(self.uncs[source] > 0.0) == 0:
                 nouncs = True
@@ -750,7 +751,7 @@ class ExtData:
                 (indxs,) = np.where(
                     (owaves >= full_wave_min[k])
                     & (owaves < full_wave_max[k])
-                    & (self.uncs[source] > 0.0)
+                    & (self.npts[source] > 0.0)
                 )
                 if len(indxs) > 0:
                     weights = 1.0 / np.square(self.uncs[source][indxs])
