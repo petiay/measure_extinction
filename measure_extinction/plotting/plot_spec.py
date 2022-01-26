@@ -398,7 +398,11 @@ def plot_spectrum(
     fig, ax = plt.subplots(figsize=(13, 10))
 
     # read in and plot all bands and spectra for this star
-    starobs = StarData("%s.dat" % star, path=path, use_corfac=True, deredden=deredden)
+    if ".dat" not in star:
+        fname = f"{star}.dat"
+    else:
+        fname = star
+    starobs = StarData(fname, path=path, use_corfac=True, deredden=deredden)
     if norm_range is not None:
         norm_range = norm_range * u.micron
     # rebin spectra if desired

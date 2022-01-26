@@ -707,7 +707,7 @@ def plot_extinction(
     fig, ax = plt.subplots(figsize=(10, 7))
 
     # read in extinction curve data for this star
-    if "_ext.fits" not in starpair:
+    if ".fits" not in starpair:
         fname = "%s%s_ext.fits" % (path, starpair.lower())
     else:
         fname = starpair

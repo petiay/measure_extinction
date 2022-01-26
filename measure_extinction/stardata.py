@@ -842,10 +842,14 @@ class SpecData:
         # rebin using a weighted average
         owaves = self.waves.to(u.micron).value
         for k in range(n_waves):
+            # check for zero uncs includes to avoid divide by zero
+            # errors when the flux uncertainty of a real measurement
+            # is zero for any reason
             (indxs,) = np.where(
                 (owaves >= full_wave_min[k])
                 & (owaves < full_wave_max[k])
                 & (self.npts > 0.0)
+                & (self.uncs > 0.0)
             )
             if len(indxs) > 0:
                 weights = 1.0 / np.square(self.uncs[indxs].value)
