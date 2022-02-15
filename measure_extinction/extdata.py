@@ -705,7 +705,7 @@ class ExtData:
         ----------
         source : str
             source of extinction (i.e. "IUE", "IRS")
-        waverange : [float, float]
+        waverange : 2 element array of atropy Quantities
             Min/max of wavelength range with units
         resolution : float
             Spectral resolution of rebinned extinction curve
@@ -734,7 +734,7 @@ class ExtData:
             new_uncs = np.zeros((n_waves), dtype=float)
             new_npts = np.zeros((n_waves), dtype=int)
 
-            # check if uncertainties defined and set temporarily to 1
+            # check if uncertainties defined and set temporarily to 1 if not
             # needed to avoid infinite weights
             nouncs = False
             if np.sum(self.uncs[source] > 0.0) == 0:

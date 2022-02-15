@@ -816,7 +816,7 @@ class SpecData:
 
         Parameters
         ----------
-        waverange : [float, float]
+        waverange : 2 element array of atropy Quantities
             Min/max of wavelength range with units
         resolution : float
             Spectral resolution of rebinned spectrum
@@ -842,7 +842,7 @@ class SpecData:
         # rebin using a weighted average
         owaves = self.waves.to(u.micron).value
         for k in range(n_waves):
-            # check for zero uncs includes to avoid divide by zero
+            # check for zero uncs to avoid divide by zero
             # errors when the flux uncertainty of a real measurement
             # is zero for any reason
             (indxs,) = np.where(
