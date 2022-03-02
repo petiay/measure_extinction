@@ -705,7 +705,7 @@ class ExtData:
         ----------
         source : str
             source of extinction (i.e. "IUE", "IRS")
-        waverange : 2 element array of atropy Quantities
+        waverange : 2 element array of astropy Quantities
             Min/max of wavelength range with units
         resolution : float
             Spectral resolution of rebinned extinction curve
