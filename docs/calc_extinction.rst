@@ -244,19 +244,17 @@ exists.
 .. plot::
 
    import pkg_resources
-
-   import numpy as np
+   import matplotlib.pyplot as plt
 
    from measure_extinction.stardata import StarData
    from measure_extinction.extdata import ExtData
 
    # get the location of the data files
-   data_path = pkg_resources.resource_filename('measure_extinction',
-                                               'data/')
+   data_path = pkg_resources.resource_filename("measure_extinction", "data/")
 
    # read in the observed data on the star
-   redstar = StarData('hd229238.dat', path=data_path)
-   compstar = StarData('hd204172.dat', path=data_path)
+   redstar = StarData("hd229238.dat", path=data_path)
+   compstar = StarData("hd204172.dat", path=data_path)
 
    # calculate the extinction curve
    extdata = ExtData()
@@ -272,12 +270,12 @@ exists.
    extdata.plot(ax)
 
    # finish configuring the plot
-   ax.set_title('HD229238/HD204172 extinction')
-   ax.set_xscale('log')
-   ax.set_xlabel('$\lambda$ [$\mu m$]')
-   ax.set_ylabel('$E(\lambda - V)/E(B-V)$')
-   ax.tick_params('both', length=10, width=2, which='major')
-   ax.tick_params('both', length=5, width=1, which='minor')
+   ax.set_title("HD229238/HD204172 extinction")
+   ax.set_xscale("log")
+   ax.set_xlabel(r"$\lambda$ [$\mu m$]")
+   ax.set_ylabel(r"$E(\lambda - V)/E(B-V)$")
+   ax.tick_params("both", length=10, width=2, which="major")
+   ax.tick_params("both", length=5, width=1, which="minor")
 
    # use the whitespace better
    fig.tight_layout()

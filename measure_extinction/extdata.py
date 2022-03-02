@@ -13,6 +13,8 @@ from scipy import stats
 
 from dust_extinction.conversions import AxAvToExv
 
+from measure_extinction.merge_obsspec import _wavegrid
+
 __all__ = ["ExtData", "AverageExtData"]
 
 
@@ -266,7 +268,7 @@ class ExtData:
     comp_file : string
         comparison star filename
 
-    columns : list of tuples of column measurements
+    columns : dict of tuples of column measurements
         measurements are A(V), R(V), N(HI), etc.
         tuples are measurement, uncertainty
 
@@ -534,9 +536,6 @@ class ExtData:
             - extrapolate from J, H, & K photometry
             - assumes functional form from Rieke, Rieke, & Paul (1989)
 
-        Parameters
-        ----------
-
         Returns
         -------
         Updates self.columns["AV"]
@@ -572,9 +571,6 @@ class ExtData:
     def calc_RV(self):
         """
         Calculate R(V) from the observed extinction curve
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -626,8 +622,10 @@ class ExtData:
                 fullebv = _get_column_plus_unc(ebv)
 
             for curname in self.exts.keys():
-                self.uncs[curname] = (self.exts[curname] / fullebv[0]) * np.sqrt(
-                    np.square(self.uncs[curname] / self.exts[curname])
+                # only compute where there is data and exts is not zero
+                gvals = (self.exts[curname] != 0) & (self.npts[curname] > 0)
+                self.uncs[curname][gvals] = (self.exts[curname][gvals] / fullebv[0]) * np.sqrt(
+                    np.square(self.uncs[curname][gvals] / self.exts[curname][gvals])
                     + np.square(fullebv[1] / fullebv[0])
                 )
                 self.exts[curname] /= fullebv[0]
@@ -697,6 +695,75 @@ class ExtData:
                     self.uncs[curname][zvals] = 0.0
 
             self.type = "alax"
+
+    def rebin_constres(self, source, waverange, resolution):
+        """
+        Rebin the source extinction curve to a fixed spectral resolution
+        and min/max wavelength range.
+
+        Parameters
+        ----------
+        source : str
+            source of extinction (i.e. "IUE", "IRS")
+        waverange : 2 element array of astropy Quantities
+            Min/max of wavelength range with units
+        resolution : float
+            Spectral resolution of rebinned extinction curve
+
+        Returns
+        -------
+        measure_extinction ExtData
+            Object with source extinction curve rebinned
+
+        """
+        if source == "BAND":
+            raise ValueError("BAND extinction cannot be rebinned")
+
+        if source not in self.exts.keys():
+            warnings.warn(f"{source} extinction not present")
+        else:
+            # setup new wavelength grid
+            full_wave, full_wave_min, full_wave_max = _wavegrid(
+                resolution, waverange.to(u.micron).value
+            )
+            n_waves = len(full_wave)
+
+            # setup the new rebinned vectors
+            new_waves = full_wave * u.micron
+            new_exts = np.zeros((n_waves), dtype=float)
+            new_uncs = np.zeros((n_waves), dtype=float)
+            new_npts = np.zeros((n_waves), dtype=int)
+
+            # check if uncertainties defined and set temporarily to 1 if not
+            # needed to avoid infinite weights
+            nouncs = False
+            if np.sum(self.uncs[source] > 0.0) == 0:
+                nouncs = True
+                self.uncs[source] = np.full((len(self.waves[source])), 1.0)
+
+            # rebin using a weighted average
+            owaves = self.waves[source].to(u.micron).value
+            for k in range(n_waves):
+                (indxs,) = np.where(
+                    (owaves >= full_wave_min[k])
+                    & (owaves < full_wave_max[k])
+                    & (self.npts[source] > 0.0)
+                )
+                if len(indxs) > 0:
+                    weights = 1.0 / np.square(self.uncs[source][indxs])
+                    sweights = np.sum(weights)
+                    new_exts[k] = np.sum(weights * self.exts[source][indxs]) / sweights
+                    new_uncs[k] = 1.0 / np.sqrt(sweights)
+                    new_npts[k] = np.sum(self.npts[source][indxs])
+
+            if nouncs:
+                new_uncs = np.full((n_waves), 0.0)
+
+            # update source values
+            self.waves[source] = new_waves
+            self.exts[source] = new_exts
+            self.uncs[source] = new_uncs
+            self.npts[source] = new_npts
 
     def get_fitdata(
         self,
@@ -1373,9 +1440,6 @@ class ExtData:
     def fit_band_ext(self):
         """
         Fit the observed NIR extinction curve with a powerlaw model, based on the band data between 1 and 40 micron
-
-        Parameters
-        ----------
 
         Returns
         -------

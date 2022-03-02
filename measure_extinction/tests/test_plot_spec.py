@@ -7,7 +7,7 @@ from measure_extinction.plotting.plot_spec import plot_multi_spectra, plot_spect
 def test_plot_spectra():
     # get the location of the data files
     data_path = pkg_resources.resource_filename("measure_extinction", "data/")
-    starlist = ["HD229238", "HD204172"]
+    starlist = ["hd229238", "hd204172"]
 
     # plot the spectra in separate figures
     for star in starlist:

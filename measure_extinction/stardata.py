@@ -13,6 +13,8 @@ import astropy.units as u
 from dust_extinction.parameter_averages import CCM89
 from dust_extinction.shapes import _curve_F99_method
 
+from measure_extinction.merge_obsspec import _wavegrid
+
 __all__ = ["StarData", "BandData", "SpecData"]
 
 # Jy to ergs/(cm^2 s A)
@@ -807,6 +809,61 @@ class SpecData:
         self.fluxes = self.fluxes.value * (u.Jy)
         self.uncs = self.uncs.value * (u.Jy)
 
+    def rebin_constres(self, waverange, resolution):
+        """
+        Rebin the spectrum to a fixed spectral resolution
+        and min/max wavelength range.
+
+        Parameters
+        ----------
+        waverange : 2 element array of astropy Quantities
+            Min/max of wavelength range with units
+        resolution : float
+            Spectral resolution of rebinned spectrum
+
+        Returns
+        -------
+        measure_extinction SpecData
+            Object with rebinned spectrum
+
+        """
+        # setup new wavelength grid
+        full_wave, full_wave_min, full_wave_max = _wavegrid(
+            resolution, waverange.to(u.micron).value
+        )
+        n_waves = len(full_wave)
+
+        # setup the new rebinned vectors
+        new_waves = full_wave * u.micron
+        new_fluxes = np.zeros((n_waves), dtype=float)
+        new_uncs = np.zeros((n_waves), dtype=float)
+        new_npts = np.zeros((n_waves), dtype=int)
+
+        # rebin using a weighted average
+        owaves = self.waves.to(u.micron).value
+        for k in range(n_waves):
+            # check for zero uncs to avoid divide by zero
+            # errors when the flux uncertainty of a real measurement
+            # is zero for any reason
+            (indxs,) = np.where(
+                (owaves >= full_wave_min[k])
+                & (owaves < full_wave_max[k])
+                & (self.npts > 0.0)
+                & (self.uncs > 0.0)
+            )
+            if len(indxs) > 0:
+                weights = 1.0 / np.square(self.uncs[indxs].value)
+                sweights = np.sum(weights)
+                new_fluxes[k] = np.sum(weights * self.fluxes[indxs].value) / sweights
+                new_uncs[k] = 1.0 / np.sqrt(sweights)
+                new_npts[k] = np.sum(self.npts[indxs])
+
+        # update values
+        self.waves = new_waves
+        self.fluxes = new_fluxes * self.fluxes.unit
+        self.uncs = new_uncs * self.uncs.unit
+        self.npts = new_npts
+
 
 class StarData:
     """
@@ -829,6 +886,9 @@ class StarData:
 
     data : dict of key:BandData or SpecData
         key gives the type of data (e.g., BAND, IUE, IRS)
+
+    photonly: boolean
+        Only read in the photometry (no spectroscopy)
 
     corfac : dict of key:correction factors
         key gives the type (e.g., IRS, IRS_slope)
