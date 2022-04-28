@@ -188,10 +188,10 @@ class ModelData(object):
                                 # & (self.flux_uncs[cspec][k] > 0.0)
                             )
 
+                            # A simple averaging of flux, perhaps problematic
                             if len(indxs) > 0:
-                                print()
-                                new_fluxes[l] = np.sum(full_fluxes[cspec][k][indxs]) / len(np.nonzero(indxs))
-                                new_uncs[l] = np.sum(full_flux_uncs[cspec][k][indxs]) / len(np.nonzero(indxs))
+                                new_fluxes[l] = np.sum(full_fluxes[cspec][k][indxs]) / len(indxs)
+                                new_uncs[l] = np.sum(full_flux_uncs[cspec][k][indxs]) / len(indxs)
 
                         # assign rebinned flux values to flux arrays
                         print("new_fluxes", new_fluxes[0:5])
