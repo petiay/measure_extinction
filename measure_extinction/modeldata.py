@@ -5,6 +5,8 @@ from dust_extinction.shapes import _curve_F99_method
 
 from measure_extinction.stardata import StarData, BandData, SpecData
 
+from measure_extinction.merge_obsspec import _wavegrid
+
 __all__ = ["ModelData"]
 
 
@@ -68,6 +70,9 @@ class ModelData(object):
         path="./",
         band_names=["U", "B", "V", "J", "H", "K"],
         spectra_names=["BAND", "STIS"],
+        rebin=False,
+        waverange=None,
+        resolution=None
     ):
 
         self.n_models = len(modelfiles)
@@ -113,14 +118,16 @@ class ModelData(object):
             # spectra
             for cspec in self.spectra_names:
                 # initialize the spectra vectors
-                if self.fluxes[cspec] is None:
-                    self.waves[cspec] = moddata.data[cspec].waves
-                    self.fluxes[cspec] = np.zeros(
-                        (self.n_models, len(moddata.data[cspec].fluxes))
-                    )
-                    self.flux_uncs[cspec] = np.zeros(
-                        (self.n_models, len(moddata.data[cspec].fluxes))
-                    )
+
+                if rebin is False:
+                    if self.fluxes[cspec] is None:
+                        self.waves[cspec] = moddata.data[cspec].waves
+                        self.fluxes[cspec] = np.zeros(
+                            (self.n_models, len(moddata.data[cspec].fluxes))
+                        )
+                        self.flux_uncs[cspec] = np.zeros(
+                            (self.n_models, len(moddata.data[cspec].fluxes))
+                        )
 
                 # photometric bands
                 if cspec == "BAND":
@@ -131,8 +138,67 @@ class ModelData(object):
                         self.flux_uncs[cspec][k, i] = band_flux[1]
                 else:
                     # get the spectral data
-                    self.fluxes[cspec][k, :] = moddata.data[cspec].fluxes
-                    self.flux_uncs[cspec][k, :] = moddata.data[cspec].uncs
+                    if rebin is False:
+                        self.fluxes[cspec][k, :] = moddata.data[cspec].fluxes
+                        self.flux_uncs[cspec][k, :] = moddata.data[cspec].uncs
+
+                    # Rebin inline
+                    else:
+                        # Initialize a temporary flux array
+                        full_fluxes = {}
+                        full_flux_uncs = {}
+                        full_fluxes[cspec] = np.zeros(
+                            (self.n_models, len(moddata.data[cspec].fluxes))
+                        )
+                        full_flux_uncs[cspec] = np.zeros(
+                            (self.n_models, len(moddata.data[cspec].fluxes))
+                        )
+
+                        full_fluxes[cspec][k, :] = moddata.data[cspec].fluxes
+                        full_flux_uncs[cspec][k, :] = moddata.data[cspec].uncs
+
+                        # setup the new wavelength grid
+                        full_wave, full_wave_min, full_wave_max = _wavegrid(
+                            resolution, waverange.to(u.micron).value
+                        )
+                        n_waves = len(full_wave)
+
+                        # setup the new rebinned vectors
+                        new_waves = full_wave * u.micron
+                        new_fluxes = np.zeros((n_waves), dtype=float)
+                        new_uncs = np.zeros((n_waves), dtype=float)
+
+                        # initialize flux arrays
+                        if self.fluxes[cspec] is None:
+                            self.waves[cspec] = moddata.data[cspec].waves
+                            self.fluxes[cspec] = np.zeros(
+                                (self.n_models, n_waves)
+                            )
+                            self.flux_uncs[cspec] = np.zeros(
+                                (self.n_models, n_waves)
+                            )
+
+                        # rebin
+                        owaves = self.waves[cspec].to(u.micron).value
+                        # print("n_waves", n_waves) # 105
+                        for l in range(n_waves):
+                            (indxs,) = np.where(
+                                (owaves >= full_wave_min[l])
+                                & (owaves < full_wave_max[l])
+                                # & (self.flux_uncs[cspec][k] > 0.0)
+                            )
+
+                            if len(indxs) > 0:
+                                print()
+                                new_fluxes[l] = np.sum(full_fluxes[cspec][k][indxs]) / len(np.nonzero(indxs))
+                                new_uncs[l] = np.sum(full_flux_uncs[cspec][k][indxs]) / len(np.nonzero(indxs))
+
+                        # assign rebinned flux values to flux arrays
+                        print("new_fluxes", new_fluxes[0:5])
+                        self.waves["STIS"] = new_waves
+                        self.fluxes[cspec][k, :] = new_fluxes
+                        self.flux_uncs[cspec][k, :] = new_uncs
+        print("model", k)
 
         # add units
         self.waves["BAND"] = self.waves["BAND"] * u.micron
@@ -375,3 +441,66 @@ class ModelData(object):
                 print(sd.data[cspec].fluxes)
 
         return sd
+
+    def rebin_constres(self, waverange, resolution, fluxes, flux_uncs):
+        """
+        Rebin the spectrum at a fixed spectral resolution
+        and min/max wavelength range.
+
+        Parameters
+        ----------
+        waverange : [float, float]
+            Min/max of wavelength range
+        resolution : float
+            Spectral resolution of rebinned extinction curve
+
+        Returns
+        -------
+        measure_extinction SpecData
+            Object with rebinned spectrum
+
+        """
+        # setup new wavelength grid
+        full_wave, full_wave_min, full_wave_max = _wavegrid(
+            resolution, waverange.to(u.micron).value
+        )
+        n_waves = len(full_wave)
+
+        # setup the new rebinned vectors
+        new_waves = full_wave * u.micron
+        new_fluxes = np.zeros((n_waves), dtype=float)
+        new_uncs = np.zeros((n_waves), dtype=float)
+        # new_npts = np.zeros((n_waves), dtype=int)
+
+
+        # rebin using a weighted average
+        owaves = self.waves["STIS"].to(u.micron).value
+
+        # #Need to do this for all 595 models
+        # nmods = self.n_models
+        # for j in range(nmods):
+        for k in range(n_waves):
+            (indxs,) = np.where(
+                (owaves >= full_wave_min[k])
+                & (owaves < full_wave_max[k])
+                # & (flux_uncs > 0.0)
+            )
+
+            print("flux_uncs[indxs]", len(flux_uncs[indxs]))
+            if len(indxs) > 0:
+                print("Setting new fluxes and flux_uncs")
+                # weights = 1.0 / np.square(flux_uncs[indxs].value)
+                weights = 1.0 / np.square(flux_uncs[indxs])
+                sweights = np.sum(weights)
+                # new_fluxes[k] = np.sum(weights * fluxes[indxs].value) / sweights
+                new_fluxes[k] = np.sum(weights * fluxes[indxs]) / sweights
+                new_uncs[k] = 1.0 / np.sqrt(sweights)
+                # new_npts[k] = np.sum(self.n_spectra[indxs])
+
+        # update values
+        self.waves["STIS"] = new_waves
+        fluxes = new_fluxes
+        flux_uncs = new_uncs
+        # self.fluxes["STIS"][k] = new_fluxes #* fluxes.value * (u.Jy)
+        # self.flux_uncs["STIS"][k] = new_uncs #* flux_uncs.value * (u.Jy)
+        # self.n_spectra = new_npts
