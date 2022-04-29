@@ -30,6 +30,7 @@ def plot_average(
     spread=False,
     annotate_key=None,
     annotate_wave_range=None,
+    wavenum=False,
     pdf=False,
 ):
     """
@@ -79,6 +80,9 @@ def plot_average(
     annotate_wave_range : list of 2 floats [default=None]
         min/max wavelength range for the annotation of the text (only relevant when pdf=False and ax=None)
 
+    wavenum : boolean [default=False]
+        Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
+
     pdf : boolean [default=False]
         - If False, the average extinction curve will be overplotted on the current plot (defined by ax)
         - If True, the average extinction curve will be plotted in a separate plot and saved as a pdf
@@ -118,19 +122,21 @@ def plot_average(
 
         # create the plot
         fig, ax = plt.subplots(figsize=(10, 7))
-        average.plot(ax, exclude=exclude, rebin_fac=rebin_fac, color="k")
+        average.plot(
+            ax, exclude=exclude, rebin_fac=rebin_fac, color="k", wavenum=wavenum
+        )
 
         # plot Milky Way extinction models if requested
         if extmodels:
-            plot_extmodels(average, alax=True)
+            plot_extmodels(average, alax=True, wavenum=wavenum)
 
         # overplot a fitted model if requested
         if fitmodel:
-            plot_fitmodel(average, res=res)
+            plot_fitmodel(average, res=res, wavenum=wavenum)
 
         # plot HI-lines if requested
         if HI_lines:
-            plot_HI(path, ax)
+            plot_HI(ax, wavenum=wavenum)
 
         # zoom in on a specific region if requested
         if range is not None:
@@ -139,7 +145,7 @@ def plot_average(
         # finish configuring the plot
         if log:
             ax.set_xscale("log")
-        plt.xlabel(r"$\lambda$ [$\mu m$]", fontsize=fs)
+        ax.xaxis.label.set_size(fs)
         ax.set_ylabel(average._get_ext_ytitle(ytype=average.type), fontsize=fs)
         fig.savefig(path + "average_ext.pdf", bbox_inches="tight")
 
@@ -166,10 +172,10 @@ def plot_average(
 
         # overplot a fitted model if requested
         if fitmodel:
-            plot_fitmodel(average, yoffset=yoffset)
+            plot_fitmodel(average, yoffset=yoffset, wavenum=wavenum)
 
 
-def plot_extmodels(extdata, alax=False):
+def plot_extmodels(extdata, alax=False, wavenum=False):
     """
     Plot Milky Way extinction curve models of Cardelli, Clayton, and Mathis (1989, ApJ, 345, 245), only possible for wavelengths between 0.1 and 3.33 micron
 
@@ -180,6 +186,9 @@ def plot_extmodels(extdata, alax=False):
 
     alax : boolean [default=False]
         Whether or not to plot A(lambda)/A(X) instead of E(lambda-X)
+
+    wavenum : boolean [default=False]
+        Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
 
     Returns
     -------
@@ -200,11 +209,17 @@ def plot_extmodels(extdata, alax=False):
             y = curve(x) / axav
         else:
             # compute A(V)
-            extdata.calc_AV()
+            if "AV" not in extdata.columns.keys():
+                extdata.calc_AV()
             # convert the model curve from A(lambda)/A(V) to E(lambda-V), using the computed A(V) of the data.
-            y = (curve(x) - 1) * extdata.columns["AV"]
+            y = (curve(x) - 1) * extdata.columns["AV"][0]
+
+        if wavenum:
+            px = 1 / x
+        else:
+            px = x
         plt.plot(
-            x.value,
+            px.value,
             y,
             style[i],
             color="k",
@@ -212,10 +227,11 @@ def plot_extmodels(extdata, alax=False):
             linewidth=1,
             label="R(V) = {:4.1f}".format(cRv),
         )
-        plt.legend(bbox_to_anchor=(0.99, 0.9))
+        # allow to find the best position (supports regular and wavenum)
+        plt.legend()
 
 
-def plot_fitmodel(extdata, alax=False, yoffset=0, res=False):
+def plot_fitmodel(extdata, alax=False, yoffset=0, res=False, wavenum=False):
     """
     Overplot a fitted model if available
 
@@ -232,6 +248,9 @@ def plot_fitmodel(extdata, alax=False, yoffset=0, res=False):
 
     res : boolean [default=False]
         Whether or not to plot the residuals of the fitting (only useful when plotting a single extinction curve)
+
+    wavenum : boolean [default=False]
+        Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
 
     Returns
     -------
@@ -261,8 +280,13 @@ def plot_fitmodel(extdata, alax=False, yoffset=0, res=False):
         if alax:
             mod_ext = (mod_ext / extdata.columns["AV"][0]) + 1
 
+        if wavenum:
+            x = 1 / extdata.model["waves"]
+        else:
+            x = extdata.model["waves"]
+
         plt.plot(
-            extdata.model["waves"],
+            x,
             mod_ext + yoffset,
             "-",
             lw=3,
@@ -277,9 +301,7 @@ def plot_fitmodel(extdata, alax=False, yoffset=0, res=False):
         if res:
             plt.setp(plt.gca().get_xticklabels(), visible=False)
             plt.axes([0.125, 0, 0.775, 0.11], sharex=plt.gca())
-            plt.scatter(
-                extdata.model["waves"], extdata.model["residuals"], s=0.5, color="k"
-            )
+            plt.scatter(x, extdata.model["residuals"], s=0.5, color="k")
             plt.axhline(ls="--", c="k", alpha=0.5)
             plt.axhline(y=0.05, ls=":", c="k", alpha=0.5)
             plt.axhline(y=-0.05, ls=":", c="k", alpha=0.5)
@@ -293,7 +315,7 @@ def plot_fitmodel(extdata, alax=False, yoffset=0, res=False):
         )
 
 
-def plot_HI(path, ax):
+def plot_HI(ax, wavenum=False):
     """
     Indicate the HI-lines on the plot (between 912A and 10 micron)
 
@@ -301,12 +323,15 @@ def plot_HI(path, ax):
     ----------
     ax : AxesSubplot
         Axes of plot for which to add the HI-lines
+    wavenum : boolean [default=False]
+        Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
 
     Returns
     -------
     Indicates HI-lines on the plot
     """
     # read in HI-lines
+    path = pkg_resources.resource_filename("measure_extinction", "data/")
     table = pd.read_table(path + "HI_lines.list", sep=r"\s+", comment="#")
     # group lines by series
     series_groups = table.groupby("n'")
@@ -326,10 +351,19 @@ def plot_HI(path, ax):
     for name, series in series_groups:
         # plot the lines
         for wave in series.wavelength:
-            ax.axvline(wave, color=colors(name - 1), lw=0.05, alpha=0.4)
+            if wavenum:
+                x = 1.0 / wave
+            else:
+                x = wave
+            ax.axvline(x, color=colors(name - 1), lw=0.05, alpha=0.4)
         # add the name of the series
+        mwave = series.wavelength.mean()
+        if wavenum:
+            xm = 1.0 / mwave
+        else:
+            xm = mwave
         ax.text(
-            series.wavelength.mean(),
+            xm,
             0.04,
             series_names[name],
             transform=ax.get_xaxis_transform(),
@@ -391,6 +425,7 @@ def plot_multi_extinction(
     multicolor=False,
     wavenum=False,
     figsize=None,
+    rebin_res=None,
     pdf=False,
 ):
     """
@@ -445,6 +480,9 @@ def plot_multi_extinction(
 
     figsize : tuple [default=None]
         Tuple with figure size (e.g. (8,15))
+
+    rebin_res : float
+        Spectral resolution to rebin extinction curves
 
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
@@ -532,12 +570,12 @@ def plot_multi_extinction(
 
         # overplot a fitted model if requested
         if fitmodel:
-            plot_fitmodel(extdata, alax=alax, yoffset=yoffset)
+            plot_fitmodel(extdata, alax=alax, yoffset=yoffset, wavenum=wavenum)
 
     # overplot Milky Way extinction curve models if requested
     if extmodels:
         if alax:
-            plot_extmodels(extdata, alax)
+            plot_extmodels(extdata, alax, wavenum=wavenum)
         else:
             warnings.warn(
                 "Overplotting Milky Way extinction curve models on a figure with multiple observed extinction curves in E(lambda-V) units is disabled, because the model curves in these units are different for every star, and would overload the plot. Please, do one of the following if you want to overplot Milky Way extinction curve models: 1) Use the flag --alax to plot ALL curves in A(lambda)/A(V) units, OR 2) Plot all curves separately by removing the flag --onefig.",
@@ -562,7 +600,7 @@ def plot_multi_extinction(
 
     # plot HI-lines if requested
     if HI_lines:
-        plot_HI(path, ax)
+        plot_HI(ax, wavenum=wavenum)
 
     # zoom in on a specific region if requested
     if range is not None:
@@ -603,6 +641,7 @@ def plot_extinction(
     exclude=[],
     log=False,
     wavenum=False,
+    rebin_res=None,
     pdf=False,
 ):
     """
@@ -640,6 +679,9 @@ def plot_extinction(
     wavenum : boolean [default=False]
         Whether or not to plot the wavelengths as wavenumbers = 1/wavelength
 
+    rebin_res : float [default=None]
+        Spectral resolution to rebin extinction curve
+
     pdf : boolean [default=False]
         Whether or not to save the figure as a pdf file
 
@@ -664,8 +706,29 @@ def plot_extinction(
     # create the plot
     fig, ax = plt.subplots(figsize=(10, 7))
 
-    # read in and plot the extinction curve data for this star
-    extdata = ExtData("%s%s_ext.fits" % (path, starpair.lower()))
+    # read in extinction curve data for this star
+    if ".fits" not in starpair:
+        fname = "%s%s_ext.fits" % (path, starpair.lower())
+    else:
+        fname = starpair
+    extdata = ExtData(fname)
+
+    # rebin if desired
+    if rebin_res is not None:
+        for src in extdata.exts.keys():
+            if src != "BAND":
+                rebin_waverange = (
+                    np.array(
+                        [
+                            min(extdata.waves[src]).to(u.micron).value,
+                            max(extdata.waves[src]).to(u.micron).value,
+                        ]
+                    )
+                    * u.micron
+                )
+                extdata.rebin_constres(src, rebin_waverange, rebin_res)
+
+    # plot extinction curve data
     extdata.plot(
         ax,
         alax=alax,
@@ -679,15 +742,15 @@ def plot_extinction(
 
     # plot Milky Way extinction models if requested
     if extmodels:
-        plot_extmodels(extdata, alax)
+        plot_extmodels(extdata, alax, wavenum=wavenum)
 
     # overplot a fitted model if requested
     if fitmodel:
-        plot_fitmodel(extdata, alax=alax, res=True)
+        plot_fitmodel(extdata, alax=alax, res=True, wavenum=wavenum)
 
     # plot HI-lines if requested
     if HI_lines:
-        plot_HI(path, ax)
+        plot_HI(ax, wavenum=wavenum)
 
     # zoom in on a specific region if requested
     if range is not None:
@@ -695,15 +758,19 @@ def plot_extinction(
         outname = outname.replace(".pdf", "_zoom.pdf")
 
     # finish configuring the plot
-    ax.set_title(starpair.split("_")[0], fontsize=50)
-    ax.text(
-        0.99,
-        0.95,
-        "comparison: " + starpair.split("_")[1],
-        fontsize=25,
-        horizontalalignment="right",
-        transform=ax.transAxes,
-    )
+    if extdata.red_file == "":
+        ax.set_title(starpair, fontsize=50)
+    else:
+        ax.set_title(extdata.red_file.replace(".dat", ""), fontsize=50)
+    if extdata.comp_file != "":
+        ax.text(
+            0.99,
+            0.95,
+            "comparison: " + extdata.comp_file.replace(".dat", ""),
+            fontsize=25,
+            horizontalalignment="right",
+            transform=ax.transAxes,
+        )
     if log:
         ax.set_xscale("log")
     if wavenum:
@@ -779,6 +846,12 @@ def main():
     parser.add_argument(
         "--wavenum", help="plot wavenumbers = 1/wavelengths", action="store_true"
     )
+    parser.add_argument(
+        "--rebin_res",
+        help="resolution in wavelength for rebinning spectral extinction",
+        type=float,
+        default=None,
+    )
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
 
@@ -796,6 +869,7 @@ def main():
             exclude=args.exclude,
             wavenum=args.wavenum,
             log=args.log,
+            rebin_res=args.rebin_res,
             pdf=args.pdf,
         )
     else:  # plot all curves separately
@@ -819,6 +893,7 @@ def main():
                 exclude=args.exclude,
                 wavenum=args.wavenum,
                 log=args.log,
+                rebin_res=args.rebin_res,
                 pdf=args.pdf,
             )
 

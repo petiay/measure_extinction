@@ -29,8 +29,9 @@ User Documentation
    :maxdepth: 2
 
    Extinction Calculation <calc_extinction.rst>
-   Observed Data Formats <data_formats.rst>
+   Capabilities <code_capabilities.rst>
    Plotting <plotting.rst>
+   Observed Data Formats <data_formats.rst>
    Stellar Models as Standards <model_standards.rst>
 
 Reporting Issues
