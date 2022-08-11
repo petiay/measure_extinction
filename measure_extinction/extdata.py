@@ -624,7 +624,9 @@ class ExtData:
             for curname in self.exts.keys():
                 # only compute where there is data and exts is not zero
                 gvals = (self.exts[curname] != 0) & (self.npts[curname] > 0)
-                self.uncs[curname][gvals] = (self.exts[curname][gvals] / fullebv[0]) * np.sqrt(
+                self.uncs[curname][gvals] = (
+                    self.exts[curname][gvals] / fullebv[0]
+                ) * np.sqrt(
                     np.square(self.uncs[curname][gvals] / self.exts[curname][gvals])
                     + np.square(fullebv[1] / fullebv[0])
                 )
@@ -1267,9 +1269,9 @@ class ExtData:
             ytype = self.type
         relband = self.type_rel_band.replace("_", "")
         if ytype == "elx":
-            return fr"$E(\lambda - {relband})$"
+            return rf"$E(\lambda - {relband})$"
         elif ytype == "alax":
-            return fr"$A(\lambda)/A({relband})$"
+            return rf"$A(\lambda)/A({relband})$"
         elif ytype == "elv":
             return r"$E(\lambda - V)$"
         elif ytype == "elvebv":
@@ -1384,6 +1386,11 @@ class ExtData:
             if wavenum:
                 x = 1.0 / x
 
+            if (legend_key is not None) and (legend_key == curtype):
+                clabel = legend_label
+            else:
+                clabel = None
+
             if curtype == "BAND":
                 # do not plot the excluded band(s)
                 for i, bandname in enumerate(self.names[curtype]):
@@ -1391,13 +1398,20 @@ class ExtData:
                         y[i] = np.nan
                 # plot band data as points with errorbars
                 pltax.errorbar(
-                    x, y, yerr=yu, fmt="o", color=color, alpha=alpha, mfc="white"
+                    x,
+                    y,
+                    yerr=yu,
+                    fmt="o",
+                    color=color,
+                    alpha=alpha,
+                    mfc="white",
+                    label=clabel,
                 )
             else:
                 if rebin_fac is not None:
                     x, y = _rebin(x, y, rebin_fac)
 
-                pltax.plot(x, y, "-", color=color, alpha=alpha)
+                pltax.plot(x, y, "-", color=color, alpha=alpha, label=clabel)
 
             if curtype == annotate_key:
                 (ann_indxs,) = np.where(
@@ -1466,13 +1480,13 @@ class ExtData:
         if self.type == "alav":
 
             def alav_powerlaw(x, a, alpha):
-                return a * x ** -alpha
+                return a * x**-alpha
 
             func = alav_powerlaw
         else:
 
             def elx_powerlaw(x, a, alpha, c):
-                return a * x ** -alpha - c
+                return a * x**-alpha - c
 
             func = elx_powerlaw
         fit_result = curve_fit(func, waves, exts)
@@ -1524,13 +1538,10 @@ class ExtData:
                 bounds={"amplitude": amp_bounds, "alpha": index_bounds},
             )
         else:
-            func = (
-                PowerLaw1D(
-                    fixed={"x_0": True},
-                    bounds={"amplitude": amp_bounds, "alpha": index_bounds},
-                )
-                | AxAvToExv(bounds={"Av": AV_bounds})
-            )
+            func = PowerLaw1D(
+                fixed={"x_0": True},
+                bounds={"amplitude": amp_bounds, "alpha": index_bounds},
+            ) | AxAvToExv(bounds={"Av": AV_bounds})
 
         fit = LevMarLSQFitter()
         fit_result = fit(func, waves, exts, weights=1 / exts_unc)
