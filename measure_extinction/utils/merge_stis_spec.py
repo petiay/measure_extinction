@@ -4,6 +4,7 @@ import glob
 import argparse
 import numpy as np
 import pkg_resources
+import matplotlib.pyplot as plt
 
 from astropy.table import Table
 
@@ -96,10 +97,36 @@ if __name__ == "__main__":
             t1["NPTS"][t1["FLUX"] == 0.0] = 0.0
             stable.append(t1)
 
-    rb_stis_opt = merge_stis_obsspec(stable, waveregion=args.waveregion)
+    rb_stis = merge_stis_obsspec(stable, waveregion=args.waveregion)
     if args.outname:
         outname = args.outname
     else:
         outname = args.starname.lower()
     stis_opt_file = "%s_stis_%s.fits" % (outname, args.waveregion)
-    rb_stis_opt.write("%s/%s" % (args.outpath, stis_opt_file), overwrite=True)
+    rb_stis.write("%s/%s" % (args.outpath, stis_opt_file), overwrite=True)
+
+    # plot the original and merged Spectra
+    fontsize = 14
+    font = {"size": fontsize}
+    plt.rc("font", **font)
+    plt.rc("lines", linewidth=2)
+    plt.rc("axes", linewidth=2)
+    plt.rc("xtick.major", width=2)
+    plt.rc("ytick.major", width=2)
+
+    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 5.5))
+
+    ax.plot(stable[0]["WAVELENGTH"], stable[0]["FLUX"], "k-", alpha=0.5, label="orig")
+    ax.plot(rb_stis["WAVELENGTH"], rb_stis["FLUX"], "b-", alpha=0.5, label="merged")
+
+    ax.legend()
+
+    fig.tight_layout()
+
+    fname = "fuv_mir_samp_prop"
+    if args.png:
+        fig.savefig(f"{fname}.png")
+    elif args.pdf:
+        fig.savefig(f"{fname}.pdf")
+    else:
+        plt.show()
