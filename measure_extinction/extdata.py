@@ -625,7 +625,7 @@ class ExtData:
                 # only compute where there is data and exts is not zero
                 gvals = (self.exts[curname] != 0) & (self.npts[curname] > 0)
                 self.uncs[curname][gvals] = (
-                    self.exts[curname][gvals] / fullebv[0]
+                    np.absolute(self.exts[curname][gvals] / fullebv[0])
                 ) * np.sqrt(
                     np.square(self.uncs[curname][gvals] / self.exts[curname][gvals])
                     + np.square(fullebv[1] / fullebv[0])
