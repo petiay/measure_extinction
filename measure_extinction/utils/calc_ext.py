@@ -9,7 +9,8 @@ from measure_extinction.stardata import StarData
 from measure_extinction.extdata import ExtData, AverageExtData
 
 
-def calc_extinction(redstarname, compstarname, path, savepath="./", deredden=False):
+def calc_extinction(redstarname, compstarname, path, savepath="./", deredden=False,
+                    elvebv=False, alav=False):
     # read in the observed data for both stars
     redstarobs = StarData("%s.dat" % redstarname.lower(), path=path)
     compstarobs = StarData(
@@ -19,6 +20,10 @@ def calc_extinction(redstarname, compstarname, path, savepath="./", deredden=Fal
     # calculate the extinction curve
     extdata = ExtData()
     extdata.calc_elx(redstarobs, compstarobs)
+    if elvebv:
+        extdata.trans_elv_elvebv()
+    elif alav:
+        extdata.trans_elv_alav()
     extdata.save(
         savepath + "%s_%s_ext.fits" % (redstarname.lower(), compstarname.lower())
     )
@@ -74,10 +79,25 @@ def main():
         help="deredden standard based on DAT file dered parameters",
         action="store_true",
     )
+    parser.add_argument(
+        "--elvebv",
+        help="computer E(l-V)/E(B-V) instead of the default E(l-V)",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--alav",
+        help="computer A(l)/A(V) instead of the default E(l-V)",
+        action="store_true",
+    )
     args = parser.parse_args()
 
     calc_extinction(
-        args.redstarname, args.compstarname, args.path, deredden=args.deredden
+        args.redstarname,
+        args.compstarname,
+        args.path,
+        deredden=args.deredden,
+        elvebv=args.elvebv,
+        alav=args.alav,
     )
 
 
