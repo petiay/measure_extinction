@@ -48,7 +48,7 @@ def _wavegrid(resolution, wave_range):
     return (full_wave, full_wave_min, full_wave_max)
 
 
-def merge_iue_obsspec(obstables, output_resolution=500):
+def merge_iue_obsspec(obstables, output_resolution=1000):
     """
     Merge one or more IUE 1D spectra into a single spectrum
     on a uniform wavelength scale
