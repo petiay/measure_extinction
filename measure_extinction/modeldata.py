@@ -272,7 +272,7 @@ class ModelData(object):
                 params[6],
                 optnir_axav_x,
                 optnir_axebv_y / Rv,
-                [0.3, 10.0],
+                [0.2, 11.0],
                 "F04_measure_extinction",
             )
             ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * params[0]))
@@ -372,6 +372,5 @@ class ModelData(object):
                 )
                 sd.data[cspec].uncs = 0.0 * sd.data[cspec].fluxes
                 sd.data[cspec].npts = np.full((sd.data[cspec].n_waves), 1.0)
-                print(sd.data[cspec].fluxes)
 
         return sd
