@@ -14,7 +14,12 @@ from synphot import SpectralElement
 import stsynphot as STS
 
 from measure_extinction.stardata import BandData
-from measure_extinction.merge_obsspec import merge_stis_obsspec, merge_irs_obsspec
+from measure_extinction.merge_obsspec import (
+    merge_stis_obsspec,
+    merge_irs_obsspec,
+    merge_nircam_ss_obsspec,
+    merge_miri_ifu_obsspec,
+)
 from measure_extinction.utils.mock_spectra_data import mock_stis_data
 
 __all__ = ["make_obsdata_from_model"]
@@ -254,48 +259,49 @@ def make_obsdata_from_model(
         model_filename,
         format="no_header",
         fast_reader={"exponent_style": "D"},
-        names=["Freq", "SFlux"],
+        names=["Wave", "SFlux"],
     )
+
+    # convert the type to float
+    mspec["SFlux"] = mspec["SFlux"].astype(float)
 
     # error in file where the exponent 'D' is missing
     #   means that SFlux is read in as a string
     # solution is to remove the rows with the problem and replace
     #   the fortran 'D' with an 'E' and then convert to floats
-    if mspec["SFlux"].dtype != float:
-        indxs = [k for k in range(len(mspec)) if "D" not in mspec["SFlux"][k]]
-        if len(indxs) > 0:
-            indxs = [k for k in range(len(mspec)) if "D" in mspec["SFlux"][k]]
-            mspec = mspec[indxs]
-            new_strs = [cval.replace("D", "E") for cval in mspec["SFlux"].data]
-            mspec["SFlux"] = new_strs
-            mspec["SFlux"] = mspec["SFlux"].astype(float)
+    # mspec["SFlux"] = mspec["SFlux"].astype(float)
+    # if mspec["SFlux"].dtype != float:
+    #     indxs = [k for k in range(len(mspec)) if "D" not in mspec["SFlux"][k]]
+    #     if len(indxs) > 0:
+    #         indxs = [k for k in range(len(mspec)) if "D" in mspec["SFlux"][k]]
+    #         mspec = mspec[indxs]
+    #         new_strs = [cval.replace("D", "E") for cval in mspec["SFlux"].data]
+    #         mspec["SFlux"] = new_strs
+    #         mspec["SFlux"] = mspec["SFlux"].astype(float)
 
     # set the units
-    mspec["Freq"].unit = u.Hz
-    mspec["SFlux"].unit = u.erg / (u.s * u.cm * u.cm * u.Hz)
+    mspec["Wave"].unit = u.angstrom
+    mspec["SFlux"].unit = u.erg / (u.s * u.cm * u.cm * u.angstrom)
 
     # now extract the wave and flux colums
-    mfreq = mspec["Freq"].quantity
-    mwave = mfreq.to(u.angstrom, equivalencies=u.spectral())
-    mflux = mspec["SFlux"].quantity.to(
-        u.erg / (u.s * u.cm * u.cm * u.angstrom),
-        equivalencies=u.spectral_density(mfreq),
-    )
+    mwave = mspec["Wave"]
+    mflux = mspec["SFlux"]
 
-    # rebin to R=5000 for speed
+    # rebin to R=10000 for speed
     #   use a wavelength range that spans FUSE to Spitzer IRS
-    wave_r5000, flux_r5000, npts_r5000 = rebin_spectrum(
-        mwave.value, mflux.value, 5000, [912.0, 500000.0]
+    rbres = 10000.
+    wave_rebin, flux_rebin, npts_rebin = rebin_spectrum(
+        mwave.value, mflux.value, rbres, [912.0, 310000.0]
     )
 
     # save the full spectrum to a binary FITS table
     otable = QTable()
-    otable["WAVELENGTH"] = Column(wave_r5000, unit=u.angstrom)
-    otable["FLUX"] = Column(flux_r5000, unit=u.erg / (u.s * u.cm * u.cm * u.angstrom))
+    otable["WAVELENGTH"] = Column(wave_rebin, unit=u.angstrom)
+    otable["FLUX"] = Column(flux_rebin, unit=u.erg / (u.s * u.cm * u.cm * u.angstrom))
     otable["SIGMA"] = Column(
-        flux_r5000 * 0.01, unit=u.erg / (u.s * u.cm * u.cm * u.angstrom)
+        flux_rebin * 0.01, unit=u.erg / (u.s * u.cm * u.cm * u.angstrom)
     )
-    otable["NPTS"] = Column(npts_r5000)
+    otable["NPTS"] = Column(npts_rebin)
     otable.write(
         "%s/Models/%s_full.fits" % (output_path, output_filebase), overwrite=True
     )
@@ -321,9 +327,8 @@ def make_obsdata_from_model(
 
     # Spitzer IRS mock observation
     # Resolution approximately 100
-    lrs_fwhm_pix = 5000.0 / 100.0
+    lrs_fwhm_pix = rbres / 100.0
     g = Gaussian1DKernel(stddev=lrs_fwhm_pix / 2.355)
-
     # Convolve data
     nflux = convolve(otable["FLUX"].data, g)
 
@@ -338,6 +343,44 @@ def make_obsdata_from_model(
     lrs_file = "%s_irs.fits" % (output_filebase)
     rb_lrs.write("%s/Models/%s" % (output_path, lrs_file), overwrite=True)
     specinfo["IRS"] = lrs_file
+
+    # Webb NIRCam spectra mock observation
+    # Resolution approximately 3000
+    nrc_fwhm_pix = rbres / 1600.0
+    g = Gaussian1DKernel(stddev=nrc_fwhm_pix / 2.355)
+    # Convolve data
+    nflux = convolve(otable["FLUX"].data, g)
+
+    nrc_table = QTable()
+    nrc_table["WAVELENGTH"] = otable["WAVELENGTH"]
+    nrc_table["FLUX"] = nflux
+    nrc_table["NPTS"] = otable["NPTS"]
+    nrc_table["ERROR"] = Column(np.full((len(nrc_table)), 1.0))
+
+    rb_nrc = merge_nircam_ss_obsspec([nrc_table])
+    rb_nrc["SIGMA"] = rb_nrc["FLUX"] * 0.0
+    nrc_file = "%s_miri_ifu.fits" % (output_filebase)
+    rb_nrc.write("%s/Models/%s" % (output_path, nrc_file), overwrite=True)
+    specinfo["NIRCam_SS"] = nrc_file
+
+    # Webb MIRI IFU mock observation
+    # Resolution approximately 3000
+    mrs_fwhm_pix = rbres / 3000.0
+    g = Gaussian1DKernel(stddev=mrs_fwhm_pix / 2.355)
+    # Convolve data
+    nflux = convolve(otable["FLUX"].data, g)
+
+    mrs_table = QTable()
+    mrs_table["WAVELENGTH"] = otable["WAVELENGTH"]
+    mrs_table["FLUX"] = nflux
+    mrs_table["NPTS"] = otable["NPTS"]
+    mrs_table["ERROR"] = Column(np.full((len(mrs_table)), 1.0))
+
+    rb_mrs = merge_miri_ifu_obsspec([mrs_table])
+    rb_mrs["SIGMA"] = rb_mrs["FLUX"] * 0.0
+    mrs_file = "%s_miri_ifu.fits" % (output_filebase)
+    rb_mrs.write("%s/Models/%s" % (output_path, mrs_file), overwrite=True)
+    specinfo["MIRI_IFU"] = mrs_file
 
     # compute photometry
     # band_path = "%s/Band_RespCurves/" % output_path
@@ -363,7 +406,7 @@ def make_obsdata_from_model(
     # bands = john_bands
     # band_fnames = john_fnames
 
-    bandinfo = get_phot(wave_r5000, flux_r5000, bands, band_fnames)
+    bandinfo = get_phot(wave_rebin, flux_rebin, bands, band_fnames)
 
     # create the DAT file
     dat_filename = "%s/Models/%s.dat" % (output_path, output_filebase)
@@ -382,9 +425,9 @@ def make_obsdata_from_model(
     )
 
     if show_plot:
-        fig, ax = plt.subplots(figsize=(13, 10))
-        # indxs, = np.where(npts_r5000 > 0)
-        ax.plot(wave_r5000 * 1e-4, flux_r5000, "b-")
+        fig, ax = plt.subplots(figsize=(10, 8))
+        # indxs, = np.where(npts_rebin > 0)
+        ax.plot(wave_rebin * 1e-4, flux_rebin * 2., "b-")
         ax.plot(bandinfo.waves, bandinfo.fluxes, "ro")
 
         (indxs,) = np.where(rb_stis_uv["NPTS"] > 0)
@@ -399,26 +442,35 @@ def make_obsdata_from_model(
             rb_stis_opt["FLUX"][indxs],
             "g-",
         )
+
+        (indxs,) = np.where(rb_nrc["NPTS"] > 0)
+        ax.plot(rb_nrc["WAVELENGTH"][indxs].to(u.micron), rb_nrc["FLUX"][indxs], "c-")
+
         (indxs,) = np.where(rb_lrs["NPTS"] > 0)
-        ax.plot(rb_lrs["WAVELENGTH"][indxs].to(u.micron), rb_lrs["FLUX"][indxs], "c-")
+        ax.plot(rb_lrs["WAVELENGTH"][indxs].to(u.micron), rb_lrs["FLUX"][indxs], "r:")
+
+        (indxs,) = np.where(rb_mrs["NPTS"] > 0)
+        ax.plot(rb_mrs["WAVELENGTH"][indxs].to(u.micron), rb_mrs["FLUX"][indxs], "r-")
+
         ax.set_xscale("log")
         ax.set_yscale("log")
+        plt.tight_layout()
         plt.show()
 
 
 if __name__ == "__main__":
-    mname = "/home/kgordon/Dust/Ext/Model_Standards_Data/BC30000g300v10.flux.gz"
+    mname = "/home/kgordon/Python/extstar_data/New_Models/Tlusty_2022/z050t23000g250v2.spec.gz"
     model_params = {}
-    model_params["origin"] = "bstar"
-    model_params["Teff"] = 30000.0
-    model_params["logg"] = 3.0
-    model_params["Z"] = 1.0
-    model_params["vturb"] = 10.0
+    model_params["origin"] = "tlusty"
+    model_params["Teff"] = 23000.0
+    model_params["logg"] = 2.5
+    model_params["Z"] = 0.50
+    model_params["vturb"] = 2.0
     make_obsdata_from_model(
         mname,
         model_type="tlusty",
-        output_filebase="BC30000g300v10",
-        output_path="/home/kgordon/Python_git/extstar_data",
+        output_filebase="z050t23000g250v2",
+        output_path="/home/kgordon/Python/extstar_data",
         model_params=model_params,
         show_plot=True,
     )
