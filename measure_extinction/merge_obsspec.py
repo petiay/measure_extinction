@@ -11,6 +11,8 @@ __all__ = [
     "merge_miri_ifu_obsspec",
 ]
 
+fluxunit = u.erg / ((u.cm ** 2) * u.s * u.angstrom)
+
 
 def _wavegrid(resolution, wave_range):
     """
@@ -150,7 +152,7 @@ def merge_stis_obsspec(obstables, waveregion="UV", output_resolution=1000):
         # may want to add in the SYS-ERROR, but need to be careful
         # to propagate it correctly, SYS-ERROR will not reduce with
         # multiple spectra or measurements in a wavelength bin
-        cuncs = ctable["STAT-ERROR"] # / 1e-10  # deal with overflow errors
+        cuncs = ctable["STAT-ERROR"]  # / 1e-10  # deal with overflow errors
         cwaves = ctable["WAVELENGTH"].data
         cfluxes = ctable["FLUX"]
         cnpts = ctable["NPTS"].data
@@ -172,7 +174,7 @@ def merge_stis_obsspec(obstables, waveregion="UV", output_resolution=1000):
     (indxs,) = np.where(full_npts > 0)
     if len(indxs) > 0:
         full_flux[indxs] /= full_unc[indxs]
-        full_unc[indxs] = np.sqrt(1.0 / full_unc[indxs]) # * 1e-10  # put back factor for overflow errors
+        full_unc[indxs] = np.sqrt(1.0 / full_unc[indxs])  # * 1e-10  # put back factor for overflow errors
 
     print(full_flux[indxs])
     print(full_unc[indxs])
@@ -424,9 +426,9 @@ def merge_miri_ifu_obsspec(obstables, output_resolution=3000):
     full_unc = np.zeros((n_waves), dtype=float)
     full_npts = np.zeros((n_waves), dtype=int)
     for ctable in obstables:
-        cuncs = ctable["ERROR"].value
         cwaves = ctable["WAVELENGTH"].to(u.angstrom).value
-        cfluxes = ctable["FLUX"].value
+        cfluxes = ctable["FLUX"].to(fluxunit, equivalencies=u.spectral_density(ctable["WAVELENGTH"])).value
+        cuncs = ctable["ERROR"].to(fluxunit, equivalencies=u.spectral_density(ctable["WAVELENGTH"])).value
         cnpts = ctable["NPTS"].value
         for k in range(n_waves):
             (indxs,) = np.where(
@@ -446,8 +448,8 @@ def merge_miri_ifu_obsspec(obstables, output_resolution=3000):
 
     otable = Table()
     otable["WAVELENGTH"] = Column(full_wave, unit=u.angstrom)
-    otable["FLUX"] = Column(full_flux, unit=u.erg / (u.s * u.cm * u.cm * u.angstrom))
-    otable["SIGMA"] = Column(full_unc, unit=u.erg / (u.s * u.cm * u.cm * u.angstrom))
+    otable["FLUX"] = Column(full_flux, unit=fluxunit)
+    otable["SIGMA"] = Column(full_unc, unit=fluxunit)
     otable["NPTS"] = Column(full_npts)
 
     return otable

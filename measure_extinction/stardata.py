@@ -835,8 +835,6 @@ class SpecData:
         self.read_spectra(line, path)
 
         # add units
-        self.fluxes = self.fluxes.value * u.Jy
-        self.uncs = self.uncs.value * u.Jy
         self.fluxes = self.fluxes.to(fluxunit, equivalencies=u.spectral_density(self.waves))
         self.uncs = self.uncs.to(fluxunit, equivalencies=u.spectral_density(self.waves))
 
@@ -1197,7 +1195,6 @@ class StarData:
             fluxes is fluxes in erg/cm2/s/A
             uncs is uncertainties on flux in erg/cm2/s/A
         """
-        fluxunit = u.erg / ((u.cm ** 2) * u.s * u.angstrom)
         wavedata = []
         fluxdata = []
         uncdata = []
@@ -1313,7 +1310,6 @@ class StarData:
         fontsize : int [default=None]
             fontsize for plot
         """
-        fluxunit = u.erg / ((u.cm ** 2) * u.s * u.angstrom)
 
         if yoffset is None:
             if yoffset_type == "multiply":
