@@ -2,6 +2,7 @@ import numpy as np
 import astropy.units as u
 
 from dust_extinction.shapes import _curve_F99_method
+from dust_extinction.parameter_averages import G23
 
 from measure_extinction.stardata import StarData, BandData, SpecData
 
@@ -144,15 +145,20 @@ class ModelData(object):
         self.temps_min = min(self.temps)
         self.temps_max = max(self.temps)
         self.temps_width2 = (self.temps_max - self.temps_min) ** 2
-        # self.temp_width2 = 1.0
+        if self.temps_width2 == 0:
+            self.temps_width2 == 1.0
 
         self.gravs_min = min(self.gravs)
         self.gravs_max = max(self.gravs)
         self.gravs_width2 = (self.gravs_max - self.gravs_min) ** 2
+        if self.gravs_width2 == 0:
+            self.gravs_width2 == 1.0
 
         self.mets_min = min(self.mets)
         self.mets_max = max(self.mets)
         self.mets_width2 = (self.mets_max - self.mets_min) ** 2
+        if self.mets_width2 == 0:
+            self.mets_width2 = 1.0
         # self.mets_width2 *= 4.0
 
     def stellar_sed(self, params, velocity=None):
@@ -188,14 +194,12 @@ class ModelData(object):
         weights = 1.0 / np.sqrt(dist2[gsindxs])
         weights /= np.sum(weights)
 
-        # print(params)
-        # print(self.model_files[gsindxs])
-        # exit()
-
         sed = {}
         for cspec in self.fluxes.keys():
             # dot product does the multiplication and sum
             sed[cspec] = np.dot(weights, self.fluxes[cspec][gsindxs, :])
+
+            sed[cspec][sed[cspec] == 0] = np.NaN
             # shift spectrum if velocity given
             if velocity is not None:
                 cwaves = self.waves[cspec]
@@ -206,6 +210,40 @@ class ModelData(object):
         return sed
 
     def dust_extinguished_sed(self, params, sed, velocity=0.0):
+        """
+        Dust extinguished sed given the extinction parameters
+
+        Parameters
+        ----------
+        params : float array
+            dust extinction parameters [Av, Rv, c2, c3, c4, gamma, x0]
+
+        sed : dict
+            fluxes for each spectral piece
+
+        velocity : float, optional
+            velocity of dust
+
+        Returns
+        -------
+        extinguished sed : dict
+            SED with {'bands': band_sed, 'spec': spec_sed, ...}
+        """
+        Rv = params[1]
+        g23mod = G23(Rv=Rv)
+
+        # create the extinguished sed
+        ext_sed = {}
+        for cspec in self.fluxes.keys():
+            # get the dust extinguished SED (account for the
+            #  systemic velocity of the galaxy [opposite regular sense])
+            shifted_waves = (1.0 - velocity / 2.998e5) * self.waves[cspec]
+            axav = g23mod(shifted_waves)
+            ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * params[0]))
+
+        return ext_sed
+
+    def dust_extinguished_sed_pre2022(self, params, sed, velocity=0.0):
         """
         Dust extinguished sed given the extinction parameters
 

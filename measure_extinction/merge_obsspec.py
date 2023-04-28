@@ -150,7 +150,7 @@ def merge_stis_obsspec(obstables, waveregion="UV", output_resolution=1000):
         # may want to add in the SYS-ERROR, but need to be careful
         # to propagate it correctly, SYS-ERROR will not reduce with
         # multiple spectra or measurements in a wavelength bin
-        cuncs = ctable["STAT-ERROR"] / 1e-20  # deal with overflow errors
+        cuncs = ctable["STAT-ERROR"] # / 1e-10  # deal with overflow errors
         cwaves = ctable["WAVELENGTH"].data
         cfluxes = ctable["FLUX"]
         cnpts = ctable["NPTS"].data
@@ -172,7 +172,11 @@ def merge_stis_obsspec(obstables, waveregion="UV", output_resolution=1000):
     (indxs,) = np.where(full_npts > 0)
     if len(indxs) > 0:
         full_flux[indxs] /= full_unc[indxs]
-        full_unc[indxs] = np.sqrt(1.0 / full_unc[indxs]) * 1e-20  # put back factor for overflow errors
+        full_unc[indxs] = np.sqrt(1.0 / full_unc[indxs]) # * 1e-10  # put back factor for overflow errors
+
+    print(full_flux[indxs])
+    print(full_unc[indxs])
+    print(full_npts[indxs])
 
     otable = Table()
     otable["WAVELENGTH"] = Column(full_wave, unit=u.angstrom)
@@ -421,7 +425,7 @@ def merge_miri_ifu_obsspec(obstables, output_resolution=3000):
     full_npts = np.zeros((n_waves), dtype=int)
     for ctable in obstables:
         cuncs = ctable["ERROR"].value
-        cwaves = ctable["WAVELENGTH"].value * 1e4
+        cwaves = ctable["WAVELENGTH"].to(u.angstrom).value
         cfluxes = ctable["FLUX"].value
         cnpts = ctable["NPTS"].value
         for k in range(n_waves):

@@ -377,6 +377,7 @@ def make_obsdata_from_model(
     mrs_table["ERROR"] = Column(np.full((len(mrs_table)), 1.0))
 
     rb_mrs = merge_miri_ifu_obsspec([mrs_table])
+
     rb_mrs["SIGMA"] = rb_mrs["FLUX"] * 0.0
     mrs_file = "%s_miri_ifu.fits" % (output_filebase)
     rb_mrs.write("%s/Models/%s" % (output_path, mrs_file), overwrite=True)
@@ -459,7 +460,7 @@ def make_obsdata_from_model(
 
 
 if __name__ == "__main__":
-    mname = "/home/kgordon/Python/extstar_data/New_Models/Tlusty_2022/z050t23000g250v2.spec.gz"
+    mname = "/home/kgordon/Python/extstar_data/Models/Tlusty_2022/z050t23000g250v2.spec.gz"
     model_params = {}
     model_params["origin"] = "tlusty"
     model_params["Teff"] = 23000.0

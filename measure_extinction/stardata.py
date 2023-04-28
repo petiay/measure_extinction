@@ -27,6 +27,8 @@ __all__ = ["StarData", "BandData", "SpecData"]
 # const = 1e-26*1e7*1e-4*1e-4 = 1e-27
 Jy_to_cgs_const = 1e-27 * const.c.to("micron/s").value
 
+fluxunit = u.erg / ((u.cm ** 2) * u.s * u.angstrom)
+
 
 class BandData:
     """
@@ -833,8 +835,10 @@ class SpecData:
         self.read_spectra(line, path)
 
         # add units
-        self.fluxes = self.fluxes.value * (u.Jy)
-        self.uncs = self.uncs.value * (u.Jy)
+        self.fluxes = self.fluxes.value * u.Jy
+        self.uncs = self.uncs.value * u.Jy
+        self.fluxes = self.fluxes.to(fluxunit, equivalencies=u.spectral_density(self.waves))
+        self.uncs = self.uncs.to(fluxunit, equivalencies=u.spectral_density(self.waves))
 
     def rebin_constres(self, waverange, resolution):
         """

@@ -59,7 +59,7 @@ def decode_params(filename):
 
 
 if __name__ == "__main__":
-    tlusty_models = glob.glob("/home/kgordon/Python/extstar_data/New_Models/Tlusty_2022/*spec.gz")
+    tlusty_models = glob.glob("/home/kgordon/Python/extstar_data/Models/Tlusty_2022/*v5.spec.gz")
 
     for cfname in tlusty_models:
         # parse the filename to get the model parameters
@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
         # get the base filename for the output files
         slashpos = cfname.rfind("/")
-        periodpos = cfname.rfind(".flux")
+        periodpos = cfname.rfind(".spec")
 
         basename = "tlusty_{}".format(cfname[slashpos + 1 : periodpos])
 
