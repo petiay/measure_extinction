@@ -1242,6 +1242,7 @@ class StarData:
         norm_wave_range=None,
         mlam4=False,
         wavenum=False,
+        fluxunit=fluxunit,
         exclude=[],
         yoffset=None,
         yoffset_type="multiply",
@@ -1273,6 +1274,9 @@ class StarData:
 
         wavenum : boolean [default=False]
             plot x axis as 1/wavelength as is standard for UV extinction curves
+
+        fluxunit : astropy unit
+            flux units for plot, default is ergs/(cm^2 s A)
 
         exclude : list of strings [default=[]]
             List of data type(s) to exclude from the plot (e.g., "IRS", "IRAC1",...)
@@ -1394,6 +1398,8 @@ class StarData:
                 )
                 .value
             )
+            print(fluxunit)
+            print(curtype, yvals)
             yuncs = (
                 self.data[curtype]
                 .uncs.to(

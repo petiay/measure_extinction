@@ -397,18 +397,23 @@ class ModelData(object):
             if cspec == "BAND":
                 # populate the BAND info
                 sd.data["BAND"] = BandData("BAND")
+                sd.data["BAND"].fluxes = sed["BAND"] * (
+                    u.erg / ((u.cm ** 2) * u.s * u.angstrom)
+                )
                 for k, cband in enumerate(self.band_names):
                     sd.data["BAND"].band_fluxes[cband] = (sed["BAND"][k], 0.0)
                 sd.data["BAND"].get_band_mags_from_fluxes()
+
             else:
                 # populate the spectral info
                 sd.data[cspec] = SpecData(cspec)
-                sd.data[cspec].waves = self.waves[cspec]
-                sd.data[cspec].n_waves = len(sd.data[cspec].waves)
                 sd.data[cspec].fluxes = sed[cspec] * (
                     u.erg / ((u.cm ** 2) * u.s * u.angstrom)
                 )
-                sd.data[cspec].uncs = 0.0 * sd.data[cspec].fluxes
-                sd.data[cspec].npts = np.full((sd.data[cspec].n_waves), 1.0)
+
+            sd.data[cspec].waves = self.waves[cspec]
+            sd.data[cspec].n_waves = len(sd.data[cspec].waves)
+            sd.data[cspec].uncs = 0.0 * sd.data[cspec].fluxes
+            sd.data[cspec].npts = np.full((sd.data[cspec].n_waves), 1.0)
 
         return sd
