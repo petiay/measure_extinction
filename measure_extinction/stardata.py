@@ -1398,8 +1398,6 @@ class StarData:
                 )
                 .value
             )
-            print(fluxunit)
-            print(curtype, yvals)
             yuncs = (
                 self.data[curtype]
                 .uncs.to(
