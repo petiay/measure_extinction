@@ -415,5 +415,6 @@ class ModelData(object):
             sd.data[cspec].n_waves = len(sd.data[cspec].waves)
             sd.data[cspec].uncs = 0.0 * sd.data[cspec].fluxes
             sd.data[cspec].npts = np.full((sd.data[cspec].n_waves), 1.0)
+            sd.data[cspec].wave_range = [min(sd.data[cspec].waves), max(sd.data[cspec].waves)]
 
         return sd
