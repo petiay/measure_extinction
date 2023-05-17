@@ -1254,6 +1254,7 @@ class StarData:
         annotate_yoffset=0.0,
         annotate_color="k",
         legend_key=None,
+        legend_label=None,
         fontsize=None,
     ):
         """
@@ -1310,6 +1311,9 @@ class StarData:
 
         legend_key : string [default=None]
             legend the spectrum using the given data key
+
+        legend_label : string [default=None]
+            label to use for legend
 
         fontsize : int [default=None]
             fontsize for plot
@@ -1384,12 +1388,16 @@ class StarData:
             # multiply by the overall normalization
             ymult /= normval
 
-            if curtype == legend_key:
-                red_name = self.file.replace(".dat", "")
-                red_name = red_name.replace("DAT_files/", "")
-                legval = "%s / %s" % (red_name, self.sptype)
+            if legend_key == curtype:
+                if legend_label is None:
+                    red_name = self.file.replace(".dat", "")
+                    red_name = red_name.replace("DAT_files/", "")
+                    clabel = "%s / %s" % (red_name, self.sptype)
+                else:
+                    clabel = legend_label
             else:
-                legval = None
+                clabel = None
+
             yvals = (
                 self.data[curtype]
                 .fluxes.to(
@@ -1423,7 +1431,7 @@ class StarData:
                     yerr=ymult * yuncs,
                     fmt="o",
                     color=pcolor,
-                    label=legval,
+                    label=clabel,
                     mfc="white",
                 )
             else:
@@ -1432,7 +1440,7 @@ class StarData:
                     yplotvals,
                     "-",
                     color=pcolor,
-                    label=legval,
+                    label=clabel,
                 )
 
             if curtype == annotate_key:
