@@ -9,6 +9,7 @@ import numpy as np
 from astropy.table import Table
 from astropy import constants as const
 import astropy.units as u
+from astropy.units import UnitsWarning
 
 from dust_extinction.parameter_averages import CCM89
 from dust_extinction.shapes import _curve_F99_method
@@ -187,7 +188,7 @@ class BandData:
             "WFC3_F110W",
             "WFC3_F160W",
         ]
-        _wfc3_band_waves = np.array([0.2373, 0.3355, 0.4772, 0.8053, 1.1534, 1.5369])
+        _wfc3_band_waves = np.array([0.2710, 0.3355, 0.4772, 0.8053, 1.1534, 1.5369])
         _wfc3_photflam = np.array(
             [3.186e-18, 1.267e-18, 2.458e-19, 1.477e-19, 1.53e-20, 1.93e-20]
         )
@@ -601,7 +602,10 @@ class SpecData:
         full_filename = _getspecfilename(line, path)
 
         # open and read the spectrum
-        tdata = Table.read(full_filename)
+        # ignore units warnings as non-standard units are explicitly handled a few lines later
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', UnitsWarning)
+            tdata = Table.read(full_filename)
 
         self.waves = tdata["WAVELENGTH"].quantity
         self.fluxes = tdata["FLUX"].quantity
