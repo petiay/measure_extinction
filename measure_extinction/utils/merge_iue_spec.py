@@ -1,5 +1,5 @@
 import argparse
-import numpy as np
+#import numpy as np
 import pkg_resources
 
 from astropy.table import Table
