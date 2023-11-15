@@ -97,8 +97,13 @@ class FitInfo(object):
         lnl = 0.0
         for cspec in hi_ext_modsed.keys():
             gvals = self.weights[cspec] > 0
-            chiarr = np.square((obsdata.data[cspec].fluxes[gvals].value - (hi_ext_modsed[cspec][gvals] * (norm_data / norm_model)))
-                            * self.weights[cspec][gvals])
+            chiarr = np.square(
+                (
+                    obsdata.data[cspec].fluxes[gvals].value
+                    - (hi_ext_modsed[cspec][gvals] * (norm_data / norm_model))
+                )
+                * self.weights[cspec][gvals]
+            )
             lnl += -0.5 * np.sum(chiarr)
 
         return lnl

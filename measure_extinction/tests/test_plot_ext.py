@@ -9,6 +9,7 @@ from measure_extinction.plotting.plot_ext import (
     plot_average,
 )
 
+
 @pytest.mark.skip(reason="failing due to changes in matplotlib")
 def test_plot_extinction():
     # get the location of the data files
