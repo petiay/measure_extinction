@@ -162,6 +162,7 @@ class FitInfo(object):
             information about the fitting
         """
         lnp = fitinfo.lnprior(params)
+        print(lnp, fitinfo.lnlike(params, obsdata, modeldata))
         if lnp == lnp_bignnum:
             return lnp
         else:
