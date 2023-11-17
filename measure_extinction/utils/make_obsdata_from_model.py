@@ -280,8 +280,9 @@ def make_obsdata_from_model(
     #         mspec["SFlux"] = mspec["SFlux"].astype(float)
 
     # set the units
+    fluxunit = u.erg / (u.s * u.cm * u.cm * u.angstrom)
     mspec["Wave"].unit = u.angstrom
-    mspec["SFlux"].unit = u.erg / (u.s * u.cm * u.cm * u.angstrom)
+    mspec["SFlux"].unit = fluxunit
 
     # now extract the wave and flux colums
     mwave = mspec["Wave"]
@@ -297,9 +298,9 @@ def make_obsdata_from_model(
     # save the full spectrum to a binary FITS table
     otable = QTable()
     otable["WAVELENGTH"] = Column(wave_rebin, unit=u.angstrom)
-    otable["FLUX"] = Column(flux_rebin, unit=u.erg / (u.s * u.cm * u.cm * u.angstrom))
+    otable["FLUX"] = Column(flux_rebin, unit=fluxunit)
     otable["SIGMA"] = Column(
-        flux_rebin * 0.01, unit=u.erg / (u.s * u.cm * u.cm * u.angstrom)
+        flux_rebin * 0.01, unit=fluxunit
     )
     otable["NPTS"] = Column(npts_rebin)
     otable.write(
@@ -334,9 +335,9 @@ def make_obsdata_from_model(
 
     lrs_table = QTable()
     lrs_table["WAVELENGTH"] = otable["WAVELENGTH"]
-    lrs_table["FLUX"] = nflux
+    lrs_table["FLUX"] = nflux * fluxunit
     lrs_table["NPTS"] = otable["NPTS"]
-    lrs_table["ERROR"] = Column(np.full((len(lrs_table)), 1.0))
+    lrs_table["ERROR"] = Column(np.full((len(lrs_table)), 1.0)) * fluxunit
 
     rb_lrs = merge_irs_obsspec([lrs_table])
     rb_lrs["SIGMA"] = rb_lrs["FLUX"] * 0.0
@@ -353,13 +354,13 @@ def make_obsdata_from_model(
 
     nrc_table = QTable()
     nrc_table["WAVELENGTH"] = otable["WAVELENGTH"]
-    nrc_table["FLUX"] = nflux
+    nrc_table["FLUX"] = nflux * fluxunit
     nrc_table["NPTS"] = otable["NPTS"]
-    nrc_table["ERROR"] = Column(np.full((len(nrc_table)), 1.0))
+    nrc_table["ERROR"] = Column(np.full((len(nrc_table)), 1.0)) * fluxunit
 
     rb_nrc = merge_nircam_ss_obsspec([nrc_table])
     rb_nrc["SIGMA"] = rb_nrc["FLUX"] * 0.0
-    nrc_file = "%s_miri_ifu.fits" % (output_filebase)
+    nrc_file = "%s_nircam_ss.fits" % (output_filebase)
     rb_nrc.write("%s/Models/%s" % (output_path, nrc_file), overwrite=True)
     specinfo["NIRCam_SS"] = nrc_file
 
@@ -372,9 +373,9 @@ def make_obsdata_from_model(
 
     mrs_table = QTable()
     mrs_table["WAVELENGTH"] = otable["WAVELENGTH"]
-    mrs_table["FLUX"] = nflux
+    mrs_table["FLUX"] = nflux * fluxunit
     mrs_table["NPTS"] = otable["NPTS"]
-    mrs_table["ERROR"] = Column(np.full((len(mrs_table)), 1.0))
+    mrs_table["ERROR"] = Column(np.full((len(mrs_table)), 1.0)) * fluxunit
 
     rb_mrs = merge_miri_ifu_obsspec([mrs_table])
 
