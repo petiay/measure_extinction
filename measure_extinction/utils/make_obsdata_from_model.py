@@ -461,7 +461,7 @@ def make_obsdata_from_model(
 
 
 if __name__ == "__main__":
-    mname = "/home/kgordon/Python/extstar_data/Models/Tlusty_2022/z050t23000g250v2.spec.gz"
+    mname = "/home/kgordon/Python/extstar_data/Models/Tlusty_2023/z050t23000g250v2.spec.gz"
     model_params = {}
     model_params["origin"] = "tlusty"
     model_params["Teff"] = 23000.0
