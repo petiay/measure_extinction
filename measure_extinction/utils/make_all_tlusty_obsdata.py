@@ -50,7 +50,10 @@ def decode_params(filename):
     gpos = filename.find("g", slashpos)
     vpos = filename.find("v", slashpos)
 
-    model_params["Z"] = float(filename[zpos + 1 : tpos]) * 0.01
+    if tpos - zpos > 4:
+        model_params["Z"] = float(filename[zpos + 1 : tpos]) * 0.001
+    else:
+        model_params["Z"] = float(filename[zpos + 1 : tpos]) * 0.01
     model_params["Teff"] = float(filename[tpos + 1 : gpos])
     model_params["logg"] = float(filename[gpos + 1 : vpos]) * 0.01
     model_params["vturb"] = float(filename[vpos + 1 : periodpos])
