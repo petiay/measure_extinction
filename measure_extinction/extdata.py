@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import warnings
 import numpy as np
 import astropy.units as u
@@ -20,7 +18,17 @@ __all__ = ["ExtData", "AverageExtData"]
 
 # globals
 # possible datasets (also extension names in saved FITS file)
-_poss_datasources = ["BAND", "IUE", "FUSE", "STIS", "SpeX_SXD", "SpeX_LXD", "IRS"]
+_poss_datasources = [
+    "BAND",
+    "IUE",
+    "FUSE",
+    "STIS",
+    "STIS_Opt",
+    "SpeX_SXD",
+    "SpeX_LXD",
+    "IRS",
+    "MIRI_IFU",
+]
 
 
 def _rebin(waves, exts, rebin_fac):

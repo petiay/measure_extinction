@@ -5,7 +5,7 @@ import glob
 from measure_extinction.utils.make_obsdata_from_model import make_obsdata_from_model
 
 
-def decode_params(filename):
+def decode_params_pre2022(filename):
     """
     Decode the tlusty filenames for the model parameters
     """
@@ -36,8 +36,33 @@ def decode_params(filename):
     return model_params
 
 
+def decode_params(filename):
+    """
+    Decode the tlusty filenames for the model parameters
+    """
+    model_params = {}
+
+    slashpos = filename.rfind("/")
+    periodpos = filename.rfind(".spec")
+
+    zpos = filename.find("z", slashpos)
+    tpos = filename.find("t", slashpos)
+    gpos = filename.find("g", slashpos)
+    vpos = filename.find("v", slashpos)
+
+    if tpos - zpos > 4:
+        model_params["Z"] = float(filename[zpos + 1 : tpos]) * 0.001
+    else:
+        model_params["Z"] = float(filename[zpos + 1 : tpos]) * 0.01
+    model_params["Teff"] = float(filename[tpos + 1 : gpos])
+    model_params["logg"] = float(filename[gpos + 1 : vpos]) * 0.01
+    model_params["vturb"] = float(filename[vpos + 1 : periodpos])
+
+    return model_params
+
+
 if __name__ == "__main__":
-    tlusty_models = glob.glob("/home/kgordon/Dust/Ext/Model_Standards_Data/*flux.gz")
+    tlusty_models = glob.glob("/home/kgordon/Python/extstar_data/Models/Tlusty_2023/*v10.spec.gz")
 
     for cfname in tlusty_models:
         # parse the filename to get the model parameters
@@ -45,7 +70,7 @@ if __name__ == "__main__":
 
         # get the base filename for the output files
         slashpos = cfname.rfind("/")
-        periodpos = cfname.rfind(".flux")
+        periodpos = cfname.rfind(".spec")
 
         basename = "tlusty_{}".format(cfname[slashpos + 1 : periodpos])
 
@@ -57,6 +82,6 @@ if __name__ == "__main__":
             cfname,
             model_type="tlusty",
             output_filebase=basename,
-            output_path="/home/kgordon/Python_git/extstar_data",
+            output_path="/home/kgordon/Python/extstar_data",
             model_params=model_params,
         )
