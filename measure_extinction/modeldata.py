@@ -209,7 +209,7 @@ class ModelData(object):
 
         return sed
 
-    def dust_extinguished_sed(self, params, sed, velocity=0.0):
+    def dust_extinguished_sed_FM90_G23(self, params, sed, velocity=0.0):
         """
         Dust extinguished sed given the extinction parameters
 
@@ -231,6 +231,11 @@ class ModelData(object):
         """
         Rv = params[1]
         g23mod = G23(Rv=Rv)
+        optnir_axav_x = np.flip(1.0 / (np.arange(0.35, 30.0, 0.1) * u.micron))
+        optnir_axav_y = g23mod(optnir_axav_x)
+
+        # updated F04 C1-C2 correlation
+        C1 = 2.18 - 2.91 * params[2]
 
         # create the extinguished sed
         ext_sed = {}
@@ -238,12 +243,34 @@ class ModelData(object):
             # get the dust extinguished SED (account for the
             #  systemic velocity of the galaxy [opposite regular sense])
             shifted_waves = (1.0 - velocity / 2.998e5) * self.waves[cspec]
-            axav = g23mod(shifted_waves)
+            axav = _curve_F99_method(
+                shifted_waves,
+                Rv,
+                C1,
+                params[2],
+                params[3],
+                params[4],
+                params[5],
+                params[6],
+                optnir_axav_x.value,
+                optnir_axav_y,
+                [0.2, 11.0],
+                "FM90_G23_measure_extinction",
+            )
             ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * params[0]))
+
+        # # create the extinguished sed
+        # ext_sed = {}
+        # for cspec in self.fluxes.keys():
+        #     # get the dust extinguished SED (account for the
+        #     #  systemic velocity of the galaxy [opposite regular sense])
+        #     shifted_waves = (1.0 - velocity / 2.998e5) * self.waves[cspec]
+        #     axav = g23mod(shifted_waves)
+        #     ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * params[0]))
 
         return ext_sed
 
-    def dust_extinguished_sed_pre2022(self, params, sed, velocity=0.0):
+    def dust_extinguished_sed(self, params, sed, velocity=0.0):
         """
         Dust extinguished sed given the extinction parameters
 
