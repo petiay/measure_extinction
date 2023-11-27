@@ -116,8 +116,13 @@ if __name__ == "__main__":
 
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 5.5))
 
-    ax.plot(stable[0]["WAVELENGTH"], stable[0]["FLUX"], "k-", alpha=0.5, label="orig")
-    ax.plot(rb_stis["WAVELENGTH"], rb_stis["FLUX"], "b-", alpha=0.5, label="merged")
+    gvals = stable[0]["NPTS"] > 0
+    ax.plot(stable[0]["WAVELENGTH"][gvals], stable[0]["FLUX"][gvals], "k-", alpha=0.5, label="orig")
+    gvals = rb_stis["NPTS"] > 0
+    ax.plot(rb_stis["WAVELENGTH"][gvals], rb_stis["FLUX"][gvals], "b-", alpha=0.5, label="merged")
+
+    ax.set_xlabel(r"$\lambda$ [$\AA$]")
+    ax.set_ylabel(r"F($\lambda$)")
 
     ax.legend()
 
