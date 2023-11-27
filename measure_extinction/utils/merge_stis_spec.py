@@ -7,7 +7,6 @@ import pkg_resources
 import matplotlib.pyplot as plt
 
 from astropy.table import Table
-import astropy.units as u
 
 from measure_extinction.merge_obsspec import merge_stis_obsspec
 
@@ -127,7 +126,7 @@ if __name__ == "__main__":
     miny = np.nanmin(rb_stis["FLUX"][gvals])
     maxy = np.nanmax(rb_stis["FLUX"][gvals])
     delt = maxy - miny
-    ax.set_ylim(miny - 0.2*delt, maxy + 0.2*delt)
+    ax.set_ylim(miny - 0.2 * delt, maxy + 0.2 * delt)
 
     ax.set_xlabel(r"$\lambda$ [$\AA$]")
     ax.set_ylabel(r"F($\lambda$)")
