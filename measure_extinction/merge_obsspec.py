@@ -277,7 +277,7 @@ def merge_spex_obsspec(obstable, mask=[], output_resolution=2000):
 def merge_gen_obsspec(obstables, wave_range, output_resolution=100):
     """
     Merge one or more generic spectra into a single spectrum
-    on a uniform wavelength scale.  Useful for spectra that 
+    on a uniform wavelength scale.  Useful for spectra that
     do not require specific processing.
 
     Parameters

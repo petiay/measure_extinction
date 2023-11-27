@@ -7,6 +7,7 @@ import pkg_resources
 import matplotlib.pyplot as plt
 
 from astropy.table import Table
+import astropy.units as u
 
 from measure_extinction.merge_obsspec import merge_stis_obsspec
 
@@ -102,8 +103,8 @@ if __name__ == "__main__":
         outname = args.outname
     else:
         outname = args.starname.lower()
-    stis_opt_file = "%s_stis_%s.fits" % (outname, args.waveregion)
-    rb_stis.write("%s/%s" % (args.outpath, stis_opt_file), overwrite=True)
+    stis_file = "%s_stis_%s.fits" % (outname, args.waveregion)
+    rb_stis.write("%s/%s" % (args.outpath, stis_file), overwrite=True)
 
     # plot the original and merged Spectra
     fontsize = 14
@@ -121,14 +122,20 @@ if __name__ == "__main__":
     gvals = rb_stis["NPTS"] > 0
     ax.plot(rb_stis["WAVELENGTH"][gvals], rb_stis["FLUX"][gvals], "b-", alpha=0.5, label="merged")
 
+    # set min/max ignoring Ly-alpha as it often has a strong core emission
+    gvals = (rb_stis["WAVELENGTH"] > 1300.) & (rb_stis["NPTS"] > 0)
+    miny = np.nanmin(rb_stis["FLUX"][gvals])
+    maxy = np.nanmax(rb_stis["FLUX"][gvals])
+    delt = maxy - miny
+    ax.set_ylim(miny - 0.2*delt, maxy + 0.2*delt)
+
     ax.set_xlabel(r"$\lambda$ [$\AA$]")
     ax.set_ylabel(r"F($\lambda$)")
 
     ax.legend()
-
     fig.tight_layout()
 
-    fname = "fuv_mir_samp_prop"
+    fname = stis_file.replace(".fits", "")
     if args.png:
         fig.savefig(f"{fname}.png")
     elif args.pdf:
