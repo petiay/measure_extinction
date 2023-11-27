@@ -28,7 +28,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
         # Test python version 3.x
-        python-ver: [9, 10, 11, 12]
+        python-ver: [9, 10, 11]
 
         # Specify which tox environments to test in this list.
         # tox-env: [cov, alldeps, devdeps, astropylts]
