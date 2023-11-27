@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import numpy as np
 from astropy.table import Table, Column
 import astropy.units as u
@@ -7,9 +5,13 @@ import astropy.units as u
 __all__ = [
     "merge_iue_obsspec",
     "merge_stis_obsspec",
-    "merge_irs_obsspec",
     "merge_spex_obsspec",
+    "merge_nircam_ss_obsspec",
+    "merge_irs_obsspec",
+    "merge_miri_ifu_obsspec",
 ]
+
+fluxunit = u.erg / (u.s * u.cm * u.cm * u.angstrom)
 
 
 def _wavegrid(resolution, wave_range):
@@ -150,84 +152,29 @@ def merge_stis_obsspec(obstables, waveregion="UV", output_resolution=1000):
         # may want to add in the SYS-ERROR, but need to be careful
         # to propagate it correctly, SYS-ERROR will not reduce with
         # multiple spectra or measurements in a wavelength bin
-        cuncs = ctable["STAT-ERROR"]
+        cuncs = ctable["STAT-ERROR"]  # / 1e-10  # deal with overflow errors
         cwaves = ctable["WAVELENGTH"].data
         cfluxes = ctable["FLUX"]
         cnpts = ctable["NPTS"].data
+        cnpts[cuncs == 0] = 0
         for k in range(n_waves):
             gvals = (
                 (cwaves >= full_wave_min[k]) & (cwaves < full_wave_max[k]) & (cnpts > 0)
             )
             if np.sum(gvals) > 0:
-                weights = 1.0 / np.square(cuncs[gvals].value)
+                weights = np.square(1.0 / cuncs[gvals].value)
                 full_flux[k] += np.sum(weights * cfluxes[gvals].value)
                 full_unc[k] += np.sum(weights)
                 full_npts[k] += np.sum(gvals)
 
-    # divide by the net weights
-    (indxs,) = np.where(full_npts > 0)
-    if len(indxs) > 0:
-        full_flux[indxs] /= full_unc[indxs]
-        full_unc[indxs] = np.sqrt(1.0 / full_unc[indxs])
-
-    otable = Table()
-    otable["WAVELENGTH"] = Column(full_wave, unit=u.angstrom)
-    otable["FLUX"] = Column(full_flux, unit=u.erg / (u.s * u.cm * u.cm * u.angstrom))
-    otable["SIGMA"] = Column(full_unc, unit=u.erg / (u.s * u.cm * u.cm * u.angstrom))
-    otable["NPTS"] = Column(full_npts)
-
-    return otable
-
-
-def merge_irs_obsspec(obstables, output_resolution=150):
-    """
-    Merge one or more Spitzer IRS 1D spectra into a single spectrum
-    on a uniform wavelength scale
-
-    Parameters
-    ----------
-    obstables : list of astropy Table objects
-        list of tables containing the observed IRS spectra
-        usually the result of reading tables
-
-    output_resolution : float
-        output resolution of spectra
-        input spectrum assumed to be at the appropriate resolution
-
-    Returns
-    -------
-    output_table : astropy Table object
-        merged spectra
-    """
-    wave_range = [5.0, 40.0] * u.micron
-
-    iwave_range = wave_range.to(u.angstrom).value
-    full_wave, full_wave_min, full_wave_max = _wavegrid(output_resolution, iwave_range)
-
-    n_waves = len(full_wave)
-    full_flux = np.zeros((n_waves), dtype=float)
-    full_unc = np.zeros((n_waves), dtype=float)
-    full_npts = np.zeros((n_waves), dtype=int)
-    for ctable in obstables:
-        cuncs = ctable["ERROR"].data
-        cwaves = ctable["WAVELENGTH"].data
-        cfluxes = ctable["FLUX"].data
-        cnpts = ctable["NPTS"].data
-        for k in range(n_waves):
-            (indxs,) = np.where(
-                (cwaves >= full_wave_min[k]) & (cwaves < full_wave_max[k]) & (cnpts > 0)
-            )
-            if len(indxs) > 0:
-                weights = 1.0 / np.square(cuncs[indxs])
-                full_flux[k] += np.sum(weights * cfluxes[indxs])
-                full_unc[k] += np.sum(weights)
-                full_npts[k] += len(indxs)
+    # make sure any wavelengths with no unc are not used
+    full_npts[full_unc == 0] = 0
 
     # divide by the net weights
     (indxs,) = np.where(full_npts > 0)
     if len(indxs) > 0:
         full_flux[indxs] /= full_unc[indxs]
-        full_unc[indxs] = np.sqrt(1.0 / full_unc[indxs])
+        full_unc[indxs] = np.sqrt(1.0 / full_unc[indxs])  # * 1e-10  # put back factor for overflow errors
 
     otable = Table()
     otable["WAVELENGTH"] = Column(full_wave, unit=u.angstrom)
@@ -324,4 +271,140 @@ def merge_spex_obsspec(obstable, mask=[], output_resolution=2000):
     otable["SIGMA"] = Column(full_unc, unit=u.erg / (u.s * u.cm * u.cm * u.angstrom))
     otable["NPTS"] = Column(full_npts)
 
+    return otable
+
+
+def merge_gen_obsspec(obstables, wave_range, output_resolution=100):
+    """
+    Merge one or more generic spectra into a single spectrum
+    on a uniform wavelength scale.  Useful for spectra that 
+    do not require specific processing.
+
+    Parameters
+    ----------
+    obstables : list of astropy Table objects
+        list of tables containing the observed IRS spectra
+        usually the result of reading tables
+
+    wave_range : 2 element float
+        min/max wavelengths with units for output grid
+
+    output_resolution : float
+        output resolution of spectra
+        input spectrum assumed to be at the appropriate resolution
+
+    Returns
+    -------
+    output_table : astropy Table object
+        merged spectra
+    """
+    iwave_range = wave_range.to(u.angstrom).value
+    full_wave, full_wave_min, full_wave_max = _wavegrid(output_resolution, iwave_range)
+
+    n_waves = len(full_wave)
+    full_flux = np.zeros((n_waves), dtype=float)
+    full_unc = np.zeros((n_waves), dtype=float)
+    full_npts = np.zeros((n_waves), dtype=int)
+    for ctable in obstables:
+        cwaves = ctable["WAVELENGTH"].to(u.angstrom).value
+        cfluxes = ctable["FLUX"].to(fluxunit, equivalencies=u.spectral_density(ctable["WAVELENGTH"])).value
+        cuncs = ctable["ERROR"].to(fluxunit, equivalencies=u.spectral_density(ctable["WAVELENGTH"])).value
+        cnpts = ctable["NPTS"].value
+        for k in range(n_waves):
+            (indxs,) = np.where(
+                (cwaves >= full_wave_min[k]) & (cwaves < full_wave_max[k]) & (cnpts > 0)
+            )
+            if len(indxs) > 0:
+                weights = 1.0 / np.square(cuncs[indxs])
+                full_flux[k] += np.sum(weights * cfluxes[indxs])
+                full_unc[k] += np.sum(weights)
+                full_npts[k] += len(indxs)
+
+    # divide by the net weights
+    (indxs,) = np.where(full_npts > 0)
+    if len(indxs) > 0:
+        full_flux[indxs] /= full_unc[indxs]
+        full_unc[indxs] = np.sqrt(1.0 / full_unc[indxs])
+
+    otable = Table()
+    otable["WAVELENGTH"] = Column(full_wave, unit=u.angstrom)
+    otable["FLUX"] = Column(full_flux, unit=fluxunit)
+    otable["SIGMA"] = Column(full_unc, unit=fluxunit)
+    otable["NPTS"] = Column(full_npts)
+
+    return otable
+
+
+def merge_irs_obsspec(obstables, output_resolution=150):
+    """
+    Merge one or more Spitzer IRS 1D spectra into a single spectrum
+    on a uniform wavelength scale
+
+    Parameters
+    ----------
+    obstables : list of astropy Table objects
+        list of tables containing the observed IRS spectra
+        usually the result of reading tables
+
+    output_resolution : float
+        output resolution of spectra
+        input spectrum assumed to be at the appropriate resolution
+
+    Returns
+    -------
+    output_table : astropy Table object
+        merged spectra
+    """
+    wave_range = [5.0, 40.0] * u.micron
+    otable = merge_gen_obsspec(obstables, wave_range, output_resolution=output_resolution)
+    return otable
+
+
+def merge_nircam_ss_obsspec(obstables, output_resolution=1600):
+    """
+    Merge one or more NIRCam slitless 1D spectra into a single spectrum
+    on a uniform wavelength scale
+
+    Parameters
+    ----------
+    obstables : list of astropy Table objects
+        list of tables containing the observed IRS spectra
+        usually the result of reading tables
+
+    output_resolution : float
+        output resolution of spectra
+        input spectrum assumed to be at the appropriate resolution
+
+    Returns
+    -------
+    output_table : astropy Table object
+        merged spectra
+    """
+    wave_range = [2.35, 5.55] * u.micron
+    otable = merge_gen_obsspec(obstables, wave_range, output_resolution=output_resolution)
+    return otable
+
+
+def merge_miri_ifu_obsspec(obstables, output_resolution=3000):
+    """
+    Merge one or more MIRI IFU 1D spectra into a single spectrum
+    on a uniform wavelength scale
+
+    Parameters
+    ----------
+    obstables : list of astropy Table objects
+        list of tables containing the observed IRS spectra
+        usually the result of reading tables
+
+    output_resolution : float
+        output resolution of spectra
+        input spectrum assumed to be at the appropriate resolution
+
+    Returns
+    -------
+    output_table : astropy Table object
+        merged spectra
+    """
+    wave_range = [4.8, 29.0] * u.micron
+    otable = merge_gen_obsspec(obstables, wave_range, output_resolution=output_resolution)
     return otable

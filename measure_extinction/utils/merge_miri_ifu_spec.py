@@ -1,17 +1,20 @@
+#!/usr/bin/env python
+
+import glob
 import argparse
-#import numpy as np
+import numpy as np
 import pkg_resources
 
-from astropy.table import Table
+from astropy.table import QTable
 
-from measure_extinction.merge_obsspec import merge_iue_obsspec
+from measure_extinction.merge_obsspec import merge_miri_ifu_obsspec
 
 
 if __name__ == "__main__":
 
     # commandline parser
     parser = argparse.ArgumentParser()
-    parser.add_argument("iuedir", help="directory with IUE data for one star")
+    parser.add_argument("starname", help="name of star (filebase)")
     parser.add_argument(
         "--inpath",
         help="path where original data files are stored",
@@ -28,14 +31,23 @@ if __name__ == "__main__":
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
 
-    # incomplete - code to read in the files needed
-    # use_small capabiliy needed
-    # recalibration by Massa & Fitzpatrick IDL code needs to be recoded in python
+    sfilename = f"{args.inpath}{args.starname}*.fits"
+    print(sfilename)
+    sfiles = glob.glob(sfilename)
+    print(sfiles)
+    stable = []
+    for cfile in sfiles:
+        print(cfile)
+        cdata = QTable.read(cfile)
+        cdata.rename_column("FLUX_ERROR", "ERROR")
+        cdata["NPTS"] = np.full((len(cdata["FLUX"])), 1.0)
+        cdata["NPTS"][cdata["FLUX"] == 0.0] = 0.0
+        stable.append(cdata)
 
-    iue_mergespec = merge_iue_obsspec(stable)
+    rb_mrs = merge_miri_ifu_obsspec(stable)
     if args.outname:
         outname = args.outname
     else:
         outname = args.starname.lower()
-    iue_file = f"{outname}_iue.fits"
-    iue_mergespec.write(f"{args.outpath}/{iue_file}", overwrite=True)
+    mrs_file = f"{outname}_miri_ifu.fits"
+    rb_mrs.write(f"{args.outpath}/{mrs_file}", overwrite=True)

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+import glob
 import argparse
 import numpy as np
 import pkg_resources
@@ -56,10 +55,21 @@ if __name__ == "__main__":
 
     if args.ralph:
         sfilename = "%s/%s/%s.mrg" % (args.inpath, args.waveregion, args.starname)
+
+        # determine the line for the 1st data (can vary between files)
+        f = open(sfilename, "r")
+        k = 0
+        for x in f:
+            if "###" in x:
+                dstart = k + 1
+            else:
+                k += 1
+        f.close()
+
         stable = Table.read(
             sfilename,
             format="ascii",
-            data_start=23,
+            data_start=dstart,
             names=[
                 "WAVELENGTH",
                 "COUNT-RATE",
@@ -73,20 +83,18 @@ if __name__ == "__main__":
         )
         stable = [stable]
     else:
-        sfilename = "%s/%s/M31Ext2/%s" % (
-            args.inpath,
-            args.waveregion,
-            args.starname.lower(),
-        )
-        t1 = read_stis_archive_format(sfilename + "10_x1d.fits")
-        t2 = read_stis_archive_format(sfilename + "20_x1d.fits")
-        t1.rename_column("ERROR", "STAT-ERROR")
-        t2.rename_column("ERROR", "STAT-ERROR")
-        t1["NPTS"] = np.full((len(t1["FLUX"])), 1.0)
-        t2["NPTS"] = np.full((len(t2["FLUX"])), 1.0)
-        t1["NPTS"][t1["FLUX"] == 0.0] = 0.0
-        t2["NPTS"][t2["FLUX"] == 0.0] = 0.0
-        stable = [t1, t2]
+        sfilename = f"{args.inpath}{args.starname}*_x1d.fits"
+        print(sfilename)
+        sfiles = glob.glob(sfilename)
+        print(sfiles)
+        stable = []
+        for cfile in sfiles:
+            print(cfile)
+            t1 = read_stis_archive_format(cfile)
+            t1.rename_column("ERROR", "STAT-ERROR")
+            t1["NPTS"] = np.full((len(t1["FLUX"])), 1.0)
+            t1["NPTS"][t1["FLUX"] == 0.0] = 0.0
+            stable.append(t1)
 
     rb_stis_opt = merge_stis_obsspec(stable, waveregion=args.waveregion)
     if args.outname:

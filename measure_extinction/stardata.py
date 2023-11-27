@@ -27,6 +27,8 @@ __all__ = ["StarData", "BandData", "SpecData"]
 # const = 1e-26*1e7*1e-4*1e-4 = 1e-27
 Jy_to_cgs_const = 1e-27 * const.c.to("micron/s").value
 
+fluxunit = u.erg / ((u.cm ** 2) * u.s * u.angstrom)
+
 
 class BandData:
     """
@@ -813,6 +815,31 @@ class SpecData:
         self.fluxes = self.fluxes.value * (u.Jy)
         self.uncs = self.uncs.value * (u.Jy)
 
+    def read_miri_ifu(self, line, path="./"):
+        """
+        Read in Webb/MRS IFU spectra
+
+        Parameters
+        ----------
+        line : string
+            formatted line from DAT file
+            example: 'IRS = hd029647_irs.fits'
+
+        path : string, optional
+            location of the FITS files path
+
+        Returns
+        -------
+        Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
+        """
+        self.read_spectra(line, path)
+
+        # add units
+        self.fluxes = self.fluxes.value * u.Jy
+        self.uncs = self.uncs.value * u.Jy
+        self.fluxes = self.fluxes.to(fluxunit, equivalencies=u.spectral_density(self.waves))
+        self.uncs = self.uncs.to(fluxunit, equivalencies=u.spectral_density(self.waves))
+
     def rebin_constres(self, waverange, resolution):
         """
         Rebin the spectrum to a fixed spectral resolution
@@ -1064,6 +1091,16 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
+                elif line.find("MIRI_IFU") == 0:
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["MIRI_IFU"] = SpecData("MIRI_IFU")
+                        self.data["MIRI_IFU"].read_miri_ifu(
+                            line,
+                            path=self.path,
+                        )
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
 
         # if desired and the necessary dereddening parameters are present
         if deredden:
@@ -1160,7 +1197,6 @@ class StarData:
             fluxes is fluxes in erg/cm2/s/A
             uncs is uncertainties on flux in erg/cm2/s/A
         """
-        fluxunit = u.erg / ((u.cm ** 2) * u.s * u.angstrom)
         wavedata = []
         fluxdata = []
         uncdata = []
@@ -1208,6 +1244,7 @@ class StarData:
         norm_wave_range=None,
         mlam4=False,
         wavenum=False,
+        fluxunit=fluxunit,
         exclude=[],
         yoffset=None,
         yoffset_type="multiply",
@@ -1219,6 +1256,7 @@ class StarData:
         annotate_yoffset=0.0,
         annotate_color="k",
         legend_key=None,
+        legend_label=None,
         fontsize=None,
     ):
         """
@@ -1239,6 +1277,9 @@ class StarData:
 
         wavenum : boolean [default=False]
             plot x axis as 1/wavelength as is standard for UV extinction curves
+
+        fluxunit : astropy unit
+            flux units for plot, default is ergs/(cm^2 s A)
 
         exclude : list of strings [default=[]]
             List of data type(s) to exclude from the plot (e.g., "IRS", "IRAC1",...)
@@ -1273,10 +1314,12 @@ class StarData:
         legend_key : string [default=None]
             legend the spectrum using the given data key
 
+        legend_label : string [default=None]
+            label to use for legend
+
         fontsize : int [default=None]
             fontsize for plot
         """
-        fluxunit = u.erg / ((u.cm ** 2) * u.s * u.angstrom)
 
         if yoffset is None:
             if yoffset_type == "multiply":
@@ -1347,12 +1390,16 @@ class StarData:
             # multiply by the overall normalization
             ymult /= normval
 
-            if curtype == legend_key:
-                red_name = self.file.replace(".dat", "")
-                red_name = red_name.replace("DAT_files/", "")
-                legval = "%s / %s" % (red_name, self.sptype)
+            if legend_key == curtype:
+                if legend_label is None:
+                    red_name = self.file.replace(".dat", "")
+                    red_name = red_name.replace("DAT_files/", "")
+                    clabel = "%s / %s" % (red_name, self.sptype)
+                else:
+                    clabel = legend_label
             else:
-                legval = None
+                clabel = None
+
             yvals = (
                 self.data[curtype]
                 .fluxes.to(
@@ -1386,7 +1433,7 @@ class StarData:
                     yerr=ymult * yuncs,
                     fmt="o",
                     color=pcolor,
-                    label=legval,
+                    label=clabel,
                     mfc="white",
                 )
             else:
@@ -1395,7 +1442,7 @@ class StarData:
                     yplotvals,
                     "-",
                     color=pcolor,
-                    label=legval,
+                    label=clabel,
                 )
 
             if curtype == annotate_key:

@@ -2,6 +2,7 @@ import numpy as np
 import astropy.units as u
 
 from dust_extinction.shapes import _curve_F99_method
+from dust_extinction.parameter_averages import G23
 
 from measure_extinction.stardata import StarData, BandData, SpecData
 
@@ -144,15 +145,20 @@ class ModelData(object):
         self.temps_min = min(self.temps)
         self.temps_max = max(self.temps)
         self.temps_width2 = (self.temps_max - self.temps_min) ** 2
-        # self.temp_width2 = 1.0
+        if self.temps_width2 == 0:
+            self.temps_width2 == 1.0
 
         self.gravs_min = min(self.gravs)
         self.gravs_max = max(self.gravs)
         self.gravs_width2 = (self.gravs_max - self.gravs_min) ** 2
+        if self.gravs_width2 == 0:
+            self.gravs_width2 == 1.0
 
         self.mets_min = min(self.mets)
         self.mets_max = max(self.mets)
         self.mets_width2 = (self.mets_max - self.mets_min) ** 2
+        if self.mets_width2 == 0:
+            self.mets_width2 = 1.0
         # self.mets_width2 *= 4.0
 
     def stellar_sed(self, params, velocity=None):
@@ -188,14 +194,12 @@ class ModelData(object):
         weights = 1.0 / np.sqrt(dist2[gsindxs])
         weights /= np.sum(weights)
 
-        # print(params)
-        # print(self.model_files[gsindxs])
-        # exit()
-
         sed = {}
         for cspec in self.fluxes.keys():
             # dot product does the multiplication and sum
             sed[cspec] = np.dot(weights, self.fluxes[cspec][gsindxs, :])
+
+            sed[cspec][sed[cspec] == 0] = np.NaN
             # shift spectrum if velocity given
             if velocity is not None:
                 cwaves = self.waves[cspec]
@@ -204,6 +208,67 @@ class ModelData(object):
                 )
 
         return sed
+
+    def dust_extinguished_sed_FM90_G23(self, params, sed, velocity=0.0):
+        """
+        Dust extinguished sed given the extinction parameters
+
+        Parameters
+        ----------
+        params : float array
+            dust extinction parameters [Av, Rv, c2, c3, c4, gamma, x0]
+
+        sed : dict
+            fluxes for each spectral piece
+
+        velocity : float, optional
+            velocity of dust
+
+        Returns
+        -------
+        extinguished sed : dict
+            SED with {'bands': band_sed, 'spec': spec_sed, ...}
+        """
+        Rv = params[1]
+        g23mod = G23(Rv=Rv)
+        optnir_axav_x = np.flip(1.0 / (np.arange(0.35, 30.0, 0.1) * u.micron))
+        optnir_axav_y = g23mod(optnir_axav_x)
+
+        # updated F04 C1-C2 correlation
+        C1 = 2.18 - 2.91 * params[2]
+
+        # create the extinguished sed
+        ext_sed = {}
+        for cspec in self.fluxes.keys():
+            # get the dust extinguished SED (account for the
+            #  systemic velocity of the galaxy [opposite regular sense])
+            shifted_waves = (1.0 - velocity / 2.998e5) * self.waves[cspec]
+            axav = _curve_F99_method(
+                shifted_waves,
+                Rv,
+                C1,
+                params[2],
+                params[3],
+                params[4],
+                params[5],
+                params[6],
+                optnir_axav_x.value,
+                optnir_axav_y,
+                [0.2, 11.0],
+                "FM90_G23_measure_extinction",
+            )
+            ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * params[0]))
+
+        # # create the extinguished sed
+        # ext_sed = {}
+        # for cspec in self.fluxes.keys():
+        #     # get the dust extinguished SED (account for the
+        #     #  systemic velocity of the galaxy [opposite regular sense])
+        #     shifted_waves = (1.0 - velocity / 2.998e5) * self.waves[cspec]
+        #     axav = g23mod(shifted_waves)
+        #     ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * params[0]))
+
+        return ext_sed
 
     def dust_extinguished_sed(self, params, sed, velocity=0.0):
         """
@@ -272,7 +337,7 @@ class ModelData(object):
                 params[6],
                 optnir_axav_x,
                 optnir_axebv_y / Rv,
-                [0.3, 10.0],
+                [0.2, 11.0],
                 "F04_measure_extinction",
             )
             ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * params[0]))
@@ -359,19 +424,24 @@ class ModelData(object):
             if cspec == "BAND":
                 # populate the BAND info
                 sd.data["BAND"] = BandData("BAND")
+                sd.data["BAND"].fluxes = sed["BAND"] * (
+                    u.erg / ((u.cm ** 2) * u.s * u.angstrom)
+                )
                 for k, cband in enumerate(self.band_names):
                     sd.data["BAND"].band_fluxes[cband] = (sed["BAND"][k], 0.0)
                 sd.data["BAND"].get_band_mags_from_fluxes()
+
             else:
                 # populate the spectral info
                 sd.data[cspec] = SpecData(cspec)
-                sd.data[cspec].waves = self.waves[cspec]
-                sd.data[cspec].n_waves = len(sd.data[cspec].waves)
                 sd.data[cspec].fluxes = sed[cspec] * (
                     u.erg / ((u.cm ** 2) * u.s * u.angstrom)
                 )
-                sd.data[cspec].uncs = 0.0 * sd.data[cspec].fluxes
-                sd.data[cspec].npts = np.full((sd.data[cspec].n_waves), 1.0)
-                print(sd.data[cspec].fluxes)
+
+            sd.data[cspec].waves = self.waves[cspec]
+            sd.data[cspec].n_waves = len(sd.data[cspec].waves)
+            sd.data[cspec].uncs = 0.0 * sd.data[cspec].fluxes
+            sd.data[cspec].npts = np.full((sd.data[cspec].n_waves), 1.0)
+            sd.data[cspec].wave_range = [min(sd.data[cspec].waves), max(sd.data[cspec].waves)]
 
         return sd
