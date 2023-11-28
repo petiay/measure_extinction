@@ -1195,7 +1195,8 @@ class ExtData:
                     self.columns_p50_fit[bkey] = (val, punc, munc)
 
         # get FM90 parameters if they exist
-        FM90_keys = ["C1", "C2", "C3", "C4", "XO", "GAMMA"]
+        #   include variant with B3=C3/gamma^2 instead of C3
+        FM90_keys = ["C1", "C2", "C3", "B3", "C4", "XO", "GAMMA"]
         if pheader.get("C2"):
             self.fm90_best_fit = {}
             for curkey in FM90_keys:
