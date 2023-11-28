@@ -42,7 +42,7 @@ def _wavegrid(resolution, wave_range):
         np.log10(wave_range[1]) - delta_wave_log,
         delta_wave_log,
     )
-    full_wave_min = 10 ** wave_log10
+    full_wave_min = 10**wave_log10
     full_wave_max = 10 ** (wave_log10 + delta_wave_log)
 
     full_wave = (full_wave_min + full_wave_max) / 2.0
@@ -174,7 +174,9 @@ def merge_stis_obsspec(obstables, waveregion="UV", output_resolution=1000):
     (indxs,) = np.where(full_npts > 0)
     if len(indxs) > 0:
         full_flux[indxs] /= full_unc[indxs]
-        full_unc[indxs] = np.sqrt(1.0 / full_unc[indxs])  # * 1e-10  # put back factor for overflow errors
+        full_unc[indxs] = np.sqrt(
+            1.0 / full_unc[indxs]
+        )  # * 1e-10  # put back factor for overflow errors
 
     otable = Table()
     otable["WAVELENGTH"] = Column(full_wave, unit=u.angstrom)
@@ -218,7 +220,7 @@ def merge_spex_obsspec(obstable, mask=[], output_resolution=2000):
     # take out data points with NaN fluxes
     npts[np.isnan(fluxes)] = 0
     # quadratically add 1 percent uncertainty to account for unknown uncertainties
-    uncs = np.sqrt(uncs ** 2 + (0.01 * fluxes) ** 2)
+    uncs = np.sqrt(uncs**2 + (0.01 * fluxes) ** 2)
     # take out data points with low SNR
     npts[np.less(fluxes / uncs, 10, where=~np.isnan(fluxes / uncs))] = 0
     # take out wavelength regions affected by the atmosphere
@@ -307,8 +309,16 @@ def merge_gen_obsspec(obstables, wave_range, output_resolution=100):
     full_npts = np.zeros((n_waves), dtype=int)
     for ctable in obstables:
         cwaves = ctable["WAVELENGTH"].to(u.angstrom).value
-        cfluxes = ctable["FLUX"].to(fluxunit, equivalencies=u.spectral_density(ctable["WAVELENGTH"])).value
-        cuncs = ctable["ERROR"].to(fluxunit, equivalencies=u.spectral_density(ctable["WAVELENGTH"])).value
+        cfluxes = (
+            ctable["FLUX"]
+            .to(fluxunit, equivalencies=u.spectral_density(ctable["WAVELENGTH"]))
+            .value
+        )
+        cuncs = (
+            ctable["ERROR"]
+            .to(fluxunit, equivalencies=u.spectral_density(ctable["WAVELENGTH"]))
+            .value
+        )
         cnpts = ctable["NPTS"].value
         for k in range(n_waves):
             (indxs,) = np.where(
@@ -356,7 +366,9 @@ def merge_irs_obsspec(obstables, output_resolution=150):
         merged spectra
     """
     wave_range = [5.0, 40.0] * u.micron
-    otable = merge_gen_obsspec(obstables, wave_range, output_resolution=output_resolution)
+    otable = merge_gen_obsspec(
+        obstables, wave_range, output_resolution=output_resolution
+    )
     return otable
 
 
@@ -381,7 +393,9 @@ def merge_nircam_ss_obsspec(obstables, output_resolution=1600):
         merged spectra
     """
     wave_range = [2.35, 5.55] * u.micron
-    otable = merge_gen_obsspec(obstables, wave_range, output_resolution=output_resolution)
+    otable = merge_gen_obsspec(
+        obstables, wave_range, output_resolution=output_resolution
+    )
     return otable
 
 
@@ -406,5 +420,7 @@ def merge_miri_ifu_obsspec(obstables, output_resolution=3000):
         merged spectra
     """
     wave_range = [4.8, 29.0] * u.micron
-    otable = merge_gen_obsspec(obstables, wave_range, output_resolution=output_resolution)
+    otable = merge_gen_obsspec(
+        obstables, wave_range, output_resolution=output_resolution
+    )
     return otable

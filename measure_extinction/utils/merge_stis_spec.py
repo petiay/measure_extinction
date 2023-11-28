@@ -117,12 +117,24 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 5.5))
 
     gvals = stable[0]["NPTS"] > 0
-    ax.plot(stable[0]["WAVELENGTH"][gvals], stable[0]["FLUX"][gvals], "k-", alpha=0.5, label="orig")
+    ax.plot(
+        stable[0]["WAVELENGTH"][gvals],
+        stable[0]["FLUX"][gvals],
+        "k-",
+        alpha=0.5,
+        label="orig",
+    )
     gvals = rb_stis["NPTS"] > 0
-    ax.plot(rb_stis["WAVELENGTH"][gvals], rb_stis["FLUX"][gvals], "b-", alpha=0.5, label="merged")
+    ax.plot(
+        rb_stis["WAVELENGTH"][gvals],
+        rb_stis["FLUX"][gvals],
+        "b-",
+        alpha=0.5,
+        label="merged",
+    )
 
     # set min/max ignoring Ly-alpha as it often has a strong core emission
-    gvals = (rb_stis["WAVELENGTH"] > 1300.) & (rb_stis["NPTS"] > 0)
+    gvals = (rb_stis["WAVELENGTH"] > 1300.0) & (rb_stis["NPTS"] > 0)
     miny = np.nanmin(rb_stis["FLUX"][gvals])
     maxy = np.nanmax(rb_stis["FLUX"][gvals])
     delt = maxy - miny

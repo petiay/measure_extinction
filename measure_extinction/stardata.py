@@ -27,7 +27,7 @@ __all__ = ["StarData", "BandData", "SpecData"]
 # const = 1e-26*1e7*1e-4*1e-4 = 1e-27
 Jy_to_cgs_const = 1e-27 * const.c.to("micron/s").value
 
-fluxunit = u.erg / ((u.cm ** 2) * u.s * u.angstrom)
+fluxunit = u.erg / ((u.cm**2) * u.s * u.angstrom)
 
 
 class BandData:
@@ -484,8 +484,8 @@ class BandData:
         # add the units
         self.waves = self.waves * u.micron
         self.wave_range = self.wave_range * u.micron
-        self.fluxes = self.fluxes * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
-        self.uncs = self.uncs * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
+        self.fluxes = self.fluxes * (u.erg / ((u.cm**2) * u.s * u.angstrom))
+        self.uncs = self.uncs * (u.erg / ((u.cm**2) * u.s * u.angstrom))
 
     def get_band_mags_from_fluxes(self):
         """
@@ -606,7 +606,7 @@ class SpecData:
         # open and read the spectrum
         # ignore units warnings as non-standard units are explicitly handled a few lines later
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore', UnitsWarning)
+            warnings.simplefilter("ignore", UnitsWarning)
             tdata = Table.read(full_filename)
 
         self.waves = tdata["WAVELENGTH"].quantity
@@ -626,8 +626,8 @@ class SpecData:
         if self.waves.unit == "MICRON":
             self.waves = self.waves.value * u.micron
         if self.fluxes.unit == "ERG/CM2/S/A":
-            self.fluxes = self.fluxes.value * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
-            self.uncs = self.uncs.value * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
+            self.fluxes = self.fluxes.value * (u.erg / ((u.cm**2) * u.s * u.angstrom))
+            self.uncs = self.uncs.value * (u.erg / ((u.cm**2) * u.s * u.angstrom))
 
         # compute the min/max wavelengths
         self.wave_range = (
@@ -714,8 +714,8 @@ class SpecData:
         self.read_spectra(line, path)
 
         # add units
-        self.fluxes = self.fluxes.value * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
-        self.uncs = self.uncs.value * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
+        self.fluxes = self.fluxes.value * (u.erg / ((u.cm**2) * u.s * u.angstrom))
+        self.uncs = self.uncs.value * (u.erg / ((u.cm**2) * u.s * u.angstrom))
 
     def read_spex(self, line, path="./", use_corfac=True, corfac=None):
         """
@@ -757,8 +757,8 @@ class SpecData:
             self.uncs *= corfac
 
         # add units
-        self.fluxes = self.fluxes.value * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
-        self.uncs = self.uncs.value * (u.erg / ((u.cm ** 2) * u.s * u.angstrom))
+        self.fluxes = self.fluxes.value * (u.erg / ((u.cm**2) * u.s * u.angstrom))
+        self.uncs = self.uncs.value * (u.erg / ((u.cm**2) * u.s * u.angstrom))
 
     def read_irs(self, line, path="./", use_corfac=True, corfac=None):
         """
@@ -837,7 +837,9 @@ class SpecData:
         # add units
         self.fluxes = self.fluxes.value * u.Jy
         self.uncs = self.uncs.value * u.Jy
-        self.fluxes = self.fluxes.to(fluxunit, equivalencies=u.spectral_density(self.waves))
+        self.fluxes = self.fluxes.to(
+            fluxunit, equivalencies=u.spectral_density(self.waves)
+        )
         self.uncs = self.uncs.to(fluxunit, equivalencies=u.spectral_density(self.waves))
 
     def rebin_constres(self, waverange, resolution):

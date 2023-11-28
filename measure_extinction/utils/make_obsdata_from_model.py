@@ -290,7 +290,7 @@ def make_obsdata_from_model(
 
     # rebin to R=10000 for speed
     #   use a wavelength range that spans FUSE to Spitzer IRS
-    rbres = 10000.
+    rbres = 10000.0
     wave_rebin, flux_rebin, npts_rebin = rebin_spectrum(
         mwave.value, mflux.value, rbres, [912.0, 310000.0]
     )
@@ -299,9 +299,7 @@ def make_obsdata_from_model(
     otable = QTable()
     otable["WAVELENGTH"] = Column(wave_rebin, unit=u.angstrom)
     otable["FLUX"] = Column(flux_rebin, unit=fluxunit)
-    otable["SIGMA"] = Column(
-        flux_rebin * 0.01, unit=fluxunit
-    )
+    otable["SIGMA"] = Column(flux_rebin * 0.01, unit=fluxunit)
     otable["NPTS"] = Column(npts_rebin)
     otable.write(
         "%s/Models/%s_full.fits" % (output_path, output_filebase), overwrite=True
@@ -429,7 +427,7 @@ def make_obsdata_from_model(
     if show_plot:
         fig, ax = plt.subplots(figsize=(10, 8))
         # indxs, = np.where(npts_rebin > 0)
-        ax.plot(wave_rebin * 1e-4, flux_rebin * 2., "b-")
+        ax.plot(wave_rebin * 1e-4, flux_rebin * 2.0, "b-")
         ax.plot(bandinfo.waves, bandinfo.fluxes, "ro")
 
         (indxs,) = np.where(rb_stis_uv["NPTS"] > 0)
@@ -461,7 +459,9 @@ def make_obsdata_from_model(
 
 
 if __name__ == "__main__":
-    mname = "/home/kgordon/Python/extstar_data/Models/Tlusty_2023/z050t23000g250v2.spec.gz"
+    mname = (
+        "/home/kgordon/Python/extstar_data/Models/Tlusty_2023/z050t23000g250v2.spec.gz"
+    )
     model_params = {}
     model_params["origin"] = "tlusty"
     model_params["Teff"] = 23000.0

@@ -213,7 +213,9 @@ def plot_multi_spectra(
             gkeys = list(starobs.data.keys())
             gkeys.remove("BAND")
             for src in gkeys:
-                starobs.data[src].rebin_constres(starobs.data[src].wave_range, rebin_res)
+                starobs.data[src].rebin_constres(
+                    starobs.data[src].wave_range, rebin_res
+                )
 
         # spread out the spectra if requested
         # add extra whitespace when the luminosity class changes from main sequence to giant

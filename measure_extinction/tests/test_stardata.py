@@ -30,7 +30,7 @@ def test_units_stardata():
         assert isinstance(star.data[cursrc].fluxes, u.Quantity)
         assert isinstance(star.data[cursrc].uncs, u.Quantity)
 
-    fluxunit = u.erg / ((u.cm ** 2) * u.s * u.angstrom)
+    fluxunit = u.erg / ((u.cm**2) * u.s * u.angstrom)
     # check that the wavelengths can be converted to microns and the
     # flux units can be converted to spectral density
     for cursrc in star.data.keys():
