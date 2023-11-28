@@ -22,7 +22,7 @@ def test_spec_rebin_constres():
     spec.fluxes = np.empty((a.size + b.size), dtype=a.dtype)
     spec.fluxes[0::2] = a
     spec.fluxes[1::2] = b
-    spec.fluxes *= u.erg / ((u.cm ** 2) * u.s * u.angstrom)
+    spec.fluxes *= u.erg / ((u.cm**2) * u.s * u.angstrom)
     spec.uncs = spec.fluxes * 0.05
     spec.npts = np.full((n_test), 1)
 

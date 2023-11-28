@@ -9,8 +9,15 @@ from measure_extinction.stardata import StarData
 from measure_extinction.extdata import ExtData, AverageExtData
 
 
-def calc_extinction(redstarname, compstarname, path, savepath="./", deredden=False,
-                    elvebv=False, alav=False):
+def calc_extinction(
+    redstarname,
+    compstarname,
+    path,
+    savepath="./",
+    deredden=False,
+    elvebv=False,
+    alav=False,
+):
     # read in the observed data for both stars
     redstarobs = StarData("%s.dat" % redstarname.lower(), path=path)
     compstarobs = StarData(

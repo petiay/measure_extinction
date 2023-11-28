@@ -56,7 +56,7 @@ if __name__ == "__main__":
     for k, cstarname in enumerate(starnames):
         fstarname, file_path = get_full_starfile(cstarname)
         starobs = StarData(fstarname, path=file_path)
-        starobs.plot(ax, norm_wave_range=[0.2, 0.3] * u.micron, yoffset=2 ** k)
+        starobs.plot(ax, norm_wave_range=[0.2, 0.3] * u.micron, yoffset=2**k)
 
     # finish configuring the plot
     ax.set_yscale("log")
