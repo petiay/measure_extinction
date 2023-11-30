@@ -11,7 +11,7 @@ def plot_bandpasses(bands):
     for band in bands:
         bp = SpectralElement.from_file("%s%s.dat" % (band_path, band))
         if "MIPS" in band:
-            wavelengths = bp.waveset * 10 ** 4
+            wavelengths = bp.waveset * 10**4
         else:
             wavelengths = bp.waveset
         plt.plot(wavelengths, bp(bp.waveset), label=band)

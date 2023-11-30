@@ -97,7 +97,6 @@ class FitInfo(object):
         lnl = 0.0
         for cspec in hi_ext_modsed.keys():
             gvals = (self.weights[cspec] > 0) & (np.isfinite(hi_ext_modsed[cspec]))
-            #gvals = self.weights[cspec] > 0
             chiarr = np.square(
                 (
                     obsdata.data[cspec].fluxes[gvals].value

@@ -312,11 +312,11 @@ class ModelData(object):
                 -0.426 + 1.0044 * Rv,
                 -0.050 + 1.0016 * Rv,
                 0.701 + 1.0016 * Rv,
-                1.208 + 1.0032 * Rv - 0.00033 * (Rv ** 2),
+                1.208 + 1.0032 * Rv - 0.00033 * (Rv**2),
             ]
         )
         # updated NIR curve from F04, note R dependence
-        nir_axebv_y = (0.63 * Rv - 0.84) * nir_axav_x ** 1.84
+        nir_axebv_y = (0.63 * Rv - 0.84) * nir_axav_x**1.84
 
         optnir_axebv_y = np.concatenate([nir_axebv_y, opt_axebv_y])
 
@@ -390,7 +390,9 @@ class ModelData(object):
         hi_sed = {}
         for cspec in self.fluxes.keys():
             hi_sed[cspec] = np.copy(sed[cspec])
-            indxs, = np.where(np.absolute((self.waves[cspec] - h_lines[0]) <= h_width))
+            (indxs,) = np.where(
+                np.absolute((self.waves[cspec] - h_lines[0]) <= h_width)
+            )
             if len(indxs) > 0:
                 for i, cvel in enumerate(hi_velocities):
                     # compute the Ly-alpha abs: from Bohlin et al. (197?)
@@ -425,7 +427,7 @@ class ModelData(object):
                 # populate the BAND info
                 sd.data["BAND"] = BandData("BAND")
                 sd.data["BAND"].fluxes = sed["BAND"] * (
-                    u.erg / ((u.cm ** 2) * u.s * u.angstrom)
+                    u.erg / ((u.cm**2) * u.s * u.angstrom)
                 )
                 for k, cband in enumerate(self.band_names):
                     sd.data["BAND"].band_fluxes[cband] = (sed["BAND"][k], 0.0)
@@ -435,13 +437,16 @@ class ModelData(object):
                 # populate the spectral info
                 sd.data[cspec] = SpecData(cspec)
                 sd.data[cspec].fluxes = sed[cspec] * (
-                    u.erg / ((u.cm ** 2) * u.s * u.angstrom)
+                    u.erg / ((u.cm**2) * u.s * u.angstrom)
                 )
 
             sd.data[cspec].waves = self.waves[cspec]
             sd.data[cspec].n_waves = len(sd.data[cspec].waves)
             sd.data[cspec].uncs = 0.0 * sd.data[cspec].fluxes
             sd.data[cspec].npts = np.full((sd.data[cspec].n_waves), 1.0)
-            sd.data[cspec].wave_range = [min(sd.data[cspec].waves), max(sd.data[cspec].waves)]
+            sd.data[cspec].wave_range = [
+                min(sd.data[cspec].waves),
+                max(sd.data[cspec].waves),
+            ]
 
         return sd

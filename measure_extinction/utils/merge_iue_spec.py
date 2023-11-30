@@ -1,10 +1,11 @@
 import argparse
-#import numpy as np
+
+# import numpy as np
 import pkg_resources
 
-from astropy.table import Table
+# from astropy.table import Table
 
-from measure_extinction.merge_obsspec import merge_iue_obsspec
+# from measure_extinction.merge_obsspec import merge_iue_obsspec
 
 
 if __name__ == "__main__":
@@ -32,10 +33,10 @@ if __name__ == "__main__":
     # use_small capabiliy needed
     # recalibration by Massa & Fitzpatrick IDL code needs to be recoded in python
 
-    iue_mergespec = merge_iue_obsspec(stable)
+    # iue_mergespec = merge_iue_obsspec(stable)
     if args.outname:
         outname = args.outname
     else:
         outname = args.starname.lower()
     iue_file = f"{outname}_iue.fits"
-    iue_mergespec.write(f"{args.outpath}/{iue_file}", overwrite=True)
+    # iue_mergespec.write(f"{args.outpath}/{iue_file}", overwrite=True)

@@ -62,7 +62,9 @@ def decode_params(filename):
 
 
 if __name__ == "__main__":
-    tlusty_models = glob.glob("/home/kgordon/Python/extstar_data/Models/Tlusty_2023/*v10.spec.gz")
+    tlusty_models = glob.glob(
+        "/home/kgordon/Python/extstar_data/Models/Tlusty_2023/*v10.spec.gz"
+    )
 
     for cfname in tlusty_models:
         # parse the filename to get the model parameters
