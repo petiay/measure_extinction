@@ -176,16 +176,16 @@ class ModelData(object):
                         new_uncs = np.zeros((n_waves), dtype=float)
 
                         owaves = self.waves[cspec].to(u.micron).value
-                        for l in range(n_waves):
+                        for j in range(n_waves):
                             (indxs,) = np.where(
-                                (owaves >= full_wave_min[l])
-                                & (owaves < full_wave_max[l])
+                                (owaves >= full_wave_min[j])
+                                & (owaves < full_wave_max[j])
                             )
 
                             # A simple averaging of flux per bin
                             if len(indxs) > 0:
-                                new_fluxes[l] = np.sum(full_fluxes[cspec][k][indxs]) / len(indxs)
-                                new_uncs[l] = np.sum(full_flux_uncs[cspec][k][indxs]) / len(indxs)
+                                new_fluxes[j] = np.sum(full_fluxes[cspec][k][indxs]) / len(indxs)
+                                new_uncs[j] = np.sum(full_flux_uncs[cspec][k][indxs]) / len(indxs)
 
                         # assign rebinned flux values to flux arrays
                         self.waves["STIS"] = new_waves
