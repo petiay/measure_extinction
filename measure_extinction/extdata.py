@@ -185,7 +185,7 @@ def AverageExtData(extdatas, min_number=3, mask=[]):
     for extdata in extdatas:
         # check the data type of the extinction curve, and convert if needed
         # the average curve must be calculated from the A(lambda)/A(V) curves
-        if extdata.type != "alav" and extdata.type != "alax":
+        if extdata.type != "alav" and extdata.type != "alax" and extdata.type != "elvebv":
             extdata.trans_elv_alav()
 
         # collect the keywords of the data in the extinction curves, and collect the names of the BAND data in the extinction curves, and determine the wavelengths of the data
@@ -234,6 +234,7 @@ def AverageExtData(extdatas, min_number=3, mask=[]):
 
         # calculate the average and uncertainties of the spectral extinction data
         else:
+            exts = np.stack(exts, axis=0)
             aveext.exts[src] = np.nanmean(exts, axis=0)
             aveext.npts[src] = np.sum(~np.isnan(exts), axis=0)
             aveext.stds[src] = np.nanstd(exts, axis=0, ddof=1)
