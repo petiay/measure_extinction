@@ -444,27 +444,28 @@ def make_obsdata_from_model(
         ax.plot(wave_rebin * 1e-4, flux_rebin * 2.0, "b-")
         ax.plot(bandinfo.waves, bandinfo.fluxes, "ro")
 
-        (indxs,) = np.where(rb_stis_uv["NPTS"] > 0)
-        ax.plot(
-            rb_stis_uv["WAVELENGTH"][indxs].to(u.micron),
-            rb_stis_uv["FLUX"][indxs],
-            "m-",
-        )
-        (indxs,) = np.where(rb_stis_opt["NPTS"] > 0)
-        ax.plot(
-            rb_stis_opt["WAVELENGTH"][indxs].to(u.micron),
-            rb_stis_opt["FLUX"][indxs],
-            "g-",
-        )
+        if not only_dat:
+            (indxs,) = np.where(rb_stis_uv["NPTS"] > 0)
+            ax.plot(
+                rb_stis_uv["WAVELENGTH"][indxs].to(u.micron),
+                rb_stis_uv["FLUX"][indxs],
+                "m-",
+            )
+            (indxs,) = np.where(rb_stis_opt["NPTS"] > 0)
+            ax.plot(
+                rb_stis_opt["WAVELENGTH"][indxs].to(u.micron),
+                rb_stis_opt["FLUX"][indxs],
+                "g-",
+            )
 
-        (indxs,) = np.where(rb_nrc["NPTS"] > 0)
-        ax.plot(rb_nrc["WAVELENGTH"][indxs].to(u.micron), rb_nrc["FLUX"][indxs], "c-")
+            (indxs,) = np.where(rb_nrc["NPTS"] > 0)
+            ax.plot(rb_nrc["WAVELENGTH"][indxs].to(u.micron), rb_nrc["FLUX"][indxs], "c-")
 
-        (indxs,) = np.where(rb_lrs["NPTS"] > 0)
-        ax.plot(rb_lrs["WAVELENGTH"][indxs].to(u.micron), rb_lrs["FLUX"][indxs], "r:")
+            (indxs,) = np.where(rb_lrs["NPTS"] > 0)
+            ax.plot(rb_lrs["WAVELENGTH"][indxs].to(u.micron), rb_lrs["FLUX"][indxs], "r:")
 
-        (indxs,) = np.where(rb_mrs["NPTS"] > 0)
-        ax.plot(rb_mrs["WAVELENGTH"][indxs].to(u.micron), rb_mrs["FLUX"][indxs], "r-")
+            (indxs,) = np.where(rb_mrs["NPTS"] > 0)
+            ax.plot(rb_mrs["WAVELENGTH"][indxs].to(u.micron), rb_mrs["FLUX"][indxs], "r-")
 
         ax.set_xscale("log")
         ax.set_yscale("log")
