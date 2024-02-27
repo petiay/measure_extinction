@@ -215,6 +215,7 @@ def make_obsdata_from_model(
     output_filebase=None,
     output_path=None,
     show_plot=False,
+    only_dat=False,
 ):
     """
     Create the necessary data files (.dat and spectra) from a
@@ -295,91 +296,99 @@ def make_obsdata_from_model(
         mwave.value, mflux.value, rbres, [912.0, 310000.0]
     )
 
-    # save the full spectrum to a binary FITS table
-    otable = QTable()
-    otable["WAVELENGTH"] = Column(wave_rebin, unit=u.angstrom)
-    otable["FLUX"] = Column(flux_rebin, unit=fluxunit)
-    otable["SIGMA"] = Column(flux_rebin * 0.01, unit=fluxunit)
-    otable["NPTS"] = Column(npts_rebin)
-    otable.write(
-        "%s/Models/%s_full.fits" % (output_path, output_filebase), overwrite=True
-    )
-
     # dictionary to saye names of spectroscopic filenames
     specinfo = {}
 
-    # create the ultraviolet HST/STIS mock observation
-    stis_table = mock_stis_data(otable)
+    if not only_dat:
+        # save the full spectrum to a binary FITS table
+        otable = QTable()
+        otable["WAVELENGTH"] = Column(wave_rebin, unit=u.angstrom)
+        otable["FLUX"] = Column(flux_rebin, unit=fluxunit)
+        otable["SIGMA"] = Column(flux_rebin * 0.01, unit=fluxunit)
+        otable["NPTS"] = Column(npts_rebin)
+        otable.write(
+            "%s/Models/%s_full.fits" % (output_path, output_filebase), overwrite=True
+        )
 
-    # UV STIS obs
-    rb_stis_uv = merge_stis_obsspec(stis_table[0:2], waveregion="UV")
-    rb_stis_uv["SIGMA"] = rb_stis_uv["FLUX"] * 0.0
     stis_uv_file = "%s_stis_uv.fits" % (output_filebase)
-    rb_stis_uv.write("%s/Models/%s" % (output_path, stis_uv_file), overwrite=True)
-    specinfo["STIS"] = stis_uv_file
-    # Optical STIS obs
-    rb_stis_opt = merge_stis_obsspec(stis_table[2:4], waveregion="Opt")
-    rb_stis_opt["SIGMA"] = rb_stis_opt["FLUX"] * 0.0
     stis_opt_file = "%s_stis_opt.fits" % (output_filebase)
-    rb_stis_opt.write("%s/Models/%s" % (output_path, stis_opt_file), overwrite=True)
+    if not only_dat:
+        # create the ultraviolet HST/STIS mock observation
+        stis_table = mock_stis_data(otable)
+        # UV STIS obs
+        rb_stis_uv = merge_stis_obsspec(stis_table[0:2], waveregion="UV")
+        rb_stis_uv["SIGMA"] = rb_stis_uv["FLUX"] * 0.0
+        rb_stis_uv.write("%s/Models/%s" % (output_path, stis_uv_file), overwrite=True)
+        # Optical STIS obs
+        rb_stis_opt = merge_stis_obsspec(stis_table[2:4], waveregion="Opt")
+        rb_stis_opt["SIGMA"] = rb_stis_opt["FLUX"] * 0.0
+        rb_stis_opt.write("%s/Models/%s" % (output_path, stis_opt_file), overwrite=True)
+
+    specinfo["STIS"] = stis_uv_file
     specinfo["STIS_Opt"] = stis_opt_file
 
-    # Spitzer IRS mock observation
-    # Resolution approximately 100
-    lrs_fwhm_pix = rbres / 100.0
-    g = Gaussian1DKernel(stddev=lrs_fwhm_pix / 2.355)
-    # Convolve data
-    nflux = convolve(otable["FLUX"].data, g)
-
-    lrs_table = QTable()
-    lrs_table["WAVELENGTH"] = otable["WAVELENGTH"]
-    lrs_table["FLUX"] = nflux * fluxunit
-    lrs_table["NPTS"] = otable["NPTS"]
-    lrs_table["ERROR"] = Column(np.full((len(lrs_table)), 1.0)) * fluxunit
-
-    rb_lrs = merge_irs_obsspec([lrs_table])
-    rb_lrs["SIGMA"] = rb_lrs["FLUX"] * 0.0
     lrs_file = "%s_irs.fits" % (output_filebase)
-    rb_lrs.write("%s/Models/%s" % (output_path, lrs_file), overwrite=True)
+    if not only_dat:
+        # Spitzer IRS mock observation
+        # Resolution approximately 100
+        lrs_fwhm_pix = rbres / 100.0
+        g = Gaussian1DKernel(stddev=lrs_fwhm_pix / 2.355)
+        # Convolve data
+        nflux = convolve(otable["FLUX"].data, g)
+
+        lrs_table = QTable()
+        lrs_table["WAVELENGTH"] = otable["WAVELENGTH"]
+        lrs_table["FLUX"] = nflux * fluxunit
+        lrs_table["NPTS"] = otable["NPTS"]
+        lrs_table["ERROR"] = Column(np.full((len(lrs_table)), 1.0)) * fluxunit
+
+        rb_lrs = merge_irs_obsspec([lrs_table])
+        rb_lrs["SIGMA"] = rb_lrs["FLUX"] * 0.0
+        rb_lrs.write("%s/Models/%s" % (output_path, lrs_file), overwrite=True)
+
     specinfo["IRS"] = lrs_file
 
-    # Webb NIRCam spectra mock observation
-    # Resolution approximately 3000
-    nrc_fwhm_pix = rbres / 1600.0
-    g = Gaussian1DKernel(stddev=nrc_fwhm_pix / 2.355)
-    # Convolve data
-    nflux = convolve(otable["FLUX"].data, g)
-
-    nrc_table = QTable()
-    nrc_table["WAVELENGTH"] = otable["WAVELENGTH"]
-    nrc_table["FLUX"] = nflux * fluxunit
-    nrc_table["NPTS"] = otable["NPTS"]
-    nrc_table["ERROR"] = Column(np.full((len(nrc_table)), 1.0)) * fluxunit
-
-    rb_nrc = merge_nircam_ss_obsspec([nrc_table])
-    rb_nrc["SIGMA"] = rb_nrc["FLUX"] * 0.0
     nrc_file = "%s_nircam_ss.fits" % (output_filebase)
-    rb_nrc.write("%s/Models/%s" % (output_path, nrc_file), overwrite=True)
+    if not only_dat:
+        # Webb NIRCam spectra mock observation
+        # Resolution approximately 3000
+        nrc_fwhm_pix = rbres / 1600.0
+        g = Gaussian1DKernel(stddev=nrc_fwhm_pix / 2.355)
+        # Convolve data
+        nflux = convolve(otable["FLUX"].data, g)
+
+        nrc_table = QTable()
+        nrc_table["WAVELENGTH"] = otable["WAVELENGTH"]
+        nrc_table["FLUX"] = nflux * fluxunit
+        nrc_table["NPTS"] = otable["NPTS"]
+        nrc_table["ERROR"] = Column(np.full((len(nrc_table)), 1.0)) * fluxunit
+
+        rb_nrc = merge_nircam_ss_obsspec([nrc_table])
+        rb_nrc["SIGMA"] = rb_nrc["FLUX"] * 0.0
+        rb_nrc.write("%s/Models/%s" % (output_path, nrc_file), overwrite=True)
+
     specinfo["NIRCam_SS"] = nrc_file
 
-    # Webb MIRI IFU mock observation
-    # Resolution approximately 3000
-    mrs_fwhm_pix = rbres / 3000.0
-    g = Gaussian1DKernel(stddev=mrs_fwhm_pix / 2.355)
-    # Convolve data
-    nflux = convolve(otable["FLUX"].data, g)
-
-    mrs_table = QTable()
-    mrs_table["WAVELENGTH"] = otable["WAVELENGTH"]
-    mrs_table["FLUX"] = nflux * fluxunit
-    mrs_table["NPTS"] = otable["NPTS"]
-    mrs_table["ERROR"] = Column(np.full((len(mrs_table)), 1.0)) * fluxunit
-
-    rb_mrs = merge_miri_ifu_obsspec([mrs_table])
-
-    rb_mrs["SIGMA"] = rb_mrs["FLUX"] * 0.0
     mrs_file = "%s_miri_ifu.fits" % (output_filebase)
-    rb_mrs.write("%s/Models/%s" % (output_path, mrs_file), overwrite=True)
+    if not only_dat:
+        # Webb MIRI IFU mock observation
+        # Resolution approximately 3000
+        mrs_fwhm_pix = rbres / 3000.0
+        g = Gaussian1DKernel(stddev=mrs_fwhm_pix / 2.355)
+        # Convolve data
+        nflux = convolve(otable["FLUX"].data, g)
+
+        mrs_table = QTable()
+        mrs_table["WAVELENGTH"] = otable["WAVELENGTH"]
+        mrs_table["FLUX"] = nflux * fluxunit
+        mrs_table["NPTS"] = otable["NPTS"]
+        mrs_table["ERROR"] = Column(np.full((len(mrs_table)), 1.0)) * fluxunit
+
+        rb_mrs = merge_miri_ifu_obsspec([mrs_table])
+
+        rb_mrs["SIGMA"] = rb_mrs["FLUX"] * 0.0
+        rb_mrs.write("%s/Models/%s" % (output_path, mrs_file), overwrite=True)
+
     specinfo["MIRI_IFU"] = mrs_file
 
     # compute photometry
@@ -480,4 +489,5 @@ if __name__ == "__main__":
         output_path="/home/kgordon/Python/extstar_data",
         model_params=model_params,
         show_plot=True,
+        only_dat=True,
     )
