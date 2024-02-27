@@ -396,6 +396,11 @@ def make_obsdata_from_model(
         "HST_ACS_WFC1_F475W",
         "HST_ACS_WFC1_F814W",
         "HST_WFPC2_4_F170W",
+        "HST_WFPC2_4_F255W",
+        "HST_WFPC2_4_F336W",
+        "HST_WFPC2_4_F439W",
+        "HST_WFPC2_4_F555W",
+        "HST_WFPC2_4_F814W",
     ]
     hst_fnames = [""]
     # spitzer_bands = ['IRAC1', 'IRAC2', 'IRAC3', 'IRAC4', 'IRS15', 'MIPS24']
