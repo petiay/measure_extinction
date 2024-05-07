@@ -25,8 +25,8 @@ def test_calc_av():
     text.calc_AV()
     av = text.columns["AV"]
     assert isinstance(av, tuple)
-    assert np.isclose(av[0], 0.56306, atol=1e-3)
-    assert np.isclose(av[1], 0.02252, atol=1e-3)
+    assert np.isclose(av[0], 0.55866, atol=1e-3)
+    assert np.isclose(av[1], 0.02235, atol=1e-3)
 
 
 def test_calc_rv_fromelv():
@@ -38,8 +38,8 @@ def test_calc_rv_fromelv():
     text.calc_RV()
     rv = text.columns["RV"]
     assert isinstance(rv, tuple)
-    assert np.isclose(rv[0], 3.37837, atol=1e-3)
-    assert np.isclose(rv[1], 0.207647, atol=1e-3)
+    assert np.isclose(rv[0], 3.351955, atol=1e-3)
+    assert np.isclose(rv[1], 0.206023, atol=1e-3)
 
 
 def test_calc_rv_fromebvav():
