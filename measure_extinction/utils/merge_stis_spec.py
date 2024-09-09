@@ -56,6 +56,8 @@ if __name__ == "__main__":
 
     if args.ralph:
         sfilename = "%s/%s/%s.mrg" % (args.inpath, args.waveregion, args.starname)
+        sfilename = f"{args.inpath}{args.starname}.mrg"
+
 
         # determine the line for the 1st data (can vary between files)
         f = open(sfilename, "r")

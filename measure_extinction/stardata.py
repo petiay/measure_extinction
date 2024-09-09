@@ -84,9 +84,9 @@ class BandData:
     def read_bands(self, lines, only_bands=None):
         """
         Read the photometric band data from a DAT file
-        and upate class variables.
+        and update class variables.
         Bands are filled in wavelength order to make life
-        easier in subsequent calcuations (interpolations!)
+        easier in subsequent calculations (interpolations!)
 
         Parameters
         ----------
@@ -105,12 +105,21 @@ class BandData:
 
             if (eqpos >= 0) & (pmpos >= 0) & (line[0] != "#"):
                 # check for reference or unit
-                colpos = max((line.find(";"), line.find("#"), line.find("mJy")))
+                colpos = max(
+                    (
+                        line.find(";"),
+                        line.find("#"),
+                        line.find("mJy"),
+                        line.find("ABmag"),
+                    )
+                )
                 if colpos == -1:
                     colpos = len(line)
                 # if there is both a reference and a unit
-                elif line.find(";") != -1 and line.find("mJy") != -1:
-                    colpos = min(line.find(";"), line.find("mJy"))
+                elif line.find(";") != -1 and (
+                    line.find("mJy") != -1 or line.find("ABmag") != -1
+                ):
+                    colpos = min(line.find(";"), line.find("mJy"), line.find("ABmag"))
                 band_name = line[0:eqpos].strip()
 
                 save_band = False
@@ -127,6 +136,8 @@ class BandData:
                     # units
                     if line.find("mJy") >= 0:
                         self.band_units[band_name] = "mJy"
+                    elif line.find("ABmag") >= 0:
+                        self.band_units[band_name] = "ABmag"
                     else:
                         self.band_units[band_name] = "mag"
 
@@ -477,6 +488,28 @@ class BandData:
                     self.band_fluxes[pband_name] = (
                         0.5 * (_flux1 + _flux2),
                         0.5 * (_flux2 - _flux1),
+                    )
+                    self.band_waves[pband_name] = poss_bands[pband_name][1]
+                elif _mag_vals[2] == "ABmag":
+                    _flux1_nu = np.power(
+                        10.0, (-0.4 * (_mag_vals[0] + _mag_vals[1] + 48.60))
+                    )
+                    _flux1_nu *= u.erg / (u.cm * u.cm * u.s * u.Hz)
+                    _flux1 = _flux1_nu.to(
+                        fluxunit,
+                        equivalencies=u.spectral_density(poss_bands[pband_name][1] * u.micron),
+                    )
+                    _flux2_nu = np.power(
+                        10.0, (-0.4 * (_mag_vals[0] - _mag_vals[1] + 48.60))
+                    )
+                    _flux2_nu *= u.erg / (u.cm * u.cm * u.s * u.Hz)
+                    _flux2 = _flux2_nu.to(
+                        fluxunit,
+                        equivalencies=u.spectral_density(poss_bands[pband_name][1] * u.micron),
+                    )
+                    self.band_fluxes[pband_name] = (
+                        0.5 * (_flux1.value + _flux2.value),
+                        0.5 * (_flux2.value - _flux1.value),
                     )
                     self.band_waves[pband_name] = poss_bands[pband_name][1]
                 elif _mag_vals[2] == "mJy":
