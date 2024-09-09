@@ -77,7 +77,10 @@ def decode_params_wd(filename):
     model_params["Teff"] = float(filename[tpos + 1 : gpos])
     model_params["logg"] = float(filename[gpos + 1 : periodpos - 1]) * 0.01
     model_params["vturb"] = 0.0
-    model_params["Z"] = 0.0
+    model_params["Z"] = 1.0   # ratio to solar
+
+    if model_params["Teff"] < 10000.0:
+        model_params["Teff"] *= 1000.0
 
     return model_params
 
