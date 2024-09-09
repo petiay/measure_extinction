@@ -223,7 +223,7 @@ class BandData:
         _n_wfc3_bands = len(_wfc3_vegamag)
         _wfc3_band_zeromag_fluxes = np.zeros(_n_wfc3_bands)
 
-        # zeromag Vega flux not given in standard WFP3 documentation
+        # zeromag Vega flux not given in standard WFC3 documentation
         # instead the flux and Vega magnitudes are given for 1 DN/sec
         # the following code coverts these numbers to zeromag Vega fluxes
         for i in range(_n_wfc3_bands):
