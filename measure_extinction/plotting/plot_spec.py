@@ -397,7 +397,7 @@ def plot_spectrum(
     plt.rc("ytick.minor", width=2)
 
     # create the plot
-    fig, ax = plt.subplots(figsize=(13, 10))
+    fig, ax = plt.subplots(figsize=(10, 8))
 
     # read in and plot all bands and spectra for this star
     if ".dat" not in star:
