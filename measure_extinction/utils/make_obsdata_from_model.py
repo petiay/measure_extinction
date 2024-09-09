@@ -399,6 +399,8 @@ def make_obsdata_from_model(
         "HST_WFC3_UVIS1_F275W",
         "HST_WFC3_UVIS1_F336W",
         "HST_WFC3_UVIS1_F475W",
+        "HST_WFC3_UVIS1_F625W",
+        "HST_WFC3_UVIS1_F775W",
         "HST_WFC3_UVIS1_F814W",
         "HST_WFC3_IR_F110W",
         "HST_WFC3_IR_F160W",

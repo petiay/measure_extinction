@@ -183,7 +183,7 @@ class BandData:
         _n_wfpc2_bands = len(_wfpc2_vegamag)
         _wfpc2_band_zeromag_fluxes = np.zeros(_n_wfpc2_bands)
 
-        # zeromag Vega flux not given in standard WFPC2 documenation
+        # zeromag Vega flux not given in standard WFPC2 documentation
         # instead the flux and Vega magnitudes are given for 1 DN/sec
         # the following code coverts these numbers to zeromag Vega fluxes
         for i in range(_n_wfpc2_bands):
@@ -191,24 +191,39 @@ class BandData:
                 10 ** (0.4 * _wfpc2_vegamag[i])
             )
 
-        # WFC3 bands
+        # WFC3 bands - updated for 2020 solutions  Assuming UVIS1
         _wfc3_band_names = [
             "WFC3_F275W",
             "WFC3_F336W",
             "WFC3_F475W",
+            "WFC3_F625W",
+            "WFC3_F775W",
             "WFC3_F814W",
             "WFC3_F110W",
             "WFC3_F160W",
         ]
-        _wfc3_band_waves = np.array([0.2710, 0.3355, 0.4772, 0.8053, 1.1534, 1.5369])
-        _wfc3_photflam = np.array(
-            [3.186e-18, 1.267e-18, 2.458e-19, 1.477e-19, 1.53e-20, 1.93e-20]
+        _wfc3_band_waves = np.array(
+            [0.2710, 0.3355, 0.4773, 0.6243, 0.7651, 0.8053, 1.1534, 1.5369]
         )
-        _wfc3_vegamag = np.array([22.331, 23.513, 25.809, 24.712, 26.063, 24.695])
+        _wfc3_photflam = np.array(
+            [
+                3.223e-18,
+                1.286e-18,
+                2.498e-19,
+                1.723e-19,
+                2.093e-18,
+                1.477e-19,
+                1.53e-20,
+                1.93e-20,
+            ]
+        )
+        _wfc3_vegamag = np.array(
+            [22.676, 23.526, 25.809, 25.374, 24.84, 24.712, 26.063, 24.695]
+        )
         _n_wfc3_bands = len(_wfc3_vegamag)
         _wfc3_band_zeromag_fluxes = np.zeros(_n_wfc3_bands)
 
-        # zeromag Vega flux not given in standard WFPC2 documenation
+        # zeromag Vega flux not given in standard WFP3 documentation
         # instead the flux and Vega magnitudes are given for 1 DN/sec
         # the following code coverts these numbers to zeromag Vega fluxes
         for i in range(_n_wfc3_bands):
