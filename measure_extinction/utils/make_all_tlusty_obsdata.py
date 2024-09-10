@@ -80,7 +80,7 @@ def decode_params_wd(filename):
     model_params["Z"] = 1.0   # ratio to solar
 
     if model_params["Teff"] < 10000.0:
-        model_params["Teff"] *= 1000.0
+        model_params["Teff"] *= 100.0
 
     return model_params
 

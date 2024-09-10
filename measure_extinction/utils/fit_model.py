@@ -70,6 +70,7 @@ class FitInfo(object):
         fits the model.
 
         Parameters
+        ``
         ----------
         params : floats
             parameters of the model
@@ -99,10 +100,12 @@ class FitInfo(object):
             gvals = (self.weights[cspec] > 0) & (np.isfinite(hi_ext_modsed[cspec]))
             chiarr = np.square(
                 (
-                    obsdata.data[cspec].fluxes[gvals].value
-                    - (hi_ext_modsed[cspec][gvals] * (norm_data / norm_model))
+                    (
+                        obsdata.data[cspec].fluxes[gvals].value
+                        - (hi_ext_modsed[cspec][gvals] * (norm_data / norm_model))
+                    )
+                    * self.weights[cspec][gvals]
                 )
-                * self.weights[cspec][gvals]
             )
             lnl += -0.5 * np.sum(chiarr)
 
