@@ -98,7 +98,10 @@ class FitInfo(object):
 
         lnl = 0.0
         for cspec in hi_ext_modsed.keys():
-            gvals = (self.weights[cspec] > 0) & (np.isfinite(hi_ext_modsed[cspec]))
+            try:
+                gvals = (self.weights[cspec] > 0) & (np.isfinite(hi_ext_modsed[cspec]))
+            except ValueError:
+                raise ValueError("Oops! The model data and reddened star data did not match.\n Hint: Make sure that the BAND name in the .dat files match.")
             chiarr = np.square(
                 (
                     obsdata.data[cspec].fluxes[gvals].value
