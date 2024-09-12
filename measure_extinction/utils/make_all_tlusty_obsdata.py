@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import glob
+import argparse
 
 from measure_extinction.utils.make_obsdata_from_model import make_obsdata_from_model
 
@@ -61,20 +62,61 @@ def decode_params(filename):
     return model_params
 
 
+def decode_params_wd(filename):
+    """
+    Decode the tlusty filenames for the model parameters
+    """
+    model_params = {}
+
+    slashpos = filename.rfind("/")
+    periodpos = filename.rfind(".spec")
+
+    tpos = filename.find("t", slashpos)
+    gpos = filename.find("g", slashpos)
+
+    model_params["Teff"] = float(filename[tpos + 1 : gpos])
+    model_params["logg"] = float(filename[gpos + 1 : periodpos - 1]) * 0.01
+    model_params["vturb"] = 0.0
+    model_params["Z"] = 1.0   # ratio to solar
+
+    if model_params["Teff"] < 10000.0:
+        model_params["Teff"] *= 100.0
+
+    return model_params
+
+
 if __name__ == "__main__":
-    tlusty_models = glob.glob(
-        "/home/kgordon/Python/extstar_data/Models/Tlusty_2023/*v10.spec.gz"
+
+    # commandline parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--grid",
+        choices=["tlusty", "wd_hubeny"],
+        default="tlusty",
+        help="Grid to use",
     )
+    args = parser.parse_args()
+
+    if args.grid == "wd_hubeny":
+        mfilestr = "/home/kgordon/Python/extstar_data/Models/WD_Hubeny/*.spec"
+        decodefunc = decode_params_wd
+        outbase = "wd_hubeny"
+    else:
+        mfilestr = "/home/kgordon/Python/extstar_data/Models/Tlusty_2023/*v10.spec.gz"
+        decodefunc = decode_params
+        outbase = "tlusty"
+
+    tlusty_models = glob.glob(mfilestr)
 
     for cfname in tlusty_models:
         # parse the filename to get the model parameters
-        model_params = decode_params(cfname)
+        model_params = decodefunc(cfname)
 
         # get the base filename for the output files
         slashpos = cfname.rfind("/")
         periodpos = cfname.rfind(".spec")
 
-        basename = "tlusty_{}".format(cfname[slashpos + 1 : periodpos])
+        basename = f"{outbase}_{cfname[slashpos + 1 : periodpos]}"
 
         print(cfname)
         print(basename)

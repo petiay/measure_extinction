@@ -84,9 +84,9 @@ class BandData:
     def read_bands(self, lines, only_bands=None):
         """
         Read the photometric band data from a DAT file
-        and upate class variables.
+        and update class variables.
         Bands are filled in wavelength order to make life
-        easier in subsequent calcuations (interpolations!)
+        easier in subsequent calculations (interpolations!)
 
         Parameters
         ----------
@@ -105,12 +105,21 @@ class BandData:
 
             if (eqpos >= 0) & (pmpos >= 0) & (line[0] != "#"):
                 # check for reference or unit
-                colpos = max((line.find(";"), line.find("#"), line.find("mJy")))
+                colpos = max(
+                    (
+                        line.find(";"),
+                        line.find("#"),
+                        line.find("mJy"),
+                        line.find("ABmag"),
+                    )
+                )
                 if colpos == -1:
                     colpos = len(line)
                 # if there is both a reference and a unit
-                elif line.find(";") != -1 and line.find("mJy") != -1:
-                    colpos = min(line.find(";"), line.find("mJy"))
+                elif line.find(";") != -1 and (
+                    line.find("mJy") != -1 or line.find("ABmag") != -1
+                ):
+                    colpos = min(line.find(";"), line.find("mJy"), line.find("ABmag"))
                 band_name = line[0:eqpos].strip()
 
                 save_band = False
@@ -127,6 +136,8 @@ class BandData:
                     # units
                     if line.find("mJy") >= 0:
                         self.band_units[band_name] = "mJy"
+                    elif line.find("ABmag") >= 0:
+                        self.band_units[band_name] = "ABmag"
                     else:
                         self.band_units[band_name] = "mag"
 
@@ -183,7 +194,7 @@ class BandData:
         _n_wfpc2_bands = len(_wfpc2_vegamag)
         _wfpc2_band_zeromag_fluxes = np.zeros(_n_wfpc2_bands)
 
-        # zeromag Vega flux not given in standard WFPC2 documenation
+        # zeromag Vega flux not given in standard WFPC2 documentation
         # instead the flux and Vega magnitudes are given for 1 DN/sec
         # the following code coverts these numbers to zeromag Vega fluxes
         for i in range(_n_wfpc2_bands):
@@ -191,24 +202,39 @@ class BandData:
                 10 ** (0.4 * _wfpc2_vegamag[i])
             )
 
-        # WFC3 bands
+        # WFC3 bands - updated for 2020 solutions  Assuming UVIS1
         _wfc3_band_names = [
             "WFC3_F275W",
             "WFC3_F336W",
             "WFC3_F475W",
+            "WFC3_F625W",
+            "WFC3_F775W",
             "WFC3_F814W",
             "WFC3_F110W",
             "WFC3_F160W",
         ]
-        _wfc3_band_waves = np.array([0.2710, 0.3355, 0.4772, 0.8053, 1.1534, 1.5369])
-        _wfc3_photflam = np.array(
-            [3.186e-18, 1.267e-18, 2.458e-19, 1.477e-19, 1.53e-20, 1.93e-20]
+        _wfc3_band_waves = np.array(
+            [0.2710, 0.3355, 0.4773, 0.6243, 0.7651, 0.8053, 1.1534, 1.5369]
         )
-        _wfc3_vegamag = np.array([22.331, 23.513, 25.809, 24.712, 26.063, 24.695])
+        _wfc3_photflam = np.array(
+            [
+                3.223e-18,
+                1.286e-18,
+                2.498e-19,
+                1.723e-19,
+                2.093e-18,
+                1.477e-19,
+                1.53e-20,
+                1.93e-20,
+            ]
+        )
+        _wfc3_vegamag = np.array(
+            [22.676, 23.526, 25.809, 25.374, 24.84, 24.712, 26.063, 24.695]
+        )
         _n_wfc3_bands = len(_wfc3_vegamag)
         _wfc3_band_zeromag_fluxes = np.zeros(_n_wfc3_bands)
 
-        # zeromag Vega flux not given in standard WFPC2 documenation
+        # zeromag Vega flux not given in standard WFC3 documentation
         # instead the flux and Vega magnitudes are given for 1 DN/sec
         # the following code coverts these numbers to zeromag Vega fluxes
         for i in range(_n_wfc3_bands):
@@ -462,6 +488,28 @@ class BandData:
                     self.band_fluxes[pband_name] = (
                         0.5 * (_flux1 + _flux2),
                         0.5 * (_flux2 - _flux1),
+                    )
+                    self.band_waves[pband_name] = poss_bands[pband_name][1]
+                elif _mag_vals[2] == "ABmag":
+                    _flux1_nu = np.power(
+                        10.0, (-0.4 * (_mag_vals[0] + _mag_vals[1] + 48.60))
+                    )
+                    _flux1_nu *= u.erg / (u.cm * u.cm * u.s * u.Hz)
+                    _flux1 = _flux1_nu.to(
+                        fluxunit,
+                        equivalencies=u.spectral_density(poss_bands[pband_name][1] * u.micron),
+                    )
+                    _flux2_nu = np.power(
+                        10.0, (-0.4 * (_mag_vals[0] - _mag_vals[1] + 48.60))
+                    )
+                    _flux2_nu *= u.erg / (u.cm * u.cm * u.s * u.Hz)
+                    _flux2 = _flux2_nu.to(
+                        fluxunit,
+                        equivalencies=u.spectral_density(poss_bands[pband_name][1] * u.micron),
+                    )
+                    self.band_fluxes[pband_name] = (
+                        0.5 * (_flux1.value + _flux2.value),
+                        0.5 * (_flux2.value - _flux1.value),
                     )
                     self.band_waves[pband_name] = poss_bands[pband_name][1]
                 elif _mag_vals[2] == "mJy":
@@ -821,9 +869,10 @@ class SpecData:
             if len(indxs) > 0:
                 self.npts[indxs] = 0
 
-        # add units
-        self.fluxes = self.fluxes.value * (u.Jy)
-        self.uncs = self.uncs.value * (u.Jy)
+        self.fluxes = self.fluxes.to(
+            fluxunit, equivalencies=u.spectral_density(self.waves)
+        )
+        self.uncs = self.uncs.to(fluxunit, equivalencies=u.spectral_density(self.waves))
 
     def read_nircam_ss(self, line, path="./"):
         """
