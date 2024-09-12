@@ -64,7 +64,7 @@ class FitInfo(object):
         self.weights = weights
         self.velocities = np.array([stellar_velocity, 0.0])
 
-    def lnlike(self, params, obsdata, modeldata):
+    def lnlike(self, params, obsdata, modeldata, fit_range="all"):
         """
         Compute the natural log of the likelihood that the data
         fits the model.
@@ -74,6 +74,7 @@ class FitInfo(object):
         ----------
         params : floats
             parameters of the model
+            params = [logT, logg, logZ, Av, Rv, C2, C3, C4, x0, gamma, HI_gal, HI_mw]
 
         obsdata : StarData object
             observed data for a reddened star
@@ -86,7 +87,7 @@ class FitInfo(object):
 
         # dust_extinguished sed
         ext_modsed = modeldata.dust_extinguished_sed(
-            params[3:10], modsed, velocity=self.velocities[0]
+            params[3:10], modsed, fit_range=fit_range, velocity=self.velocities[0]
         )
 
         # hi_abs sed
@@ -97,7 +98,12 @@ class FitInfo(object):
 
         lnl = 0.0
         for cspec in hi_ext_modsed.keys():
-            gvals = (self.weights[cspec] > 0) & (np.isfinite(hi_ext_modsed[cspec]))
+            try:
+                gvals = (self.weights[cspec] > 0) & (np.isfinite(hi_ext_modsed[cspec]))
+            except ValueError:
+                raise ValueError(
+                    "Oops! The model data and reddened star data did not match.\n Hint: Make sure that the BAND name in the .dat files match."
+                )
             chiarr = np.square(
                 (
                     (
@@ -146,7 +152,7 @@ class FitInfo(object):
         return lnp
 
     @staticmethod
-    def lnprob(params, obsdata, modeldata, fitinfo):
+    def lnprob(params, obsdata, modeldata, fitinfo, fit_range="all"):
         """
         Compute the natural log of the probability
 
@@ -170,7 +176,7 @@ class FitInfo(object):
         if lnp == lnp_bignnum:
             return lnp
         else:
-            return lnp + fitinfo.lnlike(params, obsdata, modeldata)
+            return lnp + fitinfo.lnlike(params, obsdata, modeldata, fit_range=fit_range)
 
     def check_param_limits(self, params):
         """
