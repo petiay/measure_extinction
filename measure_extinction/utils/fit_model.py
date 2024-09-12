@@ -241,14 +241,14 @@ def get_best_fit_params(sampler):
             (indxs,) = np.where(sampler.lnprobability[k] == tmax_lnp)
             fit_params_best = sampler.chain[k, indxs[0], :]
 
-    ndim = len(fit_params_best)
-    params_best = np.zeros((ndim + 3))
-    params_best[0:ndim] = fit_params_best
-    params_best[ndim] = params_best[3] / params_best[4]
-    params_best[ndim + 1] = (10 ** params_best[10]) / params_best[3]
-    params_best[ndim + 2] = (10 ** params_best[10]) / params_best[ndim]
+    #ndim = len(fit_params_best)
+    #params_best = np.zeros((ndim + 3))
+    #params_best[0:ndim] = fit_params_best
+    #params_best[ndim] = params_best[3] / params_best[4]
+    #params_best[ndim + 1] = (10 ** params_best[10]) / params_best[3]
+    #params_best[ndim + 2] = (10 ** params_best[10]) / params_best[ndim]
 
-    return params_best
+    return fit_params_best
 
 
 def get_percentile_params(samples):

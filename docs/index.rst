@@ -50,13 +50,13 @@ trace if it is necessary.
 Contributing
 ============
 
-Like the `Astropy`_ project, ``dust_extinction`` is made both by and for its
+Like the `Astropy`_ project, ``measure_extinction`` is made both by and for its
 users.  We accept contributions at all levels, spanning the gamut from fixing a
 typo in the documentation to developing a major new feature. We welcome
 contributors who will abide by the `Python Software Foundation Code of Conduct
 <https://www.python.org/psf/conduct/>`_.
 
-``dust_extinction`` follows the same workflow and coding guidelines as
+``measure_extinction`` follows the same workflow and coding guidelines as
 `Astropy`_.  Take a look at the astropy 
 `developer <https://docs.astropy.org/en/latest/index_dev.html>`_ documentation for
 guidelines.
