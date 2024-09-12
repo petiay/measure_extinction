@@ -221,6 +221,9 @@ class ModelData(object):
         sed : dict
             fluxes for each spectral piece
 
+        fit_range : string, optional
+            keyword to toggle SED fitting to be done with G23 only or to also include curve_F99_method
+
         velocity : float, optional
             velocity of dust
 
@@ -234,13 +237,13 @@ class ModelData(object):
 
         # create the extinguished sed
         ext_sed = {}
-        if fit_range == "g23":
+        if fit_range.lower() == "g23":
             for cspec in self.fluxes.keys():
                 shifted_waves = (1.0 - velocity / 2.998e5) * self.waves[cspec]
                 axav = g23mod(shifted_waves)
                 ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * params[0]))
 
-        elif fit_range == "all":
+        elif fit_range.lower() == "all":
             optnir_axav_x = np.flip(1.0 / (np.arange(0.35, 30.0, 0.1) * u.micron))
             optnir_axav_y = g23mod(optnir_axav_x)
 
@@ -255,11 +258,11 @@ class ModelData(object):
                     shifted_waves,
                     Rv,
                     C1,
-                    params[2], #C2
-                    params[3], #C3
-                    params[4], #C4
-                    xo=params[5], #xo
-                    gamma=params[6], #gamma
+                    params[2],  # C2
+                    params[3],  # C3
+                    params[4],  # C4
+                    xo=params[5],  # xo
+                    gamma=params[6],  # gamma
                     optnir_axav_x=optnir_axav_x.value,
                     optnir_axav_y=optnir_axav_y,
                     valid_x_range=[0.033, 11.0],
@@ -276,6 +279,11 @@ class ModelData(object):
             #     shifted_waves = (1.0 - velocity / 2.998e5) * self.waves[cspec]
             #     axav = g23mod(shifted_waves)
             #     ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * params[0]))
+
+        else:
+            raise ValueError(
+                "Incorrect input for fit_range argument in dust_extinguished_sed(). Available options are: g23, all"
+            )
 
         return ext_sed
 

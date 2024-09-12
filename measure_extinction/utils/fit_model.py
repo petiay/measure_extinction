@@ -86,8 +86,7 @@ class FitInfo(object):
 
         # dust_extinguished sed
         ext_modsed = modeldata.dust_extinguished_sed(
-            params[3:10], modsed, fit_range=fit_range,
-            velocity=self.velocities[0]
+            params[3:10], modsed, fit_range=fit_range, velocity=self.velocities[0]
         )
 
         # hi_abs sed
@@ -101,7 +100,9 @@ class FitInfo(object):
             try:
                 gvals = (self.weights[cspec] > 0) & (np.isfinite(hi_ext_modsed[cspec]))
             except ValueError:
-                raise ValueError("Oops! The model data and reddened star data did not match.\n Hint: Make sure that the BAND name in the .dat files match.")
+                raise ValueError(
+                    "Oops! The model data and reddened star data did not match.\n Hint: Make sure that the BAND name in the .dat files match."
+                )
             chiarr = np.square(
                 (
                     obsdata.data[cspec].fluxes[gvals].value
