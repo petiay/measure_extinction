@@ -372,6 +372,33 @@ def merge_irs_obsspec(obstables, output_resolution=150):
     return otable
 
 
+def merge_niriss_soss_obsspec(obstables, output_resolution=700):
+    """
+    Merge one or more NIRCam slitless 1D spectra into a single spectrum
+    on a uniform wavelength scale
+
+    Parameters
+    ----------
+    obstables : list of astropy Table objects
+        list of tables containing the observed IRS spectra
+        usually the result of reading tables
+
+    output_resolution : float
+        output resolution of spectra
+        input spectrum assumed to be at the appropriate resolution
+
+    Returns
+    -------
+    output_table : astropy Table object
+        merged spectra
+    """
+    wave_range = [0.85, 2.75] * u.micron
+    otable = merge_gen_obsspec(
+        obstables, wave_range, output_resolution=output_resolution
+    )
+    return otable
+
+
 def merge_nircam_ss_obsspec(obstables, output_resolution=1600):
     """
     Merge one or more NIRCam slitless 1D spectra into a single spectrum

@@ -17,6 +17,7 @@ from measure_extinction.stardata import BandData
 from measure_extinction.merge_obsspec import (
     merge_stis_obsspec,
     merge_irs_obsspec,
+    merge_niriss_soss_obsspec,
     merge_nircam_ss_obsspec,
     merge_miri_ifu_obsspec,
 )
@@ -363,7 +364,7 @@ def make_obsdata_from_model(
         nrc_table["NPTS"] = otable["NPTS"]
         nrc_table["ERROR"] = Column(np.full((len(nrc_table)), 1.0)) * fluxunit
 
-        rb_nrc = merge_nircam_ss_obsspec([nrc_table])
+        rb_nrc = merge_niriss_soss_obsspec([nrc_table])
         rb_nrc["SIGMA"] = rb_nrc["FLUX"] * 0.0
         rb_nrc.write("%s/Models/%s" % (output_path, nrs_file), overwrite=True)
 
@@ -511,5 +512,5 @@ if __name__ == "__main__":
         output_path="/home/kgordon/Python/extstar_data",
         model_params=model_params,
         show_plot=True,
-        only_dat=True,
+        only_dat=False,
     )
