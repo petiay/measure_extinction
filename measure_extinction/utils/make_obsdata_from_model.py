@@ -17,6 +17,7 @@ from measure_extinction.stardata import BandData
 from measure_extinction.merge_obsspec import (
     merge_stis_obsspec,
     merge_irs_obsspec,
+    merge_niriss_soss_obsspec,
     merge_nircam_ss_obsspec,
     merge_miri_ifu_obsspec,
 )
@@ -348,10 +349,31 @@ def make_obsdata_from_model(
 
     specinfo["IRS"] = lrs_file
 
+    nrs_file = "%s_niriss_soss.fits" % (output_filebase)
+    if not only_dat:
+        # Webb NIRISS SOSS spectra mock observation
+        # Resolution approximately 700
+        nrc_fwhm_pix = rbres / 700
+        g = Gaussian1DKernel(stddev=nrc_fwhm_pix / 2.355)
+        # Convolve data
+        nflux = convolve(otable["FLUX"].data, g)
+
+        nrc_table = QTable()
+        nrc_table["WAVELENGTH"] = otable["WAVELENGTH"]
+        nrc_table["FLUX"] = nflux * fluxunit
+        nrc_table["NPTS"] = otable["NPTS"]
+        nrc_table["ERROR"] = Column(np.full((len(nrc_table)), 1.0)) * fluxunit
+
+        rb_nrc = merge_niriss_soss_obsspec([nrc_table])
+        rb_nrc["SIGMA"] = rb_nrc["FLUX"] * 0.0
+        rb_nrc.write("%s/Models/%s" % (output_path, nrs_file), overwrite=True)
+
+    specinfo["NIRISS_SOSS"] = nrs_file
+
     nrc_file = "%s_nircam_ss.fits" % (output_filebase)
     if not only_dat:
         # Webb NIRCam spectra mock observation
-        # Resolution approximately 3000
+        # Resolution approximately 1600
         nrc_fwhm_pix = rbres / 1600.0
         g = Gaussian1DKernel(stddev=nrc_fwhm_pix / 2.355)
         # Convolve data
@@ -477,20 +499,20 @@ def make_obsdata_from_model(
 
 if __name__ == "__main__":
     mname = (
-        "/home/kgordon/Python/extstar_data/Models/Tlusty_2023/z050t23000g250v2.spec.gz"
+        "/home/kgordon/Python/extstar_data/Models/Tlusty_2023/z100t30000g400v2.spec.gz"
     )
     model_params = {}
     model_params["origin"] = "tlusty"
-    model_params["Teff"] = 23000.0
-    model_params["logg"] = 2.5
-    model_params["Z"] = 0.50
+    model_params["Teff"] = 30000.0
+    model_params["logg"] = 4.0
+    model_params["Z"] = 1.00
     model_params["vturb"] = 2.0
     make_obsdata_from_model(
         mname,
         model_type="tlusty",
-        output_filebase="z050t23000g250v2",
+        output_filebase="z100t30000g400v2",
         output_path="/home/kgordon/Python/extstar_data",
         model_params=model_params,
         show_plot=True,
-        only_dat=True,
+        only_dat=False,
     )
