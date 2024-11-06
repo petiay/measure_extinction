@@ -15,10 +15,12 @@ import stsynphot as STS
 
 from measure_extinction.stardata import BandData
 from measure_extinction.merge_obsspec import (
+    merge_iue_obsspec,
     merge_stis_obsspec,
     merge_irs_obsspec,
     merge_niriss_soss_obsspec,
     merge_nircam_ss_obsspec,
+    merge_miri_lrs_obsspec,
     merge_miri_ifu_obsspec,
 )
 from measure_extinction.utils.mock_spectra_data import mock_stis_data
@@ -311,6 +313,27 @@ def make_obsdata_from_model(
             "%s/Models/%s_full.fits" % (output_path, output_filebase), overwrite=True
         )
 
+    iue_file = "%s_iue.fits" % (output_filebase)
+    if not only_dat:
+        # IUE mock observation
+        # Resolution approximately 300
+        iue_fwhm_pix = rbres / 300.0
+        g = Gaussian1DKernel(stddev=iue_fwhm_pix / 2.355)
+        # Convolve data
+        nflux = convolve(otable["FLUX"].data, g)
+
+        iue_table = QTable()
+        iue_table["WAVELENGTH"] = otable["WAVELENGTH"]
+        iue_table["FLUX"] = nflux * fluxunit
+        iue_table["NPTS"] = otable["NPTS"]
+        iue_table["ERROR"] = Column(np.full((len(iue_table)), 1.0)) * fluxunit
+
+        rb_iue = merge_iue_obsspec([iue_table])
+        rb_iue["SIGMA"] = rb_iue["FLUX"] * 0.0
+        rb_iue.write("%s/Models/%s" % (output_path, iue_file), overwrite=True)
+
+    specinfo["IUE"] = iue_file
+
     stis_uv_file = "%s_stis_uv.fits" % (output_filebase)
     stis_opt_file = "%s_stis_opt.fits" % (output_filebase)
     if not only_dat:
@@ -390,6 +413,27 @@ def make_obsdata_from_model(
         rb_nrc.write("%s/Models/%s" % (output_path, nrc_file), overwrite=True)
 
     specinfo["NIRCam_SS"] = nrc_file
+
+    miri_lrs_file = "%s_miri_lrs.fits" % (output_filebase)
+    if not only_dat:
+        # MIRI LRS mock observation
+        # Resolution approximately 100
+        miri_lrs_fwhm_pix = rbres / 100.0
+        g = Gaussian1DKernel(stddev=miri_lrs_fwhm_pix / 2.355)
+        # Convolve data
+        nflux = convolve(otable["FLUX"].data, g)
+
+        miri_lrs_table = QTable()
+        miri_lrs_table["WAVELENGTH"] = otable["WAVELENGTH"]
+        miri_lrs_table["FLUX"] = nflux * fluxunit
+        miri_lrs_table["NPTS"] = otable["NPTS"]
+        miri_lrs_table["ERROR"] = Column(np.full((len(miri_lrs_table)), 1.0)) * fluxunit
+
+        rb_miri_lrs = merge_miri_lrs_obsspec([miri_lrs_table])
+        rb_miri_lrs["SIGMA"] = rb_miri_lrs["FLUX"] * 0.0
+        rb_miri_lrs.write("%s/Models/%s" % (output_path, miri_lrs_file), overwrite=True)
+
+    specinfo["MIRI_LRS"] = miri_lrs_file
 
     mrs_file = "%s_miri_ifu.fits" % (output_filebase)
     if not only_dat:
@@ -482,14 +526,23 @@ def make_obsdata_from_model(
                 "g-",
             )
 
+            (indxs,) = np.where(rb_iue["NPTS"] > 0)
+            ax.plot(rb_iue["WAVELENGTH"][indxs].to(u.micron), rb_iue["FLUX"][indxs], "r-")
+
             (indxs,) = np.where(rb_nrc["NPTS"] > 0)
             ax.plot(rb_nrc["WAVELENGTH"][indxs].to(u.micron), rb_nrc["FLUX"][indxs], "c-")
 
             (indxs,) = np.where(rb_lrs["NPTS"] > 0)
             ax.plot(rb_lrs["WAVELENGTH"][indxs].to(u.micron), rb_lrs["FLUX"][indxs], "r:")
 
+            (indxs,) = np.where(rb_nrc["NPTS"] > 0)
+            ax.plot(rb_nrc["WAVELENGTH"][indxs].to(u.micron), rb_nrc["FLUX"][indxs], "r-")
+
+            (indxs,) = np.where(rb_miri_lrs["NPTS"] > 0)
+            ax.plot(rb_miri_lrs["WAVELENGTH"][indxs].to(u.micron), rb_miri_lrs["FLUX"][indxs], "r--")
+
             (indxs,) = np.where(rb_mrs["NPTS"] > 0)
-            ax.plot(rb_mrs["WAVELENGTH"][indxs].to(u.micron), rb_mrs["FLUX"][indxs], "r-")
+            ax.plot(rb_mrs["WAVELENGTH"][indxs].to(u.micron), rb_mrs["FLUX"][indxs], "g-")
 
         ax.set_xscale("log")
         ax.set_yscale("log")
