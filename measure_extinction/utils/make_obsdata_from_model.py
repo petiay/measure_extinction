@@ -381,15 +381,15 @@ def make_obsdata_from_model(
         # Convolve data
         nflux = convolve(otable["FLUX"].data, g)
 
-        nrc_table = QTable()
-        nrc_table["WAVELENGTH"] = otable["WAVELENGTH"]
-        nrc_table["FLUX"] = nflux * fluxunit
-        nrc_table["NPTS"] = otable["NPTS"]
-        nrc_table["ERROR"] = Column(np.full((len(nrc_table)), 1.0)) * fluxunit
+        niriss_table = QTable()
+        niriss_table["WAVELENGTH"] = otable["WAVELENGTH"]
+        niriss_table["FLUX"] = nflux * fluxunit
+        niriss_table["NPTS"] = otable["NPTS"]
+        niriss_table["ERROR"] = Column(np.full((len(niriss_table)), 1.0)) * fluxunit
 
-        rb_nrc = merge_niriss_soss_obsspec([nrc_table])
-        rb_nrc["SIGMA"] = rb_nrc["FLUX"] * 0.0
-        rb_nrc.write("%s/Models/%s" % (output_path, nrs_file), overwrite=True)
+        rb_niriss = merge_niriss_soss_obsspec([niriss_table])
+        rb_niriss["SIGMA"] = rb_niriss["FLUX"] * 0.0
+        rb_niriss.write("%s/Models/%s" % (output_path, nrs_file), overwrite=True)
 
     specinfo["NIRISS_SOSS"] = nrs_file
 
@@ -534,6 +534,9 @@ def make_obsdata_from_model(
 
             (indxs,) = np.where(rb_lrs["NPTS"] > 0)
             ax.plot(rb_lrs["WAVELENGTH"][indxs].to(u.micron), rb_lrs["FLUX"][indxs], "r:")
+
+            (indxs,) = np.where(rb_niriss["NPTS"] > 0)
+            ax.plot(rb_niriss["WAVELENGTH"][indxs].to(u.micron), rb_niriss["FLUX"][indxs], "r-")
 
             (indxs,) = np.where(rb_nrc["NPTS"] > 0)
             ax.plot(rb_nrc["WAVELENGTH"][indxs].to(u.micron), rb_nrc["FLUX"][indxs], "r-")
