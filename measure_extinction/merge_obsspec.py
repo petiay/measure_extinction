@@ -8,7 +8,7 @@ __all__ = [
     "merge_spex_obsspec",
     "merge_nircam_ss_obsspec",
     "merge_irs_obsspec",
-    "merge_miri_lrs_obspec",
+    "merge_miri_lrs_obsspec",
     "merge_miri_ifu_obsspec",
 ]
 
