@@ -90,4 +90,4 @@ create such files from the commandline.
 
 When using a stellar model for the comparison, each type of spectra supported is 
 simulated/mocked using code in the `measure_extinction/utils` subdirectory. 
-See :ref:`_model_standards`.
+See :ref:`model standards`.
