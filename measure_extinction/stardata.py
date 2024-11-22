@@ -497,7 +497,9 @@ class BandData:
                     _flux1_nu *= u.erg / (u.cm * u.cm * u.s * u.Hz)
                     _flux1 = _flux1_nu.to(
                         fluxunit,
-                        equivalencies=u.spectral_density(poss_bands[pband_name][1] * u.micron),
+                        equivalencies=u.spectral_density(
+                            poss_bands[pband_name][1] * u.micron
+                        ),
                     )
                     _flux2_nu = np.power(
                         10.0, (-0.4 * (_mag_vals[0] - _mag_vals[1] + 48.60))
@@ -505,7 +507,9 @@ class BandData:
                     _flux2_nu *= u.erg / (u.cm * u.cm * u.s * u.Hz)
                     _flux2 = _flux2_nu.to(
                         fluxunit,
-                        equivalencies=u.spectral_density(poss_bands[pband_name][1] * u.micron),
+                        equivalencies=u.spectral_density(
+                            poss_bands[pband_name][1] * u.micron
+                        ),
                     )
                     self.band_fluxes[pband_name] = (
                         0.5 * (_flux1.value + _flux2.value),
@@ -760,7 +764,7 @@ class SpecData:
         ----------
         line : string
             formatted line from DAT file
-            example: 'STIS = hd029647_stis.fits'
+            example: 'STIS = hd029647_stis.fits' or 'STIS_Opt = hd029647_stis_Opt.fits'
 
         path : string, optional
             location of the FITS files path
@@ -882,7 +886,31 @@ class SpecData:
         ----------
         line : string
             formatted line from DAT file
-            example: 'NIRCam_SS = hd029647_irs.fits'
+            example: 'NIRCam_SS = hd029647_nircam_ss.fits'
+
+        path : string, optional
+            location of the FITS files path
+
+        Returns
+        -------
+        Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
+        """
+        self.read_spectra(line, path)
+
+        self.fluxes = self.fluxes.to(
+            fluxunit, equivalencies=u.spectral_density(self.waves)
+        )
+        self.uncs = self.uncs.to(fluxunit, equivalencies=u.spectral_density(self.waves))
+
+    def read_miri_lrs(self, line, path="./"):
+        """
+        Read in Webb/MRS LRS spectra
+
+        Parameters
+        ----------
+        line : string
+            formatted line from DAT file
+            example: 'MIRI_LRS = hd029647_miri_lrs.fits'
 
         path : string, optional
             location of the FITS files path
@@ -906,7 +934,7 @@ class SpecData:
         ----------
         line : string
             formatted line from DAT file
-            example: 'MIRI_IFU = hd029647_irs.fits'
+            example: 'MIRI_IFU = hd029647_miri_ifu.fits'
 
         path : string, optional
             location of the FITS files path
