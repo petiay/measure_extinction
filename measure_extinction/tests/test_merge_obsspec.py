@@ -10,7 +10,6 @@ def _check_genmerge(wave_range, resolution):
     wave1_info = _wavegrid(resolution, wave_range.value)
     wave1 = wave1_info[0] * wave_range.unit
     nwaves = len(wave1)
-    spec1 = np.full(nwaves, 1.0) * fluxunit
     itable1 = QTable()
     itable1["WAVELENGTH"] = wave1
     itable1["FLUX"] = np.full(nwaves, 1.0) * fluxunit
