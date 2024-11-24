@@ -199,7 +199,7 @@ class ModelData(object):
             # dot product does the multiplication and sum
             sed[cspec] = np.dot(weights, self.fluxes[cspec][gsindxs, :])
 
-            sed[cspec][sed[cspec] == 0] = np.NaN
+            sed[cspec][sed[cspec] == 0] = np.nan
             # shift spectrum if velocity given
             if velocity is not None:
                 cwaves = self.waves[cspec]
