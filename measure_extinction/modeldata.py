@@ -216,7 +216,7 @@ class ModelData(object):
         Parameters
         ----------
         params : float array
-            dust extinction parameters [Av, Rv, c2, c3, c4, gamma, x0]
+            dust extinction parameters [Av, Rv, c2, b3, c4, gamma, x0]
 
         sed : dict
             fluxes for each spectral piece
@@ -259,7 +259,7 @@ class ModelData(object):
                     Rv,
                     C1,
                     params[2],  # C2
-                    params[3],  # C3
+                    params[3],  # B3
                     params[4],  # C4
                     xo=params[5],  # xo
                     gamma=params[6],  # gamma
@@ -267,6 +267,7 @@ class ModelData(object):
                     optnir_axav_y=optnir_axav_y,
                     valid_x_range=[0.033, 11.0],
                     model_name="FM90_G23_measure_extinction",
+                    fm90_version="B3",
                 )
 
                 ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * params[0]))
