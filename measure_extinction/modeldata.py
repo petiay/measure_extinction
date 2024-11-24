@@ -254,8 +254,15 @@ class ModelData(object):
                 # get the dust extinguished SED (account for the
                 #  systemic velocity of the galaxy [opposite regular sense])
                 shifted_waves = (1.0 - velocity / 2.998e5) * self.waves[cspec]
+
+                # convert to 1/micron as _curve_F99_method does not do this (as of Nov 2024)
+                with u.add_enabled_equivalencies(u.spectral()):
+                    shifted_waves_imicron = u.Quantity(
+                        shifted_waves, 1.0 / u.micron, dtype=np.float64
+                    )
+
                 axav = _curve_F99_method(
-                    shifted_waves,
+                    shifted_waves_imicron.value,
                     Rv,
                     C1,
                     params[2],  # C2
@@ -265,21 +272,10 @@ class ModelData(object):
                     gamma=params[6],  # gamma
                     optnir_axav_x=optnir_axav_x.value,
                     optnir_axav_y=optnir_axav_y,
-                    valid_x_range=[0.033, 11.0],
-                    model_name="FM90_G23_measure_extinction",
                     fm90_version="B3",
                 )
 
                 ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * params[0]))
-
-            # # create the extinguished sed
-            # ext_sed = {}
-            # for cspec in self.fluxes.keys():
-            #     # get the dust extinguished SED (account for the
-            #     #  systemic velocity of the galaxy [opposite regular sense])
-            #     shifted_waves = (1.0 - velocity / 2.998e5) * self.waves[cspec]
-            #     axav = g23mod(shifted_waves)
-            #     ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * params[0]))
 
         else:
             raise ValueError(
