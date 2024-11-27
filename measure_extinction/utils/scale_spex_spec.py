@@ -10,6 +10,7 @@ import astropy.units as u
 
 from measure_extinction.utils.helpers import get_datapath
 
+
 # function to get photometry from a spectrum
 def get_phot(spec, bands):
     """

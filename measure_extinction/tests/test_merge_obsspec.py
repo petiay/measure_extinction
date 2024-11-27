@@ -16,6 +16,7 @@ from measure_extinction.merge_obsspec import (
 # still need to add merging of STIS spectroscopy
 #  more complicated due to UV/optical options
 
+
 def _check_genmerge(wave_range, resolution, mergefunc):
 
     wave1_info = _wavegrid(resolution, wave_range.value)
@@ -80,4 +81,3 @@ def test_miri_mrs():
     wave_range = [4.5, 32.0] * u.micron
     resolution = 4000.0
     _check_genmerge(wave_range, resolution, merge_miri_ifu_obsspec)
-
