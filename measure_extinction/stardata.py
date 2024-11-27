@@ -595,7 +595,7 @@ def _getspecfilename(line, path):
     eqpos = line.find("=")
     tfile = line[eqpos + 2 :].rstrip()
 
-    return path + tfile
+    return f"{path}/{tfile}"
 
 
 class SpecData:
@@ -1102,7 +1102,7 @@ class StarData:
         """
 
         # open and read all the lines in the file
-        f = open(self.path + self.file, "r")
+        f = open(f"{self.path}/{self.file}", "r")
         self.datfile_lines = list(f)
         f.close()
         # get the photometric band data

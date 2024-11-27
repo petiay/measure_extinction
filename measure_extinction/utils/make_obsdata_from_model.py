@@ -1,7 +1,3 @@
-#!/usr/bin/env python
-
-import pkg_resources
-
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
@@ -13,6 +9,7 @@ from astropy.convolution import Gaussian1DKernel, convolve
 from synphot import SpectralElement
 import stsynphot as STS
 
+from measure_extinction.utils.helpers import get_datapath
 from measure_extinction.stardata import BandData
 from measure_extinction.merge_obsspec import (
     merge_iue_obsspec,
@@ -123,9 +120,7 @@ def get_phot(mwave, mflux, band_names, band_resp_filenames):
     bdata = BandData("BAND")
 
     # path for non-HST band response curves
-    data_path = pkg_resources.resource_filename(
-        "measure_extinction", "data/Band_RespCurves/"
-    )
+    data_path = f"{get_datapath()}/Band_RespCurves/"
 
     # compute the fluxes in each band
     for k, cband in enumerate(band_names):
