@@ -2,10 +2,21 @@ import numpy as np
 import astropy.units as u
 from astropy.table import QTable
 
-from measure_extinction.merge_obsspec import fluxunit, _wavegrid, merge_miri_lrs_obsspec
+from measure_extinction.merge_obsspec import (
+    fluxunit,
+    _wavegrid,
+    merge_iue_obsspec,
+    merge_irs_obsspec,
+    merge_niriss_soss_obsspec,
+    merge_nircam_ss_obsspec,
+    merge_miri_lrs_obsspec,
+    merge_miri_ifu_obsspec,
+)
 
+# still need to add merging of STIS spectroscopy
+#  more complicated due to UV/optical options
 
-def _check_genmerge(wave_range, resolution):
+def _check_genmerge(wave_range, resolution, mergefunc):
 
     wave1_info = _wavegrid(resolution, wave_range.value)
     wave1 = wave1_info[0] * wave_range.unit
@@ -25,7 +36,7 @@ def _check_genmerge(wave_range, resolution):
     itable2["NPTS"] = np.full(nwaves, 1)
 
     # merge into standard format
-    otable = merge_miri_lrs_obsspec([itable1, itable2])
+    otable = mergefunc([itable1, itable2])
 
     # check standard format
     for ckey in ["WAVELENGTH", "FLUX", "SIGMA", "NPTS"]:
@@ -35,21 +46,38 @@ def _check_genmerge(wave_range, resolution):
     np.testing.assert_allclose(otable["FLUX"], np.full(nowaves, 1.5))
 
 
-def test_miri_lrs():
+def test_miri_iue():
+    wave_range = [1000.0, 3400.0] * u.angstrom
+    resolution = 1000.0
+    _check_genmerge(wave_range, resolution, merge_iue_obsspec)
 
-    # generate mock spectra
+
+def test_irs():
+    wave_range = [5.0, 40.0] * u.micron
+    resolution = 150.0
+    _check_genmerge(wave_range, resolution, merge_irs_obsspec)
+
+
+def test_niriss_soss():
+    wave_range = [0.85, 2.75] * u.micron
+    resolution = 700.0
+    _check_genmerge(wave_range, resolution, merge_niriss_soss_obsspec)
+
+
+def test_nircam_ss():
+    wave_range = [2.35, 5.55] * u.micron
+    resolution = 1600.0
+    _check_genmerge(wave_range, resolution, merge_nircam_ss_obsspec)
+
+
+def test_miri_lrs():
     wave_range = [0.4, 15.0] * u.micron
     resolution = 150.0
-    _check_genmerge(wave_range, resolution)
+    _check_genmerge(wave_range, resolution, merge_miri_lrs_obsspec)
 
 
 def test_miri_mrs():
-
-    # generate mock spectra
     wave_range = [4.5, 32.0] * u.micron
-    resolution = 4000.
-    _check_genmerge(wave_range, resolution)
+    resolution = 4000.0
+    _check_genmerge(wave_range, resolution, merge_miri_ifu_obsspec)
 
-
-if __name__ == "__main__":
-    test_miri_lrs()
