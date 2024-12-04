@@ -95,6 +95,13 @@ if __name__ == "__main__":
         default="tlusty",
         help="Grid to use",
     )
+    parser.add_argument(
+        "--vturb",
+        choices=["v2", "v5", "v10"],
+        default="v2",
+        help="Microturbulent velocity (only applies to tlusty grid)",
+    )
+
     args = parser.parse_args()
 
     if args.grid == "wd_hubeny":
@@ -102,7 +109,7 @@ if __name__ == "__main__":
         decodefunc = decode_params_wd
         outbase = "wd_hubeny"
     else:
-        mfilestr = "/home/kgordon/Python/extstar_data/Models/Tlusty_2023/*v10.spec.gz"
+        mfilestr = f"/home/kgordon/Python/extstar_data/Models/Tlusty_2023/*{args.vturb}.spec.gz"
         decodefunc = decode_params
         outbase = "tlusty"
 
