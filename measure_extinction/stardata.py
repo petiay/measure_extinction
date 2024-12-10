@@ -906,7 +906,7 @@ class SpecData:
 
     def read_miri_lrs(self, line, path="./"):
         """
-        Read in Webb/MRS LRS spectra
+        Read in Webb/MIRI LRS spectra
 
         Parameters
         ----------

@@ -314,16 +314,19 @@ def make_obsdata_from_model(
         # Resolution approximately 300
         iue_fwhm_pix = rbres / 300.0
         g = Gaussian1DKernel(stddev=iue_fwhm_pix / 2.355)
-        # Convolve data
+        # Convolve data to give the expected observed spectral resolution
         nflux = convolve(otable["FLUX"].data, g)
 
         iue_table = QTable()
         iue_table["WAVELENGTH"] = otable["WAVELENGTH"]
         iue_table["FLUX"] = nflux * fluxunit
+        # number of models points in the rebinned spectrum
         iue_table["NPTS"] = otable["NPTS"]
+        # no error in the models, hence required for the merge function
         iue_table["ERROR"] = Column(np.full((len(iue_table)), 1.0)) * fluxunit
 
         rb_iue = merge_iue_obsspec([iue_table])
+        # set the uncertainties to zero as this is a model
         rb_iue["SIGMA"] = rb_iue["FLUX"] * 0.0
         rb_iue.write("%s/Models/%s" % (output_path, iue_file), overwrite=True)
 
@@ -532,9 +535,6 @@ def make_obsdata_from_model(
 
             (indxs,) = np.where(rb_niriss["NPTS"] > 0)
             ax.plot(rb_niriss["WAVELENGTH"][indxs].to(u.micron), rb_niriss["FLUX"][indxs], "r-")
-
-            (indxs,) = np.where(rb_nrc["NPTS"] > 0)
-            ax.plot(rb_nrc["WAVELENGTH"][indxs].to(u.micron), rb_nrc["FLUX"][indxs], "r-")
 
             (indxs,) = np.where(rb_miri_lrs["NPTS"] > 0)
             ax.plot(rb_miri_lrs["WAVELENGTH"][indxs].to(u.micron), rb_miri_lrs["FLUX"][indxs], "r--")

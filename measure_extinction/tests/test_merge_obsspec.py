@@ -47,7 +47,7 @@ def _check_genmerge(wave_range, resolution, mergefunc):
     np.testing.assert_allclose(otable["FLUX"], np.full(nowaves, 1.5))
 
 
-def test_miri_iue():
+def test_iue():
     wave_range = [1000.0, 3400.0] * u.angstrom
     resolution = 1000.0
     _check_genmerge(wave_range, resolution, merge_iue_obsspec)
@@ -72,7 +72,7 @@ def test_nircam_ss():
 
 
 def test_miri_lrs():
-    wave_range = [0.4, 15.0] * u.micron
+    wave_range = [4.0, 15.0] * u.micron
     resolution = 150.0
     _check_genmerge(wave_range, resolution, merge_miri_lrs_obsspec)
 

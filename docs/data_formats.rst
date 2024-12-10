@@ -4,7 +4,7 @@
 Data Formats
 ############
 
-The data for each stars is stored in a combination of an ASCII "DAT" file
+The data for each stars are stored in a combination of an ASCII "DAT" file
 and FITS "spectra" files.
 
 DAT file
@@ -36,10 +36,10 @@ an entire line are allowed if they start with a "#" character.
 
 A more complicated example giving photometry and spectroscopy from different sources
 is below (from a star from Gordon et al. 2021; Decleir et al. 2022 among other studies).
-The Johnson photometry is provide mainly as colors in this example.  Photometry
-rom IRAC/IRS/MIPS is provide in mJy.  The different photometry units are converted to the
+The Johnson photometry is provided mainly as colors in this example.  Photometry
+from IRAC/IRS/MIPS is provided in mJy.  The different photometry units are converted to the
 measure_extinction internal units when read into StarData.  In addition, there are comments
-provide after data using the ";" character.
+provided after data using the ";" character.
 
 ::
 
@@ -79,13 +79,13 @@ Spectra
 
 The spectra are stored in FITS files with standard columns and wavelength grids.
 The standard columns are "WAVELENGTH", "FLUX", "SIGMA", and "NPTS".  These files
-are created using the "merge_xxx_spec" functions provide in
+are created using the "merge_xxx_spec" functions provided in
 :class:`~measure_extinction.merge_obsspec`.  These ensure that all the spectra
 from a specific source (e.g., IUE) have the same wavelength grid, units, and standard
 columns.
 
 For some of the types of spectra (e.g., IUE, STIS, SpeX, NIRCam SS), 
-there are commandline code in the `measure_extinction/utils` subdirectory to
+there is commandline code in the `measure_extinction/utils` subdirectory to
 create such files from the commandline.
 
 When using a stellar model for the comparison, each type of spectra supported is 

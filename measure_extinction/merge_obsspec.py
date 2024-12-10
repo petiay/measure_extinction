@@ -68,12 +68,12 @@ def merge_stis_obsspec(obstables, waveregion="UV", output_resolution=1000):
 
     output_resolution : float
         output resolution of spectra
-        input spectrum assumed to be at the appropriate resolution
+        input spectrum assumed to be at the observed resolution
 
     Returns
     -------
     output_table : astropy Table object
-        merged spectra
+        merged spectrum
     """
     if waveregion == "UV":
         wave_range = [1000.0, 3400.0] * u.angstrom
@@ -142,12 +142,12 @@ def merge_spex_obsspec(obstable, mask=[], output_resolution=2000):
 
     output_resolution : float [default=2000]
         output resolution of spectrum
-        input spectrum assumed to be at the appropriate resolution
+        input spectrum assumed to be at the observed resolution
 
     Returns
     -------
     output_table : astropy Table object
-        merged spectra
+        merged spectrum
     """
     waves = obstable["WAVELENGTH"].data * 1e4
     fluxes = obstable["FLUX"].data
@@ -232,12 +232,12 @@ def merge_gen_obsspec(obstables, wave_range, output_resolution=100):
 
     output_resolution : float
         output resolution of spectra
-        input spectrum assumed to be at the appropriate resolution
+        input spectrum assumed to be at the observed resolution
 
     Returns
     -------
     output_table : astropy Table object
-        merged spectra
+        merged spectrum
     """
     iwave_range = wave_range.to(u.angstrom).value
     full_wave, full_wave_min, full_wave_max = _wavegrid(output_resolution, iwave_range)
@@ -297,12 +297,12 @@ def merge_iue_obsspec(obstables, output_resolution=1000):
 
     output_resolution : float
         output resolution of spectra
-        input spectrum assumed to be at the appropriate resolution
+        input spectrum assumed to be at the observed resolution
 
     Returns
     -------
     output_table : astropy Table object
-        merged spectra
+        merged spectrum
     """
     wave_range = [1000.0, 3400.0] * u.angstrom
 
@@ -325,12 +325,12 @@ def merge_irs_obsspec(obstables, output_resolution=150):
 
     output_resolution : float
         output resolution of spectra
-        input spectrum assumed to be at the appropriate resolution
+        input spectrum assumed to be at the observed resolution
 
     Returns
     -------
     output_table : astropy Table object
-        merged spectra
+        merged spectrum
     """
     wave_range = [5.0, 40.0] * u.micron
     otable = merge_gen_obsspec(
@@ -352,12 +352,12 @@ def merge_niriss_soss_obsspec(obstables, output_resolution=700):
 
     output_resolution : float
         output resolution of spectra
-        input spectrum assumed to be at the appropriate resolution
+        input spectrum assumed to be at the observed resolution
 
     Returns
     -------
     output_table : astropy Table object
-        merged spectra
+        merged spectrum
     """
     wave_range = [0.85, 2.75] * u.micron
     otable = merge_gen_obsspec(
@@ -379,12 +379,12 @@ def merge_nircam_ss_obsspec(obstables, output_resolution=1600):
 
     output_resolution : float
         output resolution of spectra
-        input spectrum assumed to be at the appropriate resolution
+        input spectrum assumed to be at the observed resolution
 
     Returns
     -------
     output_table : astropy Table object
-        merged spectra
+        merged spectrum
     """
     wave_range = [2.35, 5.55] * u.micron
     otable = merge_gen_obsspec(
@@ -406,12 +406,12 @@ def merge_miri_lrs_obsspec(obstables, output_resolution=100):
 
     output_resolution : float
         output resolution of spectra
-        input spectrum assumed to be at the appropriate resolution
+        input spectrum assumed to be at the observed resolution
 
     Returns
     -------
     output_table : astropy Table object
-        merged spectra
+        merged spectrum
     """
     wave_range = [5.0, 13.0] * u.micron
     otable = merge_gen_obsspec(
@@ -433,12 +433,12 @@ def merge_miri_ifu_obsspec(obstables, output_resolution=3000):
 
     output_resolution : float
         output resolution of spectra
-        input spectrum assumed to be at the appropriate resolution
+        input spectrum assumed to be at the observed resolution
 
     Returns
     -------
     output_table : astropy Table object
-        merged spectra
+        merged spectrum
     """
     wave_range = [4.8, 29.0] * u.micron
     otable = merge_gen_obsspec(

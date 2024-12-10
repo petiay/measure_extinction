@@ -86,7 +86,7 @@ The member functions of SpecData include:
 * read_stis: read a Hubble/STIS spectrum (either UV or optical range)
 * read_spex: read a IRTF/SpeX spectrum (includes scaling by corfacs)
 * read_irs: read a Spitzer/IRS spectrum (includes scaling by corfacs, cutting above some wavelength)
-* read_nircam_ss: read in NIRCam/slitless spectrum
+* read_nircam_ss: read in Webb/NIRCam slitless spectrum
 * read_miri_lrs: read in Webb/MIRI LRS spectrum
 * read_miri_ifu: read in Webb/MIRI MRS spectrum
 * rebin_constres: rebin spectrum to a constant input resolution
