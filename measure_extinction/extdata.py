@@ -13,7 +13,7 @@ from dust_extinction.conversions import AxAvToExv
 
 from measure_extinction.merge_obsspec import _wavegrid
 
-__all__ = ["ExtData", "AverageExtData"]
+__all__ = ["ExtData", "AverageExtData", "conv55toAv", "conv55toRv"]
 
 
 # globals
@@ -167,26 +167,91 @@ def _get_rel_band(red, comp, rel_band):
     Get the band to reference the extinction curve.
     Supports using a photometric band or a spectroscopic flux
     """
-    if isinstance(rel_band, str):    # reference photometric band
+    if isinstance(rel_band, str):  # reference photometric band
         red_rel_band = red.data["BAND"].get_band_mag(rel_band)
         comp_rel_band = comp.data["BAND"].get_band_mag(rel_band)
-    else:   # reference spectroscopic wavelength
+    else:  # reference spectroscopic wavelength
         # find the source that has the requested wavelength
         red_rel_band = 0.0
         for ckey in red.data.keys():
             if ckey != "BAND":
-                if np.min(red.data[ckey].waves) <= rel_band <= np.max(red.data[ckey].waves):
-                    rflux = np.interp(rel_band, red.data[ckey].waves, red.data[ckey].fluxes).value
-                    runc = np.interp(rel_band, red.data[ckey].waves, red.data[ckey].uncs).value
-                    red_rel_band = (-2.5 * np.log10(rflux), _flux_unc_as_mags(rflux, runc)[0])
+                if (
+                    np.min(red.data[ckey].waves)
+                    <= rel_band
+                    <= np.max(red.data[ckey].waves)
+                ):
+                    rflux = np.interp(
+                        rel_band, red.data[ckey].waves, red.data[ckey].fluxes
+                    ).value
+                    runc = np.interp(
+                        rel_band, red.data[ckey].waves, red.data[ckey].uncs
+                    ).value
+                    red_rel_band = (
+                        -2.5 * np.log10(rflux),
+                        _flux_unc_as_mags(rflux, runc)[0],
+                    )
 
-                    cflux = np.interp(rel_band, comp.data[ckey].waves, comp.data[ckey].fluxes).value
-                    cunc = np.interp(rel_band, comp.data[ckey].waves, comp.data[ckey].uncs).value
-                    comp_rel_band = (-2.5 * np.log10(cflux), _flux_unc_as_mags(cflux, cunc)[0])
+                    cflux = np.interp(
+                        rel_band, comp.data[ckey].waves, comp.data[ckey].fluxes
+                    ).value
+                    cunc = np.interp(
+                        rel_band, comp.data[ckey].waves, comp.data[ckey].uncs
+                    ).value
+                    comp_rel_band = (
+                        -2.5 * np.log10(cflux),
+                        _flux_unc_as_mags(cflux, cunc)[0],
+                    )
         if red_rel_band == 0.0:
-            raise ValueError("requested spectroscopic rel_band wavelength not present in any spectra")
+            raise ValueError(
+                "requested spectroscopic rel_band wavelength not present in any spectra"
+            )
 
     return (red_rel_band, comp_rel_band)
+
+
+def conv55toAv(A55, E4455):
+    """
+    Function to compute A(V) from A(55) and E(44-55).  Conversion derived from equation 4
+    of Fitzpatrick et al. (2019)
+
+    Parameters
+    ----------
+    A55 : float vector
+        A(55) given as [val, unc]
+
+    E4455 : float vector
+        E(44-55) given as [val, unc]
+
+    Returns
+    -------
+    AV : float vector
+        A(V) given as [val, unc]
+    """
+    val = A55[0] - 0.049 * E4455[0]
+    unc = np.sqrt((A55[1] ** 2) + ((0.049 * E4455[1]) ** 2))
+
+    return np.array([val, unc])
+
+
+def conv55toRv(R55):
+    """
+    Function to compute R(V) from R(55).  Conversion derived is equation 5
+    of Fitzpatrick et al. (2019)
+
+    Parameters
+    ----------
+    R55 : float vector
+        R(55) given as [val, unc]
+
+    Returns
+    -------
+    RV : float vector
+        R(V) given as [val, unc]
+    """
+    val = 1.01 * (R55[0] + 0.049)
+    unc = 1.01 * R55[1]
+
+    return np.array([val, unc])
 
 
 def AverageExtData(extdatas, min_number=3, mask=[]):
@@ -216,7 +281,11 @@ def AverageExtData(extdatas, min_number=3, mask=[]):
     for extdata in extdatas:
         # check the data type of the extinction curve, and convert if needed
         # the average curve must be calculated from the A(lambda)/A(V) curves
-        if extdata.type != "alav" and extdata.type != "alax" and extdata.type != "elvebv":
+        if (
+            extdata.type != "alav"
+            and extdata.type != "alax"
+            and extdata.type != "elvebv"
+        ):
             extdata.trans_elv_alav()
 
         # collect the keywords of the data in the extinction curves, and collect the names of the BAND data in the extinction curves, and determine the wavelengths of the data
