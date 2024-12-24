@@ -1,4 +1,3 @@
-import numpy as np
 from measure_extinction.extdata import conv55toAv, conv55toRv
 
 
