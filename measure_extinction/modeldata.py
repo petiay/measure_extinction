@@ -140,8 +140,12 @@ class ModelData(object):
                         self.flux_uncs[cspec][k, i] = band_flux[1]
 
                         # read in the band response functions for determining the reddened photometry
-                        band_filename = f"John{cband}.dat"    # needs updating for HST (+other) bands
-                        bp = SpectralElement.from_file(f"{band_resp_path}/{band_filename}")
+                        band_filename = (
+                            f"John{cband}.dat"  # needs updating for HST (+other) bands
+                        )
+                        bp = SpectralElement.from_file(
+                            f"{band_resp_path}/{band_filename}"
+                        )
                         self.band_resp[cband] = bp
                 else:
                     # get the spectral data
@@ -301,7 +305,7 @@ class ModelData(object):
             iresp = self.band_resp[cband](iwave)
             inttop = np.trapezoid(iwave * iresp * iflux, iwave)
             intbot = np.trapezoid(iwave * iresp, iwave)
-            band_sed[k] = inttop / intbot            
+            band_sed[k] = inttop / intbot
         print(ext_sed["BAND"])
         print(band_sed)
         ext_sed["BAND"] = band_sed
