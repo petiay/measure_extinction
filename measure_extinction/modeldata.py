@@ -85,8 +85,8 @@ class ModelData(object):
         self.band_names = band_names
 
         # add in special "model_full" spectra for use in computing the reddened band fluxes
-        self.n_spectra += 1
-        self.spectra_names = self.spectra_names + ["MODEL_FULL"]
+        self.spectra_names = spectra_names + ["MODEL_FULL"]
+        print(self.spectra_names)
 
         # photometric and spectroscopic data
         self.n_spectra = len(spectra_names) + 1
@@ -107,6 +107,7 @@ class ModelData(object):
 
         # read and store the model data
         for k, cfile in enumerate(modelfiles):
+            print(cfile)
             moddata = StarData(cfile, path=path)
 
             # model parameters
@@ -149,21 +150,20 @@ class ModelData(object):
         self.temps_min = min(self.temps)
         self.temps_max = max(self.temps)
         self.temps_width2 = (self.temps_max - self.temps_min) ** 2
-        if self.temps_width2 == 0:
-            self.temps_width2 == 1.0
+        if self.temps_width2 == 0.0:
+            self.temps_width2 = 1.0
 
         self.gravs_min = min(self.gravs)
         self.gravs_max = max(self.gravs)
         self.gravs_width2 = (self.gravs_max - self.gravs_min) ** 2
-        if self.gravs_width2 == 0:
-            self.gravs_width2 == 1.0
+        if self.gravs_width2 == 0.0:
+            self.gravs_width2 = 1.0
 
         self.mets_min = min(self.mets)
         self.mets_max = max(self.mets)
         self.mets_width2 = (self.mets_max - self.mets_min) ** 2
-        if self.mets_width2 == 0:
+        if self.mets_width2 == 0.0:
             self.mets_width2 = 1.0
-        # self.mets_width2 *= 4.0
 
     def stellar_sed(self, params, velocity=None):
         """
@@ -184,6 +184,7 @@ class ModelData(object):
         """
         # compute the distance between model params and grid points
         #    probably a better way using a kdtree
+        print(self.temps_width2)
         dist2 = (
             (params[0] - self.temps) ** 2 / self.temps_width2
             + (params[1] - self.gravs) ** 2 / self.gravs_width2

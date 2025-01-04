@@ -1313,8 +1313,6 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                else:
-                    warnings.warn(f"{line} not recognized", UserWarning)
 
         # if desired and the necessary dereddening parameters are present
         if deredden:
