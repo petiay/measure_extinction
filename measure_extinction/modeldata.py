@@ -84,6 +84,10 @@ class ModelData(object):
         self.n_bands = len(band_names)
         self.band_names = band_names
 
+        # add in special "model_full" spectra for use in computing the reddened band fluxes
+        self.n_spectra += 1
+        self.spectra_names = self.spectra_names + ["MODEL_FULL"]
+
         # photometric and spectroscopic data
         self.n_spectra = len(spectra_names) + 1
         self.spectra_names = spectra_names
@@ -95,7 +99,7 @@ class ModelData(object):
             self.fluxes[cspec] = None
             self.flux_uncs[cspec] = None
 
-        # initialize the BAND dictonary entry as the number of elements
+        # initialize the BAND dictionary entry as the number of elements
         # is set by the desired bands, not the bands in the files
         self.waves["BAND"] = np.zeros((self.n_bands))
         self.fluxes["BAND"] = np.zeros((self.n_models, self.n_bands))

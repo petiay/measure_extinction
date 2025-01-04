@@ -904,6 +904,31 @@ class SpecData:
         )
         self.uncs = self.uncs.to(fluxunit, equivalencies=u.spectral_density(self.waves))
 
+
+    def read_niriss_soss(self, line, path="./"):
+        """
+        Read in Webb/NIRISS single object slitless spectra
+
+        Parameters
+        ----------
+        line : string
+            formatted line from DAT file
+            example: 'NIRISS_SOSS = hd029647_niriss_soss.fits'
+
+        path : string, optional
+            location of the FITS files path
+
+        Returns
+        -------
+        Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
+        """
+        self.read_spectra(line, path)
+
+        self.fluxes = self.fluxes.to(
+            fluxunit, equivalencies=u.spectral_density(self.waves)
+        )
+        self.uncs = self.uncs.to(fluxunit, equivalencies=u.spectral_density(self.waves))
+
     def read_miri_lrs(self, line, path="./"):
         """
         Read in Webb/MIRI LRS spectra
@@ -937,6 +962,30 @@ class SpecData:
         line : string
             formatted line from DAT file
             example: 'MIRI_IFU = hd029647_miri_ifu.fits'
+
+        path : string, optional
+            location of the FITS files path
+
+        Returns
+        -------
+        Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
+        """
+        self.read_spectra(line, path)
+
+        self.fluxes = self.fluxes.to(
+            fluxunit, equivalencies=u.spectral_density(self.waves)
+        )
+        self.uncs = self.uncs.to(fluxunit, equivalencies=u.spectral_density(self.waves))
+
+    def read_model_full(self, line, path="./"):
+        """
+        Read in full model spectra (only available for model spectra)
+
+        Parameters
+        ----------
+        line : string
+            formatted line from DAT file
+            example: 'MODEL_FULL = tlusty_z200t55000g475v10_full.fits'
 
         path : string, optional
             location of the FITS files path
@@ -1214,11 +1263,31 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
+                elif line.find("NIRISS_SOSS") == 0:
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["NIRISS_SOSS"] = SpecData("NIRISS_SOSS")
+                        self.data["NIRISS_SOSS"].read_niriss_soss(
+                            line,
+                            path=self.path,
+                        )
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
                 elif line.find("NIRCam_SS") == 0:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["NIRCam_SS"] = SpecData("NIRCam_SS")
                         self.data["NIRCam_SS"].read_miri_ifu(
+                            line,
+                            path=self.path,
+                        )
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
+                elif line.find("MIRI_LRS") == 0:
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["MIRI_LRS"] = SpecData("MIRI_LRS")
+                        self.data["MIRI_LRS"].read_miri_lrs(
                             line,
                             path=self.path,
                         )
@@ -1234,6 +1303,18 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
+                elif line.find("MODEL_FULL") == 0:
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["MODEL_FULL"] = SpecData("MODEL_FULL")
+                        self.data["MODEL_FULL"].read_miri_ifu(
+                            line,
+                            path=self.path,
+                        )
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
+                else:
+                    warnings.warn(f"{line} not recognized", UserWarning)
 
         # if desired and the necessary dereddening parameters are present
         if deredden:
