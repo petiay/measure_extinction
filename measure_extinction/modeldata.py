@@ -1,10 +1,12 @@
 import numpy as np
 import astropy.units as u
+from synphot import SpectralElement
 
 from dust_extinction.shapes import _curve_F99_method
 from dust_extinction.parameter_averages import G23
 
 from measure_extinction.stardata import StarData, BandData, SpecData
+from measure_extinction.utils.helpers import get_datapath
 
 __all__ = ["ModelData"]
 
@@ -83,10 +85,11 @@ class ModelData(object):
         # photometric band data
         self.n_bands = len(band_names)
         self.band_names = band_names
+        # path for non-HST band response curves
+        band_resp_path = f"{get_datapath()}/Band_RespCurves/"
 
         # add in special "model_full" spectra for use in computing the reddened band fluxes
         self.spectra_names = spectra_names + ["MODEL_FULL"]
-        print(self.spectra_names)
 
         # photometric and spectroscopic data
         self.n_spectra = len(spectra_names) + 1
@@ -104,10 +107,10 @@ class ModelData(object):
         self.waves["BAND"] = np.zeros((self.n_bands))
         self.fluxes["BAND"] = np.zeros((self.n_models, self.n_bands))
         self.flux_uncs["BAND"] = np.zeros((self.n_models, self.n_bands))
+        self.band_resp = {}
 
         # read and store the model data
         for k, cfile in enumerate(modelfiles):
-            print(cfile)
             moddata = StarData(cfile, path=path)
 
             # model parameters
@@ -135,6 +138,11 @@ class ModelData(object):
                         self.waves[cspec][i] = band_flux[2]
                         self.fluxes[cspec][k, i] = band_flux[0]
                         self.flux_uncs[cspec][k, i] = band_flux[1]
+
+                        # read in the band response functions for determining the reddened photometry
+                        band_filename = f"John{cband}.dat"    # needs updating for HST (+other) bands
+                        bp = SpectralElement.from_file(f"{band_resp_path}/{band_filename}")
+                        self.band_resp[cband] = bp
                 else:
                     # get the spectral data
                     self.fluxes[cspec][k, :] = moddata.data[cspec].fluxes
@@ -184,7 +192,6 @@ class ModelData(object):
         """
         # compute the distance between model params and grid points
         #    probably a better way using a kdtree
-        print(self.temps_width2)
         dist2 = (
             (params[0] - self.temps) ** 2 / self.temps_width2
             + (params[1] - self.gravs) ** 2 / self.gravs_width2
@@ -281,11 +288,23 @@ class ModelData(object):
                 )
 
                 ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * params[0]))
-
         else:
             raise ValueError(
                 "Incorrect input for fit_range argument in dust_extinguished_sed(). Available options are: g23, all"
             )
+
+        # update the BAND fluxes by integrating the reddened MODEL_FULL spectrum
+        band_sed = np.zeros(self.n_bands)
+        for k, cband in enumerate(self.band_names):
+            iwave = (1.0 - velocity / 2.998e5) * self.waves["MODEL_FULL"]
+            iflux = ext_sed["MODEL_FULL"]
+            iresp = self.band_resp[cband](iwave)
+            inttop = np.trapezoid(iwave * iresp * iflux, iwave)
+            intbot = np.trapezoid(iwave * iresp, iwave)
+            band_sed[k] = inttop / intbot            
+        print(ext_sed["BAND"])
+        print(band_sed)
+        ext_sed["BAND"] = band_sed
 
         return ext_sed
 

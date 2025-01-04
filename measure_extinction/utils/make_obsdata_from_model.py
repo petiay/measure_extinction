@@ -139,9 +139,11 @@ def get_phot(mwave, mflux, band_names, band_resp_filenames):
             exit()
             # a.waveset *= 1e4
         iresp = bp(mwave)
-        bflux = np.sum(iresp * mflux) / np.sum(iresp)
+        inttop = np.trapezoid(mwave * iresp * mflux, mwave)
+        intbot = np.trapezoid(mwave * iresp, mwave)
+        bflux = inttop / intbot
         bflux_unc = 0.0
-        bdata.band_fluxes[ncband] = (bflux, bflux_unc)
+        bdata.band_fluxes[ncband] = (bflux, bflux_unc) 
 
     # calculate the band magnitudes from the fluxes
     bdata.get_band_mags_from_fluxes()
@@ -297,6 +299,7 @@ def make_obsdata_from_model(
     # dictionary to saye names of spectroscopic filenames
     specinfo = {}
 
+    full_file = "%s_full.fits" % (output_filebase)
     if not only_dat:
         # save the full spectrum to a binary FITS table
         otable = QTable()
@@ -305,8 +308,9 @@ def make_obsdata_from_model(
         otable["SIGMA"] = Column(flux_rebin * 0.01, unit=fluxunit)
         otable["NPTS"] = Column(npts_rebin)
         otable.write(
-            "%s/Models/%s_full.fits" % (output_path, output_filebase), overwrite=True
+            "%s/Models/%s" % (output_path, full_file), overwrite=True
         )
+    specinfo["MODEL_FULL"] = full_file
 
     iue_file = "%s_iue.fits" % (output_filebase)
     if not only_dat:
