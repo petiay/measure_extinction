@@ -143,7 +143,7 @@ def get_phot(mwave, mflux, band_names, band_resp_filenames):
         intbot = np.trapezoid(mwave * iresp, mwave)
         bflux = inttop / intbot
         bflux_unc = 0.0
-        bdata.band_fluxes[ncband] = (bflux, bflux_unc) 
+        bdata.band_fluxes[ncband] = (bflux, bflux_unc)
 
     # calculate the band magnitudes from the fluxes
     bdata.get_band_mags_from_fluxes()
@@ -307,9 +307,7 @@ def make_obsdata_from_model(
         otable["FLUX"] = Column(flux_rebin, unit=fluxunit)
         otable["SIGMA"] = Column(flux_rebin * 0.01, unit=fluxunit)
         otable["NPTS"] = Column(npts_rebin)
-        otable.write(
-            "%s/Models/%s" % (output_path, full_file), overwrite=True
-        )
+        otable.write("%s/Models/%s" % (output_path, full_file), overwrite=True)
     specinfo["MODEL_FULL"] = full_file
 
     iue_file = "%s_iue.fits" % (output_filebase)
@@ -529,22 +527,38 @@ def make_obsdata_from_model(
             )
 
             (indxs,) = np.where(rb_iue["NPTS"] > 0)
-            ax.plot(rb_iue["WAVELENGTH"][indxs].to(u.micron), rb_iue["FLUX"][indxs], "r-")
+            ax.plot(
+                rb_iue["WAVELENGTH"][indxs].to(u.micron), rb_iue["FLUX"][indxs], "r-"
+            )
 
             (indxs,) = np.where(rb_nrc["NPTS"] > 0)
-            ax.plot(rb_nrc["WAVELENGTH"][indxs].to(u.micron), rb_nrc["FLUX"][indxs], "c-")
+            ax.plot(
+                rb_nrc["WAVELENGTH"][indxs].to(u.micron), rb_nrc["FLUX"][indxs], "c-"
+            )
 
             (indxs,) = np.where(rb_lrs["NPTS"] > 0)
-            ax.plot(rb_lrs["WAVELENGTH"][indxs].to(u.micron), rb_lrs["FLUX"][indxs], "r:")
+            ax.plot(
+                rb_lrs["WAVELENGTH"][indxs].to(u.micron), rb_lrs["FLUX"][indxs], "r:"
+            )
 
             (indxs,) = np.where(rb_niriss["NPTS"] > 0)
-            ax.plot(rb_niriss["WAVELENGTH"][indxs].to(u.micron), rb_niriss["FLUX"][indxs], "r-")
+            ax.plot(
+                rb_niriss["WAVELENGTH"][indxs].to(u.micron),
+                rb_niriss["FLUX"][indxs],
+                "r-",
+            )
 
             (indxs,) = np.where(rb_miri_lrs["NPTS"] > 0)
-            ax.plot(rb_miri_lrs["WAVELENGTH"][indxs].to(u.micron), rb_miri_lrs["FLUX"][indxs], "r--")
+            ax.plot(
+                rb_miri_lrs["WAVELENGTH"][indxs].to(u.micron),
+                rb_miri_lrs["FLUX"][indxs],
+                "r--",
+            )
 
             (indxs,) = np.where(rb_mrs["NPTS"] > 0)
-            ax.plot(rb_mrs["WAVELENGTH"][indxs].to(u.micron), rb_mrs["FLUX"][indxs], "g-")
+            ax.plot(
+                rb_mrs["WAVELENGTH"][indxs].to(u.micron), rb_mrs["FLUX"][indxs], "g-"
+            )
 
         ax.set_xscale("log")
         ax.set_yscale("log")

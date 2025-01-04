@@ -153,7 +153,7 @@ class BandData:
         band_info : dict of band_name: value
             value is tuple of ( zeromag_flux, wavelength [micron] )
             The zeromag_flux is the flux in erg/cm2/s/A for a star of (Vega) mag=0. 
-               It gives the conversion factor from Vega magnitudes to erg/cm2/s/A.
+            It gives the conversion factor from Vega magnitudes to erg/cm2/s/A.
         """
         _johnson_band_names = ["U", "B", "V", "R", "I", "J", "H", "K", "L", "M"]
         _johnson_band_waves = np.array(
