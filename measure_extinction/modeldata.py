@@ -1,6 +1,7 @@
 import numpy as np
 import astropy.units as u
 from synphot import SpectralElement
+import stsynphot as STS
 
 from dust_extinction.shapes import _curve_F99_method
 from dust_extinction.parameter_averages import G23
@@ -140,12 +141,24 @@ class ModelData(object):
                         self.flux_uncs[cspec][k, i] = band_flux[1]
 
                         # read in the band response functions for determining the reddened photometry
-                        band_filename = (
-                            f"John{cband}.dat"  # needs updating for HST (+other) bands
-                        )
-                        bp = SpectralElement.from_file(
-                            f"{band_resp_path}/{band_filename}"
-                        )
+                        if "ACS" in cband:
+                            bp_info = cband.split("_")
+                            bp = STS.band(f"ACS,WFC1,{bp_info[1]}")
+                        elif "WFPC2" in cband:
+                            bp_info = cband.split("_")
+                            bp = STS.band(f"WFPC2,4,{bp_info[1]}")
+                        elif "WFC3" in cband:
+                            bp_info = cband.split("_")
+                            if bp_info[1] in ["F110W", "F160W"]:
+                                bp_cam = "IR"
+                            else:
+                                bp_cam = "UVIS1"
+                            bp = STS.band(f"WFC3,{bp_cam},{bp_info[1]}")
+                        else:
+                            band_filename = f"John{cband}.dat"  # needs updating for HST (+other) bands
+                            bp = SpectralElement.from_file(
+                                f"{band_resp_path}/{band_filename}"
+                            )
                         self.band_resp[cband] = bp
                 else:
                     # get the spectral data
