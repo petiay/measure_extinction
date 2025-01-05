@@ -152,7 +152,7 @@ class BandData:
         -------
         band_info : dict of band_name: value
             value is tuple of ( zeromag_flux, wavelength [micron] )
-            The zeromag_flux is the flux in erg/cm2/s/A for a star of (Vega) mag=0. 
+            The zeromag_flux is the flux in erg/cm2/s/A for a star of (Vega) mag=0.
             It gives the conversion factor from Vega magnitudes to erg/cm2/s/A.
         """
         _johnson_band_names = ["U", "B", "V", "R", "I", "J", "H", "K", "L", "M"]
@@ -216,7 +216,16 @@ class BandData:
         ]
         # from Calamida et al. 2022 (Amp C)
         _wfc3_band_waves = np.array(
-            [0.270330, 0.335465, 0.477217, 0.624196, 0.764830, 0.802932, 1.153446, 1.536918]
+            [
+                0.270330,
+                0.335465,
+                0.477217,
+                0.624196,
+                0.764830,
+                0.802932,
+                1.153446,
+                1.536918,
+            ]
         )
 
         _wfc3_photflam = np.array(
@@ -904,7 +913,6 @@ class SpecData:
             fluxunit, equivalencies=u.spectral_density(self.waves)
         )
         self.uncs = self.uncs.to(fluxunit, equivalencies=u.spectral_density(self.waves))
-
 
     def read_niriss_soss(self, line, path="./"):
         """

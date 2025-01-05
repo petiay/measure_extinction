@@ -73,11 +73,11 @@ def test_calc_AV_RV():
 
     # calculate A(V)
     ext.calc_AV()
-    np.testing.assert_almost_equal(ext.columns["AV"][0], 2.5626900237367805)
+    np.allclose(ext.columns["AV"][0], 2.5626900237367805)
 
     # calculate R(V)
     ext.calc_RV()
-    np.testing.assert_almost_equal(ext.columns["RV"][0], 2.614989769244703)
+    np.allclose(ext.columns["RV"][0], 2.614989769244703)
 
 
 def test_hierarch_keyword():
@@ -92,9 +92,9 @@ def test_hierarch_keyword():
 
 def test_get_column_val():
     # single float value
-    np.testing.assert_almost_equal(_get_column_val(3.0), 3.0)
+    np.allclose(_get_column_val(3.0), 3.0)
     # tuple
-    np.testing.assert_almost_equal(_get_column_val((3.0, 1.0, 2.0)), 3.0)
+    np.allclose(_get_column_val((3.0, 1.0, 2.0)), 3.0)
 
 
 def test_fit_band_ext():  # only for alax=False (for now)
@@ -111,14 +111,14 @@ def test_fit_band_ext():  # only for alax=False (for now)
     waves, exts, res = np.loadtxt(
         f"{data_path}/fit_band_ext_result_hd229238_hd204172.txt", unpack=True
     )
-    np.testing.assert_almost_equal(extdata.model["waves"], waves)
-    np.testing.assert_almost_equal(extdata.model["exts"], exts)
-    np.testing.assert_almost_equal(extdata.model["residuals"], res)
-    np.testing.assert_almost_equal(
+    np.allclose(extdata.model["waves"], waves)
+    np.allclose(extdata.model["exts"], exts)
+    np.allclose(extdata.model["residuals"], res)
+    np.allclose(
         extdata.model["params"],
         (0.7593262393303228, 1.345528276482045, 2.6061368004634025),
     )
-    np.testing.assert_almost_equal(extdata.columns["AV"][0], 2.6061368004634025)
+    np.allclose(extdata.columns["AV"][0], 2.6061368004634025)
 
 
 def test_fit_spex_ext():  # only for alax=False (for now)
@@ -135,11 +135,11 @@ def test_fit_spex_ext():  # only for alax=False (for now)
     waves, exts, res = np.loadtxt(
         f"{data_path}/fit_spex_ext_result_hd229238_hd204172.txt", unpack=True
     )
-    np.testing.assert_almost_equal(extdata.model["waves"], waves)
-    np.testing.assert_almost_equal(extdata.model["exts"], exts)
-    np.testing.assert_almost_equal(extdata.model["residuals"], res)
-    np.testing.assert_almost_equal(
+    np.allclose(extdata.model["waves"], waves)
+    np.allclose(extdata.model["exts"], exts)
+    np.allclose(extdata.model["residuals"], res)
+    np.allclose(
         extdata.model["params"],
         (0.8680132704511972, 2.023865293614347, 2.5626900237367805),
     )
-    np.testing.assert_almost_equal(extdata.columns["AV"][0], 2.5626900237367805)
+    np.allclose(extdata.columns["AV"][0], 2.5626900237367805)
