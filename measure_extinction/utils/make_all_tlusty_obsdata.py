@@ -75,7 +75,7 @@ def decode_params_wd(filename):
     model_params["Teff"] = float(filename[tpos + 1 : gpos])
     model_params["logg"] = float(filename[gpos + 1 : periodpos - 1]) * 0.01
     model_params["vturb"] = 0.0
-    model_params["Z"] = 1.0   # ratio to solar
+    model_params["Z"] = 1.0  # ratio to solar
 
     if model_params["Teff"] < 10000.0:
         model_params["Teff"] *= 100.0
@@ -98,6 +98,9 @@ if __name__ == "__main__":
         choices=["v2", "v5", "v10"],
         default="v2",
         help="Microturbulent velocity (only applies to tlusty grid)",
+    )
+    parser.add_argument(
+        "--only_dat", help="only create the DAT files", action="store_true"
     )
 
     args = parser.parse_args()
@@ -133,4 +136,5 @@ if __name__ == "__main__":
             output_filebase=basename,
             output_path="/home/kgordon/Python/extstar_data",
             model_params=model_params,
+            only_dat=args.only_dat,
         )
