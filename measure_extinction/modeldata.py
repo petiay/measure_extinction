@@ -155,7 +155,7 @@ class ModelData(object):
                                 bp_cam = "UVIS1"
                             bp = STS.band(f"WFC3,{bp_cam},{bp_info[1]}")
                         else:
-                            band_filename = f"John{cband}.dat"  # needs updating for HST (+other) bands
+                            band_filename = f"John{cband}.dat"
                             bp = SpectralElement.from_file(
                                 f"{band_resp_path}/{band_filename}"
                             )
