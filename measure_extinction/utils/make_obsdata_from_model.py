@@ -310,6 +310,23 @@ def make_obsdata_from_model(
         otable.write("%s/Models/%s" % (output_path, full_file), overwrite=True)
     specinfo["MODEL_FULL"] = full_file
 
+    # rebin to R=100 for speed of reddened photometry calculation
+    #   use a wavelength range that spans FUSE to Spitzer IRS
+    rbres_lowres = 100.0
+    wave_rebin_lowres, flux_rebin_lowres, npts_rebin_lowres = rebin_spectrum(
+        mwave.value, mflux.value, rbres_lowres, [912.0, 310000.0]
+    )
+    full_file_lowres = "%s_full_lowres.fits" % (output_filebase)
+    if not only_dat:
+        # save the full spectrum to a binary FITS table
+        otable = QTable()
+        otable["WAVELENGTH"] = Column(wave_rebin_lowres, unit=u.angstrom)
+        otable["FLUX"] = Column(flux_rebin_lowres, unit=fluxunit)
+        otable["SIGMA"] = Column(flux_rebin_lowres * 0.01, unit=fluxunit)
+        otable["NPTS"] = Column(npts_rebin_lowres)
+        otable.write("%s/Models/%s" % (output_path, full_file_lowres), overwrite=True)
+    specinfo["MODEL_FULL_LOWRES"] = full_file_lowres
+
     iue_file = "%s_iue.fits" % (output_filebase)
     if not only_dat:
         # IUE mock observation

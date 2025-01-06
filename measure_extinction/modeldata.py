@@ -92,7 +92,7 @@ class ModelData(object):
         # photometric and spectroscopic data +2 for "BANDS" and "MODEL_FULL"
         self.n_spectra = len(spectra_names) + 2
         # add in special "model_full" spectra for use in computing the reddened band fluxes
-        self.spectra_names = spectra_names + ["MODEL_FULL"]
+        self.spectra_names = spectra_names + ["MODEL_FULL_LOWRES"]
         self.waves = {}
         self.fluxes = {}
         self.flux_uncs = {}
@@ -311,9 +311,9 @@ class ModelData(object):
         # update the BAND fluxes by integrating the reddened MODEL_FULL spectrum
         band_sed = np.zeros(self.n_bands)
         for k, cband in enumerate(self.band_names):
-            gvals = np.isfinite(ext_sed["MODEL_FULL"])
-            iwave = (1.0 - velocity / 2.998e5) * self.waves["MODEL_FULL"][gvals]
-            iflux = ext_sed["MODEL_FULL"][gvals]
+            gvals = np.isfinite(ext_sed["MODEL_FULL_LOWRES"])
+            iwave = (1.0 - velocity / 2.998e5) * self.waves["MODEL_FULL_LOWRES"][gvals]
+            iflux = ext_sed["MODEL_FULL_LOWRES"][gvals]
             iresp = self.band_resp[cband](iwave)
             inttop = np.trapezoid(iwave * iresp * iflux, iwave)
             intbot = np.trapezoid(iwave * iresp, iwave)

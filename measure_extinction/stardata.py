@@ -1208,35 +1208,35 @@ class StarData:
         # read the spectra
         if not self.photonly:
             for line in self.datfile_lines:
-                if line.find("IUE") == 0:
+                if "IUE" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["IUE"] = SpecData("IUE")
                         self.data["IUE"].read_iue(line, path=self.path)
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("FUSE") == 0:
+                elif "FUSE" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["FUSE"] = SpecData("FUSE")
                         self.data["FUSE"].read_fuse(line, path=self.path)
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("STIS_Opt") == 0:
+                elif "STIS_Opt" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["STIS_Opt"] = SpecData("STIS_Opt")
                         self.data["STIS_Opt"].read_stis(line, path=self.path)
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("STIS") == 0:
+                elif "STIS" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["STIS"] = SpecData("STIS")
                         self.data["STIS"].read_stis(line, path=self.path)
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("SpeX_SXD") == 0:
+                elif "SpeX_SXD" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["SpeX_SXD"] = SpecData("SpeX_SXD")
@@ -1248,7 +1248,7 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("SpeX_LXD") == 0:
+                elif "SpeX_LXD" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["SpeX_LXD"] = SpecData("SpeX_LXD")
@@ -1260,7 +1260,7 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("IRS") == 0 and line.find("IRS15") < 0:
+                elif ("IRS" in line) and "IRS15" not in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["IRS"] = SpecData("IRS")
@@ -1272,7 +1272,7 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("NIRISS_SOSS") == 0:
+                elif "NIRISS_SOSS" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["NIRISS_SOSS"] = SpecData("NIRISS_SOSS")
@@ -1282,7 +1282,7 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("NIRCam_SS") == 0:
+                elif "NIRCam_SS" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["NIRCam_SS"] = SpecData("NIRCam_SS")
@@ -1292,7 +1292,7 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("MIRI_LRS") == 0:
+                elif "MIRI_LRS" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["MIRI_LRS"] = SpecData("MIRI_LRS")
@@ -1302,7 +1302,7 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("MIRI_IFU") == 0:
+                elif "MIRI_IFU" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["MIRI_IFU"] = SpecData("MIRI_IFU")
@@ -1312,11 +1312,21 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("MODEL_FULL") == 0:
+                elif "MODEL_FULL_LOWRES" in line:
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["MODEL_FULL_LOWRES"] = SpecData("MODEL_FULL_LOWRES")
+                        self.data["MODEL_FULL_LOWRES"].read_model_full(
+                            line,
+                            path=self.path,
+                        )
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
+                elif "MODEL_FULL" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["MODEL_FULL"] = SpecData("MODEL_FULL")
-                        self.data["MODEL_FULL"].read_miri_ifu(
+                        self.data["MODEL_FULL"].read_model_full(
                             line,
                             path=self.path,
                         )
