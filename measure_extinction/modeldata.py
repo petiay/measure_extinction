@@ -89,12 +89,10 @@ class ModelData(object):
         # path for non-HST band response curves
         band_resp_path = f"{get_datapath()}/Band_RespCurves/"
 
+        # photometric and spectroscopic data +2 for "BANDS" and "MODEL_FULL"
+        self.n_spectra = len(spectra_names) + 2
         # add in special "model_full" spectra for use in computing the reddened band fluxes
         self.spectra_names = spectra_names + ["MODEL_FULL"]
-
-        # photometric and spectroscopic data
-        self.n_spectra = len(spectra_names) + 1
-        self.spectra_names = spectra_names
         self.waves = {}
         self.fluxes = {}
         self.flux_uncs = {}
@@ -313,14 +311,13 @@ class ModelData(object):
         # update the BAND fluxes by integrating the reddened MODEL_FULL spectrum
         band_sed = np.zeros(self.n_bands)
         for k, cband in enumerate(self.band_names):
-            iwave = (1.0 - velocity / 2.998e5) * self.waves["MODEL_FULL"]
-            iflux = ext_sed["MODEL_FULL"]
+            gvals = np.isfinite(ext_sed["MODEL_FULL"])
+            iwave = (1.0 - velocity / 2.998e5) * self.waves["MODEL_FULL"][gvals]
+            iflux = ext_sed["MODEL_FULL"][gvals]
             iresp = self.band_resp[cband](iwave)
             inttop = np.trapezoid(iwave * iresp * iflux, iwave)
             intbot = np.trapezoid(iwave * iresp, iwave)
             band_sed[k] = inttop / intbot
-        print(ext_sed["BAND"])
-        print(band_sed)
         ext_sed["BAND"] = band_sed
 
         return ext_sed
