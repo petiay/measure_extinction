@@ -97,7 +97,7 @@ class FitInfo(object):
         # model data normalized to the observations using the ratio
         #   weighted average of the averages of each type of data (photometry or specific spectrum)
         #   allows for all the data to contribute to the normalization
-        #   weighting by number of points in each type of data to achieve the highest S/N in 
+        #   weighting by number of points in each type of data to achieve the highest S/N in
         #     the normalization
         norm_mod = []
         norm_dat = []
