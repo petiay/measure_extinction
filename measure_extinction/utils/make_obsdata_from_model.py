@@ -139,7 +139,9 @@ def get_phot(mwave, mflux, band_names, band_resp_filenames):
             exit()
             # a.waveset *= 1e4
         iresp = bp(mwave)
-        bflux = np.sum(iresp * mflux) / np.sum(iresp)
+        inttop = np.trapezoid(mwave * iresp * mflux, mwave)
+        intbot = np.trapezoid(mwave * iresp, mwave)
+        bflux = inttop / intbot
         bflux_unc = 0.0
         bdata.band_fluxes[ncband] = (bflux, bflux_unc)
 
@@ -297,6 +299,24 @@ def make_obsdata_from_model(
     # dictionary to saye names of spectroscopic filenames
     specinfo = {}
 
+    # rebin to R=100 for speed of reddened photometry calculation
+    #   use a wavelength range that spans FUSE to Spitzer IRS
+    rbres_lowres = 100.0
+    wave_rebin_lowres, flux_rebin_lowres, npts_rebin_lowres = rebin_spectrum(
+        mwave.value, mflux.value, rbres_lowres, [912.0, 310000.0]
+    )
+    full_file_lowres = "%s_full_lowres.fits" % (output_filebase)
+    if not only_dat:
+        # save the full spectrum to a binary FITS table
+        otable_lowres = QTable()
+        otable_lowres["WAVELENGTH"] = Column(wave_rebin_lowres, unit=u.angstrom)
+        otable_lowres["FLUX"] = Column(flux_rebin_lowres, unit=fluxunit)
+        otable_lowres["SIGMA"] = Column(flux_rebin_lowres * 0.01, unit=fluxunit)
+        otable_lowres["NPTS"] = Column(npts_rebin_lowres)
+        otable_lowres.write("%s/Models/%s" % (output_path, full_file_lowres), overwrite=True)
+    specinfo["MODEL_FULL_LOWRES"] = full_file_lowres
+
+    full_file = "%s_full.fits" % (output_filebase)
     if not only_dat:
         # save the full spectrum to a binary FITS table
         otable = QTable()
@@ -304,9 +324,8 @@ def make_obsdata_from_model(
         otable["FLUX"] = Column(flux_rebin, unit=fluxunit)
         otable["SIGMA"] = Column(flux_rebin * 0.01, unit=fluxunit)
         otable["NPTS"] = Column(npts_rebin)
-        otable.write(
-            "%s/Models/%s_full.fits" % (output_path, output_filebase), overwrite=True
-        )
+        otable.write("%s/Models/%s" % (output_path, full_file), overwrite=True)
+    specinfo["MODEL_FULL"] = full_file
 
     iue_file = "%s_iue.fits" % (output_filebase)
     if not only_dat:
@@ -525,22 +544,38 @@ def make_obsdata_from_model(
             )
 
             (indxs,) = np.where(rb_iue["NPTS"] > 0)
-            ax.plot(rb_iue["WAVELENGTH"][indxs].to(u.micron), rb_iue["FLUX"][indxs], "r-")
+            ax.plot(
+                rb_iue["WAVELENGTH"][indxs].to(u.micron), rb_iue["FLUX"][indxs], "r-"
+            )
 
             (indxs,) = np.where(rb_nrc["NPTS"] > 0)
-            ax.plot(rb_nrc["WAVELENGTH"][indxs].to(u.micron), rb_nrc["FLUX"][indxs], "c-")
+            ax.plot(
+                rb_nrc["WAVELENGTH"][indxs].to(u.micron), rb_nrc["FLUX"][indxs], "c-"
+            )
 
             (indxs,) = np.where(rb_lrs["NPTS"] > 0)
-            ax.plot(rb_lrs["WAVELENGTH"][indxs].to(u.micron), rb_lrs["FLUX"][indxs], "r:")
+            ax.plot(
+                rb_lrs["WAVELENGTH"][indxs].to(u.micron), rb_lrs["FLUX"][indxs], "r:"
+            )
 
             (indxs,) = np.where(rb_niriss["NPTS"] > 0)
-            ax.plot(rb_niriss["WAVELENGTH"][indxs].to(u.micron), rb_niriss["FLUX"][indxs], "r-")
+            ax.plot(
+                rb_niriss["WAVELENGTH"][indxs].to(u.micron),
+                rb_niriss["FLUX"][indxs],
+                "r-",
+            )
 
             (indxs,) = np.where(rb_miri_lrs["NPTS"] > 0)
-            ax.plot(rb_miri_lrs["WAVELENGTH"][indxs].to(u.micron), rb_miri_lrs["FLUX"][indxs], "r--")
+            ax.plot(
+                rb_miri_lrs["WAVELENGTH"][indxs].to(u.micron),
+                rb_miri_lrs["FLUX"][indxs],
+                "r--",
+            )
 
             (indxs,) = np.where(rb_mrs["NPTS"] > 0)
-            ax.plot(rb_mrs["WAVELENGTH"][indxs].to(u.micron), rb_mrs["FLUX"][indxs], "g-")
+            ax.plot(
+                rb_mrs["WAVELENGTH"][indxs].to(u.micron), rb_mrs["FLUX"][indxs], "g-"
+            )
 
         ax.set_xscale("log")
         ax.set_yscale("log")

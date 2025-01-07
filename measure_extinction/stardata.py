@@ -152,7 +152,8 @@ class BandData:
         -------
         band_info : dict of band_name: value
             value is tuple of ( zeromag_flux, wavelength [micron] )
-            The zeromag_flux is the flux in erg/cm2/s/A for a star of (Vega) mag=0. It gives the conversion factor from Vega magnitudes to erg/cm2/s/A.
+            The zeromag_flux is the flux in erg/cm2/s/A for a star of (Vega) mag=0.
+            It gives the conversion factor from Vega magnitudes to erg/cm2/s/A.
         """
         _johnson_band_names = ["U", "B", "V", "R", "I", "J", "H", "K", "L", "M"]
         _johnson_band_waves = np.array(
@@ -215,7 +216,16 @@ class BandData:
         ]
         # from Calamida et al. 2022 (Amp C)
         _wfc3_band_waves = np.array(
-            [0.270330, 0.335465, 0.477217, 0.624196, 0.764830, 0.802932, 1.153446, 1.536918]
+            [
+                0.270330,
+                0.335465,
+                0.477217,
+                0.624196,
+                0.764830,
+                0.802932,
+                1.153446,
+                1.536918,
+            ]
         )
 
         _wfc3_photflam = np.array(
@@ -904,6 +914,30 @@ class SpecData:
         )
         self.uncs = self.uncs.to(fluxunit, equivalencies=u.spectral_density(self.waves))
 
+    def read_niriss_soss(self, line, path="./"):
+        """
+        Read in Webb/NIRISS single object slitless spectra
+
+        Parameters
+        ----------
+        line : string
+            formatted line from DAT file
+            example: 'NIRISS_SOSS = hd029647_niriss_soss.fits'
+
+        path : string, optional
+            location of the FITS files path
+
+        Returns
+        -------
+        Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
+        """
+        self.read_spectra(line, path)
+
+        self.fluxes = self.fluxes.to(
+            fluxunit, equivalencies=u.spectral_density(self.waves)
+        )
+        self.uncs = self.uncs.to(fluxunit, equivalencies=u.spectral_density(self.waves))
+
     def read_miri_lrs(self, line, path="./"):
         """
         Read in Webb/MIRI LRS spectra
@@ -937,6 +971,30 @@ class SpecData:
         line : string
             formatted line from DAT file
             example: 'MIRI_IFU = hd029647_miri_ifu.fits'
+
+        path : string, optional
+            location of the FITS files path
+
+        Returns
+        -------
+        Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
+        """
+        self.read_spectra(line, path)
+
+        self.fluxes = self.fluxes.to(
+            fluxunit, equivalencies=u.spectral_density(self.waves)
+        )
+        self.uncs = self.uncs.to(fluxunit, equivalencies=u.spectral_density(self.waves))
+
+    def read_model_full(self, line, path="./"):
+        """
+        Read in full model spectra (only available for model spectra)
+
+        Parameters
+        ----------
+        line : string
+            formatted line from DAT file
+            example: 'MODEL_FULL = tlusty_z200t55000g475v10_full.fits'
 
         path : string, optional
             location of the FITS files path
@@ -1150,35 +1208,37 @@ class StarData:
         # read the spectra
         if not self.photonly:
             for line in self.datfile_lines:
-                if line.find("IUE") == 0:
+                if line[0] == "#":
+                    pass
+                elif "IUE" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["IUE"] = SpecData("IUE")
                         self.data["IUE"].read_iue(line, path=self.path)
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("FUSE") == 0:
+                elif "FUSE" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["FUSE"] = SpecData("FUSE")
                         self.data["FUSE"].read_fuse(line, path=self.path)
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("STIS_Opt") == 0:
+                elif "STIS_Opt" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["STIS_Opt"] = SpecData("STIS_Opt")
                         self.data["STIS_Opt"].read_stis(line, path=self.path)
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("STIS") == 0:
+                elif "STIS" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["STIS"] = SpecData("STIS")
                         self.data["STIS"].read_stis(line, path=self.path)
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("SpeX_SXD") == 0:
+                elif "SpeX_SXD" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["SpeX_SXD"] = SpecData("SpeX_SXD")
@@ -1190,7 +1250,7 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("SpeX_LXD") == 0:
+                elif "SpeX_LXD" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["SpeX_LXD"] = SpecData("SpeX_LXD")
@@ -1202,7 +1262,7 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("IRS") == 0 and line.find("IRS15") < 0:
+                elif ("IRS" in line) and "IRS15" not in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["IRS"] = SpecData("IRS")
@@ -1214,7 +1274,17 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("NIRCam_SS") == 0:
+                elif "NIRISS_SOSS" in line:
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["NIRISS_SOSS"] = SpecData("NIRISS_SOSS")
+                        self.data["NIRISS_SOSS"].read_niriss_soss(
+                            line,
+                            path=self.path,
+                        )
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
+                elif "NIRCam_SS" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["NIRCam_SS"] = SpecData("NIRCam_SS")
@@ -1224,11 +1294,41 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("MIRI_IFU") == 0:
+                elif "MIRI_LRS" in line:
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["MIRI_LRS"] = SpecData("MIRI_LRS")
+                        self.data["MIRI_LRS"].read_miri_lrs(
+                            line,
+                            path=self.path,
+                        )
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
+                elif "MIRI_IFU" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["MIRI_IFU"] = SpecData("MIRI_IFU")
                         self.data["MIRI_IFU"].read_miri_ifu(
+                            line,
+                            path=self.path,
+                        )
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
+                elif "MODEL_FULL_LOWRES" in line:
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["MODEL_FULL_LOWRES"] = SpecData("MODEL_FULL_LOWRES")
+                        self.data["MODEL_FULL_LOWRES"].read_model_full(
+                            line,
+                            path=self.path,
+                        )
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
+                elif "MODEL_FULL" in line:
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["MODEL_FULL"] = SpecData("MODEL_FULL")
+                        self.data["MODEL_FULL"].read_model_full(
                             line,
                             path=self.path,
                         )

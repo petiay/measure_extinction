@@ -97,7 +97,7 @@ class FitInfo(object):
         norm_data = np.average(obsdata.data["BAND"].fluxes.value)
 
         lnl = 0.0
-        for cspec in hi_ext_modsed.keys():
+        for cspec in obsdata.data.keys():
             try:
                 gvals = (self.weights[cspec] > 0) & (np.isfinite(hi_ext_modsed[cspec]))
             except ValueError:

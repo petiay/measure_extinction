@@ -1,10 +1,13 @@
 import numpy as np
 import astropy.units as u
+from synphot import SpectralElement
+import stsynphot as STS
 
 from dust_extinction.shapes import _curve_F99_method
 from dust_extinction.parameter_averages import G23
 
 from measure_extinction.stardata import StarData, BandData, SpecData
+from measure_extinction.utils.helpers import get_datapath
 
 __all__ = ["ModelData"]
 
@@ -83,10 +86,13 @@ class ModelData(object):
         # photometric band data
         self.n_bands = len(band_names)
         self.band_names = band_names
+        # path for non-HST band response curves
+        band_resp_path = f"{get_datapath()}/Band_RespCurves/"
 
-        # photometric and spectroscopic data
-        self.n_spectra = len(spectra_names) + 1
-        self.spectra_names = spectra_names
+        # photometric and spectroscopic data +2 for "BANDS" and "MODEL_FULL"
+        self.n_spectra = len(spectra_names) + 2
+        # add in special "model_full" spectra for use in computing the reddened band fluxes
+        self.spectra_names = spectra_names + ["MODEL_FULL_LOWRES"]
         self.waves = {}
         self.fluxes = {}
         self.flux_uncs = {}
@@ -95,11 +101,12 @@ class ModelData(object):
             self.fluxes[cspec] = None
             self.flux_uncs[cspec] = None
 
-        # initialize the BAND dictonary entry as the number of elements
+        # initialize the BAND dictionary entry as the number of elements
         # is set by the desired bands, not the bands in the files
         self.waves["BAND"] = np.zeros((self.n_bands))
         self.fluxes["BAND"] = np.zeros((self.n_models, self.n_bands))
         self.flux_uncs["BAND"] = np.zeros((self.n_models, self.n_bands))
+        self.band_resp = {}
 
         # read and store the model data
         for k, cfile in enumerate(modelfiles):
@@ -130,6 +137,27 @@ class ModelData(object):
                         self.waves[cspec][i] = band_flux[2]
                         self.fluxes[cspec][k, i] = band_flux[0]
                         self.flux_uncs[cspec][k, i] = band_flux[1]
+
+                        # read in the band response functions for determining the reddened photometry
+                        if "ACS" in cband:
+                            bp_info = cband.split("_")
+                            bp = STS.band(f"ACS,WFC1,{bp_info[1]}")
+                        elif "WFPC2" in cband:
+                            bp_info = cband.split("_")
+                            bp = STS.band(f"WFPC2,4,{bp_info[1]}")
+                        elif "WFC3" in cband:
+                            bp_info = cband.split("_")
+                            if bp_info[1] in ["F110W", "F160W"]:
+                                bp_cam = "IR"
+                            else:
+                                bp_cam = "UVIS1"
+                            bp = STS.band(f"WFC3,{bp_cam},{bp_info[1]}")
+                        else:
+                            band_filename = f"John{cband}.dat"
+                            bp = SpectralElement.from_file(
+                                f"{band_resp_path}/{band_filename}"
+                            )
+                        self.band_resp[cband] = bp
                 else:
                     # get the spectral data
                     self.fluxes[cspec][k, :] = moddata.data[cspec].fluxes
@@ -145,21 +173,20 @@ class ModelData(object):
         self.temps_min = min(self.temps)
         self.temps_max = max(self.temps)
         self.temps_width2 = (self.temps_max - self.temps_min) ** 2
-        if self.temps_width2 == 0:
-            self.temps_width2 == 1.0
+        if self.temps_width2 == 0.0:
+            self.temps_width2 = 1.0
 
         self.gravs_min = min(self.gravs)
         self.gravs_max = max(self.gravs)
         self.gravs_width2 = (self.gravs_max - self.gravs_min) ** 2
-        if self.gravs_width2 == 0:
-            self.gravs_width2 == 1.0
+        if self.gravs_width2 == 0.0:
+            self.gravs_width2 = 1.0
 
         self.mets_min = min(self.mets)
         self.mets_max = max(self.mets)
         self.mets_width2 = (self.mets_max - self.mets_min) ** 2
-        if self.mets_width2 == 0:
+        if self.mets_width2 == 0.0:
             self.mets_width2 = 1.0
-        # self.mets_width2 *= 4.0
 
     def stellar_sed(self, params, velocity=None):
         """
@@ -276,11 +303,23 @@ class ModelData(object):
                 )
 
                 ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * params[0]))
-
         else:
             raise ValueError(
                 "Incorrect input for fit_range argument in dust_extinguished_sed(). Available options are: g23, all"
             )
+
+        # update the BAND fluxes by integrating the reddened MODEL_FULL spectrum
+        if "BAND" in self.fluxes.keys():
+            band_sed = np.zeros(self.n_bands)
+            for k, cband in enumerate(self.band_names):
+                gvals = np.isfinite(ext_sed["MODEL_FULL_LOWRES"])
+                iwave = (1.0 - velocity / 2.998e5) * self.waves["MODEL_FULL_LOWRES"][gvals]
+                iflux = ext_sed["MODEL_FULL_LOWRES"][gvals]
+                iresp = self.band_resp[cband](iwave)
+                inttop = np.trapezoid(iwave * iresp * iflux, iwave)
+                intbot = np.trapezoid(iwave * iresp, iwave)
+                band_sed[k] = inttop / intbot
+            ext_sed["BAND"] = band_sed
 
         return ext_sed
 
