@@ -102,7 +102,7 @@ class FitInfo(object):
         norm_mod = []
         norm_dat = []
         norm_npts = []
-        for cspec in hi_ext_modsed.keys():
+        for cspec in obsdata.data.keys():
             gvals = (self.weights[cspec] > 0) & (np.isfinite(hi_ext_modsed[cspec]))
             norm_npts.append(np.sum(gvals))
             norm_mod.append(np.average(hi_ext_modsed[cspec][gvals]))

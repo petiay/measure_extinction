@@ -101,12 +101,13 @@ class ModelData(object):
             self.fluxes[cspec] = None
             self.flux_uncs[cspec] = None
 
-        # initialize the BAND dictionary entry as the number of elements
-        # is set by the desired bands, not the bands in the files
-        self.waves["BAND"] = np.zeros((self.n_bands))
-        self.fluxes["BAND"] = np.zeros((self.n_models, self.n_bands))
-        self.flux_uncs["BAND"] = np.zeros((self.n_models, self.n_bands))
-        self.band_resp = {}
+        if "BAND" in spectra_names:
+            # initialize the BAND dictionary entry as the number of elements
+            # is set by the desired bands, not the bands in the files
+            self.waves["BAND"] = np.zeros((self.n_bands))
+            self.fluxes["BAND"] = np.zeros((self.n_models, self.n_bands))
+            self.flux_uncs["BAND"] = np.zeros((self.n_models, self.n_bands))
+            self.band_resp = {}
 
         # read and store the model data
         for k, cfile in enumerate(modelfiles):
@@ -163,8 +164,9 @@ class ModelData(object):
                     self.fluxes[cspec][k, :] = moddata.data[cspec].fluxes
                     self.flux_uncs[cspec][k, :] = moddata.data[cspec].uncs
 
-        # add units
-        self.waves["BAND"] = self.waves["BAND"] * u.micron
+        if "BAND" in spectra_names:
+            # add units
+            self.waves["BAND"] = self.waves["BAND"] * u.micron
 
         # provide the width in model space for each parameter
         #   used in calculating the nearest neighbors
