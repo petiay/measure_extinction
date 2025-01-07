@@ -1208,7 +1208,9 @@ class StarData:
         # read the spectra
         if not self.photonly:
             for line in self.datfile_lines:
-                if "IUE" in line:
+                if line[0] == "#":
+                    pass
+                elif "IUE" in line:
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["IUE"] = SpecData("IUE")

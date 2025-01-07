@@ -309,16 +309,17 @@ class ModelData(object):
             )
 
         # update the BAND fluxes by integrating the reddened MODEL_FULL spectrum
-        band_sed = np.zeros(self.n_bands)
-        for k, cband in enumerate(self.band_names):
-            gvals = np.isfinite(ext_sed["MODEL_FULL_LOWRES"])
-            iwave = (1.0 - velocity / 2.998e5) * self.waves["MODEL_FULL_LOWRES"][gvals]
-            iflux = ext_sed["MODEL_FULL_LOWRES"][gvals]
-            iresp = self.band_resp[cband](iwave)
-            inttop = np.trapezoid(iwave * iresp * iflux, iwave)
-            intbot = np.trapezoid(iwave * iresp, iwave)
-            band_sed[k] = inttop / intbot
-        ext_sed["BAND"] = band_sed
+        if "BAND" in self.fluxes.keys():
+            band_sed = np.zeros(self.n_bands)
+            for k, cband in enumerate(self.band_names):
+                gvals = np.isfinite(ext_sed["MODEL_FULL_LOWRES"])
+                iwave = (1.0 - velocity / 2.998e5) * self.waves["MODEL_FULL_LOWRES"][gvals]
+                iflux = ext_sed["MODEL_FULL_LOWRES"][gvals]
+                iresp = self.band_resp[cband](iwave)
+                inttop = np.trapezoid(iwave * iresp * iflux, iwave)
+                intbot = np.trapezoid(iwave * iresp, iwave)
+                band_sed[k] = inttop / intbot
+            ext_sed["BAND"] = band_sed
 
         return ext_sed
 
