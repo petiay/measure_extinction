@@ -1169,8 +1169,12 @@ class StarData:
         self.data["BAND"] = BandData("BAND")
         self.data["BAND"].read_bands(self.datfile_lines, only_bands=only_bands)
 
-        # covert the photoemtric band data to fluxes in all possible bands
-        self.data["BAND"].get_band_fluxes()
+        if self.data["BAND"].n_bands == 0:
+            # no bands, delete BAND entry
+            del self.data["BAND"]
+        else:
+            # covert the photoemtric band data to fluxes in all possible bands
+            self.data["BAND"].get_band_fluxes()
 
         # go through and get info before reading the spectra
         poss_mod_params = ["model_type", "Z", "vturb", "logg", "Teff", "origin"]
