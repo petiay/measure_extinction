@@ -100,8 +100,8 @@ if __name__ == "__main__":
         outname = args.outname
     else:
         outname = args.starname.lower()
-    stis_file = "%s_stis_%s.fits" % (outname, args.waveregion)
-    rb_stis.write("%s/%s" % (args.outpath, stis_file), overwrite=True)
+    stis_file = "%s/%s_stis_%s.fits" % (args.outpath, outname, args.waveregion)
+    rb_stis.write(stis_file, overwrite=True)
 
     # plot the original and merged Spectra
     fontsize = 14
