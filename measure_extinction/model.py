@@ -273,11 +273,11 @@ class MEModel(object):
         for cspec in moddata.fluxes.keys():
             hi_sed[cspec] = np.copy(sed[cspec])
             (indxs,) = np.where(
-                np.absolute((self.waves[cspec] - h_lines[0]) <= h_width)
+                np.absolute((moddata.waves[cspec] - h_lines[0]) <= h_width)
             )
             if len(indxs) > 0:
-                logHI_vals = [self.logHI_MW, self.logHI_exgal]
-                for i, cvel in enumerate([self.vel_MW, self.vel_exgal]):
+                logHI_vals = [self.logHI_MW.value, self.logHI_exgal.value]
+                for i, cvel in enumerate([self.vel_MW.value, self.vel_exgal.value]):
                     # compute the Ly-alpha abs: from Bohlin et al. (197?)
                     abs_wave = (1.0 + (cvel / 3e5)) * h_lines[0].to(u.micron).value
                     phi = 4.26e-20 / (
