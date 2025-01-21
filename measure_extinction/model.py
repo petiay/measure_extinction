@@ -10,10 +10,11 @@ class MEParameter(object):
     Provide parameter info in a flexible format.
     Inspired by astropy modeling.
     """
-
     def __init__(self, value=0.0, bounds=(False, False), prior=None, fixed=False):
         self.value = value
+        # square bounds supported by giving (min, max) as the bounds
         self.bounds = bounds
+        # currently only Gaussian priors supports by giving (mean, sigma) as the prior
         self.prior = prior
         self.fixed = fixed
 
@@ -28,35 +29,72 @@ class MEModel(object):
     # fmt: off
     paramnames = ["logTeff", "logg", "logZ", "velocity",
                   "Av", "Rv", "C2", "B3", "C4", "xo", "gamma",
-                  ]
+                  "vel_MW", "logHI_MW", "vel_exgal", "logHI_exgal"]
     # fmt: on
     nparams = len(paramnames)
 
     # stellar
-    logTeff = MEParameter(value=4.0, bounds=(0.0, False))
-    logg = MEParameter(value=3.0, bounds=(0.0, False))
-    logZ = MEParameter(value=0.0, bounds=(0.0, False))
+    logTeff = MEParameter(value=4.0, bounds=(0.0, 10.0))
+    logg = MEParameter(value=3.0, bounds=(0.0, 10.0))
+    logZ = MEParameter(value=0.0, bounds=(-1.0, 1.0))
     velocity = MEParameter(value=0.0, bounds=[-1000.0, 1000.0], fixed=True)  # km/s
 
-    # dust - defaults based on VCG04 and FM07 MW samples (expect Av)
-    Av = MEParameter(value=0.5, bounds=(0.0, False))
-    Rv = MEParameter(value=3.0, bounds=(0.0, False))
-    C2 = MEParameter(value=0.73, bounds=(0.0, False))
-    B3 = MEParameter(value=3.6, bounds=(0.0, False))
-    C4 = MEParameter(value=3.6, bounds=(0.0, False))
-    xo = MEParameter(value=0.4, bounds=(0.0, False))
-    gamma = MEParameter(value=0.89, bounds=(0.0, False))
+    # dust - values, bounds, and priors based on VCG04 and FM07 MW samples (expect Av)
+    Av = MEParameter(value=0.5, bounds=(0.0, 100.0))
+    Rv = MEParameter(value=3.0, bounds=(2.0, 6.0), prior=(3.0, 0.4))
+    C2 = MEParameter(value=0.73, bounds=(-0.1, 5.0), prior=(0.73, 0.25))
+    B3 = MEParameter(value=3.6, bounds=(-1.0, 8.0), prior=(3.6, 0.6))
+    C4 = MEParameter(value=0.4, bounds=(-0.5, 1.5), prior=(0.4, 0.2))
+    xo = MEParameter(value=4.59, bounds=(4.5, 4.9), prior=(4.59, 0.02))
+    gamma = MEParameter(value=0.89, bounds=(0.4, 1.7), prior=(0.89, 0.08))
 
     # gas
-    vel_MW = MEParameter(value=0.0, bounds=(-300.0, 300.0))
-    logHI_MW = MEParameter(value=20.0, bounds=(16., 24.))
-    vel_exgal = MEParameter(value=0.0, bounds=(-300.0, 1000.0), fixed=True)
-    logHI_exgal = MEParameter(value=16.0, bounds=(16., 24.), fixed=True)
+    vel_MW = MEParameter(value=0.0, bounds=(-300.0, 300.0))  # km/s
+    logHI_MW = MEParameter(value=20.0, bounds=(16.0, 24.0))
+    vel_exgal = MEParameter(value=0.0, bounds=(-300.0, 1000.0), fixed=True)  # km/s
+    logHI_exgal = MEParameter(value=16.0, bounds=(16.0, 24.0), fixed=True)
+
+    #  bad regions are defined as those were we know the models do not work
+    #  or the data is bad
+    exclude_regions = [
+        [8.23 - 0.1, 8.23 + 0.1],  # geocoronal line
+        [8.7, 10.0],  # bad data from STIS
+        [3.55, 3.6],
+        [3.80, 3.90],
+        [4.15, 4.3],
+        [6.4, 6.6],
+        [7.1, 7.3],
+        [7.45, 7.55],
+        [7.65, 7.75],
+        [7.9, 7.95],
+        [8.05, 8.1],
+    ] / u.micron
+
+    # some fitters don't like inf, can be changed here
+    lnp_bignnum = -np.inf
+
+    def __init__(self, modinfo=None):
+        """
+        Initialize the object, optionally using the min/max of the input model info
+        to set the value and bounds on the stellar parameters
+
+        Parameters
+        ----------
+        moddata : ModelData object
+            all the information about the model spectra
+        """
+        if modinfo is not None:
+            self.logTeff.bounds = (modinfo.temps_min, modinfo.temps_max)
+            self.logTeff.value = np.average(self.logTeff.bounds)
+            self.logg.bounds = (modinfo.gravs_min, modinfo.gravs_max)
+            self.logg.value = np.average(self.logg.bounds)
+            self.logZ.bounds = (modinfo.mets_min, modinfo.mets_max)
+            self.logZ.value = np.average(self.logZ.bounds)
 
     def parameters(self):
         """
         Give all the parameters values in a vector (fixed or not).
-        
+
         Returns
         -------
         params : np array
@@ -70,7 +108,7 @@ class MEModel(object):
     def parameters_to_fit(self):
         """
         Give the non-fixed parameters values in a vector.  Needed for most fitters/samplers.
-        
+
         Returns
         -------
         params : np array
@@ -86,18 +124,54 @@ class MEModel(object):
         """
         Set the parameter values based on a vector of the non-fixed values.
         Needed for most fitters/samplers.
-        
+
         Parameters
         ----------
         fit_params : np array
             non-fixed parameters values
         """
-        vals = np.zeros(self.nparams)
         i = 0
-        for k, cname in enumerate(self.paramnames):
+        for cname in self.paramnames:
             if not getattr(self, cname).fixed:
                 setattr(self, cname, fit_params[i])
                 i += 1
+
+    def check_param_limits(self):
+        """
+        Check the parameters are within the parameter bounds
+        """
+        for cname in self.paramnames:
+            pval = getattr(self, cname).value
+            pbounds = getattr(self, cname).bounds
+            if (pval < pbounds[0]) | (pval > pbounds[1]):
+                raise ValueError(
+                    f"{cname} = {pval} is outside of the bounds ({pbounds[0]}, {pbounds[1]})"
+                )
+
+    def fit_weights(self, obsdata):
+        """
+        Compute the weight to be used for fitting.
+        Observed data for the base weights 1/unc (expected by fitters).
+        Weights in regions known to have data issues or that the models do not include
+        are set to zero (e.g., stellar wind lines, geocoronal Ly-alpha)
+
+        Parameters
+        ----------
+        obsdata : StarData object
+            observed data for a reddened star
+        """
+        self.weights = {}
+        for cspec in list(obsdata.data.keys()):
+            # base weights
+            self.weights[cspec] = np.full(len(obsdata.data[cspec].fluxes), 0.0)
+            gvals = obsdata.data[cspec].npts > 0
+            self.weights[cspec][gvals] = 1.0 / obsdata.data[cspec].uncs[gvals].value
+
+            x = 1.0 / obsdata.data[cspec].waves
+            for cexreg in self.exclude_regions:
+                self.weights[cspec][
+                    np.logical_and(x >= cexreg[0], x <= cexreg[1])
+                ] = 0.0
 
     def stellar_sed(self, moddata):
         """
@@ -126,7 +200,10 @@ class MEModel(object):
         # generate model SED form nearest neighbors
         #   should handle the case where dist2 has an element that is zero
         #   i.e., one of the precomputed models exactly matches the request
-        weights = 1.0 / np.sqrt(dist2[gsindxs])
+        if np.sum(dist2[gsindxs]) > 0:
+            weights = 1.0 / np.sqrt(dist2[gsindxs])
+        else:
+            weights = np.full(len(gsindxs), 1.0)
         weights /= np.sum(weights)
 
         sed = {}
@@ -157,7 +234,8 @@ class MEModel(object):
             fluxes for each spectral piece
 
         fit_range : string, optional
-            keyword to toggle SED fitting to be done with G23 only or to also include curve_F99_method
+            keyword to toggle SED fitting to be done with G23 only or
+            to also include curve_F99_method
 
         Returns
         -------
@@ -170,7 +248,9 @@ class MEModel(object):
         ext_sed = {}
         if fit_range.lower() == "g23":
             for cspec in moddata.fluxes.keys():
-                shifted_waves = (1.0 - self.velocity.value / 2.998e5) * self.waves[cspec]
+                shifted_waves = (1.0 - self.velocity.value / 2.998e5) * self.waves[
+                    cspec
+                ]
                 axav = g23mod(shifted_waves)
                 ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * self.Av))
 
@@ -184,7 +264,9 @@ class MEModel(object):
             for cspec in moddata.fluxes.keys():
                 # get the dust extinguished SED (account for the
                 #  systemic velocity of the galaxy [opposite regular sense])
-                shifted_waves = (1.0 - self.velocity.value / 2.998e5) * moddata.waves[cspec]
+                shifted_waves = (1.0 - self.velocity.value / 2.998e5) * moddata.waves[
+                    cspec
+                ]
 
                 # convert to 1/micron as _curve_F99_method does not do this (as of Nov 2024)
                 with u.add_enabled_equivalencies(u.spectral()):
@@ -217,9 +299,9 @@ class MEModel(object):
             band_sed = np.zeros(moddata.n_bands)
             for k, cband in enumerate(moddata.band_names):
                 gvals = np.isfinite(ext_sed["MODEL_FULL_LOWRES"])
-                iwave = (1.0 - self.velocity.value / 2.998e5) * moddata.waves["MODEL_FULL_LOWRES"][
-                    gvals
-                ]
+                iwave = (1.0 - self.velocity.value / 2.998e5) * moddata.waves[
+                    "MODEL_FULL_LOWRES"
+                ][gvals]
                 iflux = ext_sed["MODEL_FULL_LOWRES"][gvals]
                 iresp = moddata.band_resp[cband](iwave)
                 inttop = np.trapezoid(iwave * iresp * iflux, iwave)
@@ -281,7 +363,13 @@ class MEModel(object):
                     # compute the Ly-alpha abs: from Bohlin et al. (197?)
                     abs_wave = (1.0 + (cvel / 3e5)) * h_lines[0].to(u.micron).value
                     phi = 4.26e-20 / (
-                        (1e4 * (moddata.waves[cspec][indxs].to(u.micron).value - abs_wave))
+                        (
+                            1e4
+                            * (
+                                moddata.waves[cspec][indxs].to(u.micron).value
+                                - abs_wave
+                            )
+                        )
                         ** 2
                         + 6.04e-10
                     )
@@ -293,34 +381,36 @@ class MEModel(object):
 
         return hi_sed
 
-    def lnlike(self, params, obsdata, modeldata, fit_range="all"):
+    def lnlike(self, obsdata, modeldata, fit_range="all"):
         """
         Compute the natural log of the likelihood that the data
         fits the model.
 
         Parameters
-        ``
         ----------
-        params : floats
-            parameters of the model
-            params = [logT, logg, logZ, Av, Rv, C2, C3, C4, x0, gamma, HI_gal, HI_mw]
-
         obsdata : StarData object
             observed data for a reddened star
 
         moddata : ModelData object
             all the information about the model spectra
+
+        fit_range : string, optional
+            keyword to toggle SED fitting to be done with G23 only or
+            to also include curve_F99_method
+
+        Returns
+        -------
+        lnp : float
+            natural log of the likelihood
         """
         # intrinsic sed
-        modsed = modeldata.stellar_sed(params[0:3], velocity=self.velocities[0])
+        modsed = self.stellar_sed(modeldata)
 
-        # dust_extinguished sed
-        ext_modsed = modeldata.dust_extinguished_sed(
-            params[3:10], modsed, fit_range=fit_range, velocity=self.velocities[0]
-        )
+        # dust extinguished sed
+        ext_modsed = self.dust_extinguished_sed(modeldata, modsed, fit_range=fit_range)
 
-        # hi_abs sed
-        hi_ext_modsed = modeldata.hi_abs_sed(params[10:12], self.velocities, ext_modsed)
+        # hi absorbed (ly-alpha) sed
+        hi_ext_modsed = self.hi_abs_sed(modeldata, ext_modsed)
 
         # compute the normalization factors for the model and observed data
         # model data normalized to the observations using the ratio
@@ -360,79 +450,46 @@ class MEModel(object):
 
         return lnl
 
-    def lnprior(self, params):
+    def lnprior(self):
         """
-        Compute the natural log of the priors
+        Compute the natural log of the priors.
+        Only Gaussian priors currently supported.
 
-        Parameters
-        ----------
-        params : floats
-            parameters of the model
+        Returns
+        -------
+        lnp : float
+            natural log of the prior
         """
         # make sure the parameters are within the limits
-        for k, cplimit in enumerate(self.parameter_limits):
-            if (params[k] < cplimit[0]) | (params[k] > cplimit[1]):
-                # print('param limits excedded', k, params[k], cplimit)
-                # exit()
-                return lnp_bignnum
-
-        # now use any priors
+        # and compute the ln(prior)
         lnp = 0.0
-        if self.parameter_priors is not None:
-            for ptype in self.parameter_priors.keys():
-                pk = self.parameter_names.index(ptype)
-                lnp += (
-                    -0.5
-                    * (
-                        (
-                            (params[pk] - self.parameter_priors[ptype][0])
-                            / self.parameter_priors[ptype][1]
-                        )
-                    )
-                    ** 2
-                )
+        for cname in self.paramnames:
+            param = getattr(self, cname)
+            if not param.fixed:
+                pval = param.value
+                pbounds = param.bounds
+                pprior = param.prior
+                if (pval < pbounds[0]) | (pval > pbounds[1]):
+                    return self.lnp_bignum
+                if pprior is not None:
+                    lnp += -0.5 * ((pval - pprior[0]) / pprior[1]) ** 2
 
         return lnp
 
-    @staticmethod
-    def lnprob(params, obsdata, modeldata, fitinfo, fit_range="all"):
+    def lnprob(self, obsdata, modeldata, fit_range="all"):
         """
         Compute the natural log of the probability
 
         Parameters
         ----------
-        params : floats
-            parameters of the model
-
         obsdata : StarData object
             observed data for a reddened star
 
         moddata : ModelData object
             all the information about the model spectra
-
-        fitinfo : FitInfo object
-            information about the fitting
         """
-        lnp = fitinfo.lnprior(params)
-        # print(params)
-        # print(lnp, fitinfo.lnlike(params, obsdata, modeldata))
-        if lnp == lnp_bignnum:
+        lnp = self.lnprior()
+        if lnp == self.lnp_bignnum:
             return lnp
         else:
-            return lnp + fitinfo.lnlike(params, obsdata, modeldata, fit_range=fit_range)
-
-    def check_param_limits(self, params):
-        """
-        Check the parameters are within the parameter limits
-
-        Parameters
-        ----------
-        params : floats
-            parameters of the model
-        """
-        # make sure the parameters are within the limits
-        for k, cplimit in enumerate(self.parameter_limits):
-            if (params[k] < cplimit[0]) | (params[k] > cplimit[1]):
-                print(
-                    "param limits excedded", self.parameter_names[k], params[k], cplimit
-                )
+            return lnp + self.lnlike(obsdata, modeldata, fit_range=fit_range)
