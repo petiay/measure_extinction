@@ -10,7 +10,8 @@ class MEParameter(object):
     Provide parameter info in a flexible format.
     Inspired by astropy modeling.
     """
-    def __init__(self, value=0.0, bounds=(False, False), prior=None, fixed=False):
+
+    def __init__(self, value=0.0, bounds=(None, None), prior=None, fixed=False):
         self.value = value
         # square bounds supported by giving (min, max) as the bounds
         self.bounds = bounds
@@ -29,7 +30,8 @@ class MEModel(object):
     # fmt: off
     paramnames = ["logTeff", "logg", "logZ", "velocity",
                   "Av", "Rv", "C2", "B3", "C4", "xo", "gamma",
-                  "vel_MW", "logHI_MW", "vel_exgal", "logHI_exgal"]
+                  "vel_MW", "logHI_MW", "vel_exgal", "logHI_exgal",
+                  "norm"]
     # fmt: on
     nparams = len(paramnames)
 
@@ -53,6 +55,11 @@ class MEModel(object):
     logHI_MW = MEParameter(value=20.0, bounds=(16.0, 24.0))
     vel_exgal = MEParameter(value=0.0, bounds=(-300.0, 1000.0), fixed=True)  # km/s
     logHI_exgal = MEParameter(value=16.0, bounds=(16.0, 24.0), fixed=True)
+
+    # normalization value (puts model at the same level as data)
+    #   value is depends on the stellar radius and distance
+    #   radius would require adding stellar evolutionary track info
+    norm = MEParameter(value=1.0)
 
     # full FM90+optnir fitting (default) or G23 for the full wavelength range
     g23_dust_ext = False
@@ -112,6 +119,13 @@ class MEModel(object):
             vals.append(getattr(self, cname).value)
         return np.array(vals)
 
+    def pprint_parameters(self):
+        """
+        Print the parameters with names and values
+        """
+        for cname in self.paramnames:
+            print(f"{cname}: {getattr(self, cname).value} (fixed={getattr(self, cname).fixed})")
+
     def parameters_to_fit(self):
         """
         Give the non-fixed parameters values in a vector.  Needed for most fitters/samplers.
@@ -150,9 +164,13 @@ class MEModel(object):
         for cname in self.paramnames:
             pval = getattr(self, cname).value
             pbounds = getattr(self, cname).bounds
-            if (pval < pbounds[0]) | (pval > pbounds[1]):
+            if (pbounds[0] is not None) and (pval < pbounds[0]):
                 raise ValueError(
-                    f"{cname} = {pval} is outside of the bounds ({pbounds[0]}, {pbounds[1]})"
+                    f"{cname} = {pval} is below the bounds ({pbounds[0]}, {pbounds[1]})"
+                )
+            elif (pbounds[1] is not None) and (pval > pbounds[1]):
+                raise ValueError(
+                    f"{cname} = {pval} is above the bounds ({pbounds[0]}, {pbounds[1]})"
                 )
 
     def fit_weights(self, obsdata):
@@ -379,6 +397,47 @@ class MEModel(object):
 
         return hi_sed
 
+    def set_initial_norm(self, obsdata, modeldata):
+        """
+        Set the initial normalization that puts the current model at the average
+        level of the observed data.
+        The normalization is a fit parameter, so is included fully in the fitting.
+        Parameters
+        ----------
+        obsdata : StarData object
+            observed data for a reddened star
+
+        moddata : ModelData object
+            all the information about the model spectra
+        """
+
+        # intrinsic sed
+        modsed = self.stellar_sed(modeldata)
+
+        # dust extinguished sed
+        ext_modsed = self.dust_extinguished_sed(modeldata, modsed)
+
+        # hi absorbed (ly-alpha) sed
+        hi_ext_modsed = self.hi_abs_sed(modeldata, ext_modsed)
+
+        # compute the normalization factors for the model and observed data
+        # model data normalized to the observations using the ratio
+        #   weighted average of the averages of each type of data (photometry or specific spectrum)
+        #   allows for all the data to contribute to the normalization
+        #   weighting by number of points in each type of data to achieve the highest S/N in
+        #     the normalization
+        norm_mod = []
+        norm_dat = []
+        norm_npts = []
+        for cspec in obsdata.data.keys():
+            gvals = (self.weights[cspec] > 0) & (np.isfinite(hi_ext_modsed[cspec]))
+            norm_npts.append(np.sum(gvals))
+            norm_mod.append(np.average(hi_ext_modsed[cspec][gvals]))
+            norm_dat.append(np.average(obsdata.data[cspec].fluxes[gvals].value))
+        norm_model = np.average(norm_mod, weights=norm_npts)
+        norm_data = np.average(norm_dat, weights=norm_npts)
+        self.norm.value = norm_data / norm_model
+
     def lnlike(self, obsdata, modeldata):
         """
         Compute the natural log of the likelihood that the data
@@ -406,23 +465,6 @@ class MEModel(object):
         # hi absorbed (ly-alpha) sed
         hi_ext_modsed = self.hi_abs_sed(modeldata, ext_modsed)
 
-        # compute the normalization factors for the model and observed data
-        # model data normalized to the observations using the ratio
-        #   weighted average of the averages of each type of data (photometry or specific spectrum)
-        #   allows for all the data to contribute to the normalization
-        #   weighting by number of points in each type of data to achieve the highest S/N in
-        #     the normalization
-        norm_mod = []
-        norm_dat = []
-        norm_npts = []
-        for cspec in obsdata.data.keys():
-            gvals = (self.weights[cspec] > 0) & (np.isfinite(hi_ext_modsed[cspec]))
-            norm_npts.append(np.sum(gvals))
-            norm_mod.append(np.average(hi_ext_modsed[cspec][gvals]))
-            norm_dat.append(np.average(obsdata.data[cspec].fluxes[gvals].value))
-        norm_model = np.average(norm_mod, weights=norm_npts)
-        norm_data = np.average(norm_dat, weights=norm_npts)
-
         lnl = 0.0
         for cspec in obsdata.data.keys():
             try:
@@ -435,7 +477,7 @@ class MEModel(object):
                 (
                     (
                         obsdata.data[cspec].fluxes[gvals].value
-                        - (hi_ext_modsed[cspec][gvals] * (norm_data / norm_model))
+                        - (hi_ext_modsed[cspec][gvals] * self.norm.value)
                     )
                     * self.weights[cspec][gvals]
                 )
@@ -463,7 +505,9 @@ class MEModel(object):
                 pval = param.value
                 pbounds = param.bounds
                 pprior = param.prior
-                if (pval < pbounds[0]) | (pval > pbounds[1]):
+                if (pbounds[0] is not None) and (pval < pbounds[0]):
+                   return self.lnp_bignum
+                elif (pbounds[1] is not None) and (pval > pbounds[1]):
                     return self.lnp_bignum
                 if pprior is not None:
                     lnp += -0.5 * ((pval - pprior[0]) / pprior[1]) ** 2
