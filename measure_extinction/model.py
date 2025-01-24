@@ -1,5 +1,8 @@
+import copy
 import numpy as np
+import matplotlib.pyplot as plt
 import astropy.units as u
+import scipy.optimize as op
 
 from dust_extinction.parameter_averages import G23
 from dust_extinction.shapes import _curve_F99_method
@@ -124,7 +127,9 @@ class MEModel(object):
         Print the parameters with names and values
         """
         for cname in self.paramnames:
-            print(f"{cname}: {getattr(self, cname).value} (fixed={getattr(self, cname).fixed})")
+            print(
+                f"{cname}: {getattr(self, cname).value} (fixed={getattr(self, cname).fixed})"
+            )
 
     def parameters_to_fit(self):
         """
@@ -506,7 +511,7 @@ class MEModel(object):
                 pbounds = param.bounds
                 pprior = param.prior
                 if (pbounds[0] is not None) and (pval < pbounds[0]):
-                   return self.lnp_bignum
+                    return self.lnp_bignum
                 elif (pbounds[1] is not None) and (pval > pbounds[1]):
                     return self.lnp_bignum
                 if pprior is not None:
@@ -531,3 +536,182 @@ class MEModel(object):
             return lnp
         else:
             return lnp + self.lnlike(obsdata, modeldata)
+
+    def fit_minimizer(self, obsdata, modinfo, maxiter=1000):
+        """
+        Run a minimizer (formally an optimizer) to find the best fit parameters
+        by finding the minimum chisqr solution.
+
+        Parameters
+        ----------
+        obsdata : StarData object
+            observed data for a reddened star
+
+        moddata : ModelData object
+            all the information about the model spectra
+
+        maxiter : int
+            maximum number of iterations for the minimizer [default=1000]
+
+        Returns
+        -------
+        fitmod, result : list
+            fitmod is a MEModel with the best fit parameters
+            result is the scipy minimizer output
+        """
+        # make a copy of the model
+        outmod = copy.copy(self)
+
+        # check that the parameters are all within the bounds
+        self.check_param_limits()
+
+        # check that the initial starting position returns a valid values
+        if not np.isfinite(outmod.lnlike(obsdata, modinfo)):
+            raise ValueError("ln(likelihood) is not finite")
+        if not np.isfinite(outmod.lnprior()):
+            raise ValueError("ln(prior) is not finite")
+
+        # simple function to turn the log(likelihood) into the chisqr
+        #  required as op.minimize function searches for the minimum chisqr (not max likelihood like MCMC algorithms)
+        def nll(params, memodel, *args):
+            memodel.fit_to_parameters(params)
+            return -memodel.lnprob(*args)
+
+        # get the non-fixed initial parameters
+        init_fit_params = outmod.parameters_to_fit()
+
+        # run the fit
+        result = op.minimize(
+            nll,
+            init_fit_params,
+            method="Nelder-Mead",
+            options={"maxiter": maxiter},
+            args=(outmod, obsdata, modinfo),
+        )
+
+        # set the best fit parameters in the output model
+        outmod.fit_to_parameters(result["x"])
+
+        return (outmod, result)
+
+    def plot(self, obsdata, modinfo):
+        """
+        Standard plot showing the data and best fit.
+
+        Parameters
+        ----------
+        obsdata : StarData object
+            observed data for a reddened star
+
+        moddata : ModelData object
+            all the information about the model spectra
+        """
+        # plotting setup for easier to read plots
+        fontsize = 18
+        font = {"size": fontsize}
+        plt.rc("font", **font)
+        plt.rc("lines", linewidth=1)
+        plt.rc("axes", linewidth=2)
+        plt.rc("xtick.major", width=2)
+        plt.rc("xtick.minor", width=2)
+        plt.rc("ytick.major", width=2)
+        plt.rc("ytick.minor", width=2)
+
+        # setup the plot
+        fig, axes = plt.subplots(
+            nrows=2,
+            figsize=(13, 10),
+            gridspec_kw={"height_ratios": [3, 1]},
+            sharex=True,
+        )
+
+        modsed = self.stellar_sed(modinfo)
+
+        ext_modsed = self.dust_extinguished_sed(modinfo, modsed)
+
+        hi_ext_modsed = self.hi_abs_sed(modinfo, ext_modsed)
+
+        ax = axes[0]
+        for cspec in obsdata.data.keys():
+            if cspec == "BAND":
+                ptype = "o"
+                rcolor = "g"
+            else:
+                ptype = "-"
+                rcolor = "k"
+            multval = self.norm.value * np.power(modinfo.waves[cspec], 4.0)
+            ax.plot(modinfo.waves[cspec], modsed[cspec] * multval, rcolor + ptype)
+            ax.plot(modinfo.waves[cspec], ext_modsed[cspec] * multval, rcolor + ptype)
+            ax.plot(
+                modinfo.waves[cspec], hi_ext_modsed[cspec] * multval, rcolor + ptype
+            )
+
+            gvals = obsdata.data[cspec].fluxes > 0.0
+            ax.plot(
+                obsdata.data[cspec].waves[gvals],
+                obsdata.data[cspec].fluxes[gvals]
+                * np.power(obsdata.data[cspec].waves[gvals], 4.0),
+                "k" + ptype,
+                label="data",
+                alpha=0.7,
+            )
+
+            gvals = hi_ext_modsed[cspec] > 0.0
+            modspec = hi_ext_modsed[cspec][gvals] * self.norm.value
+            diff = 100.0 * (obsdata.data[cspec].fluxes.value[gvals] - modspec) / modspec
+            if cspec != "BAND":
+                calpha = 0.5
+            else:
+                calpha = 0.75
+            axes[1].plot(
+                modinfo.waves[cspec][gvals], diff, rcolor + ptype, alpha=calpha
+            )
+
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+
+        # get a reasonable y range
+        cspec = "MODEL_FULL_LOWRES"
+        gvals = np.logical_or(
+            modinfo.waves[cspec] > 0.125 * u.micron,
+            modinfo.waves[cspec] < 0.118 * u.micron,
+        )
+        gvals = np.logical_and(gvals, modinfo.waves[cspec] > 0.11 * u.micron)
+        multval = self.norm.value * np.power(modinfo.waves[cspec][gvals], 4.0)
+        mflux = (hi_ext_modsed[cspec][gvals] * multval).value
+        yrange = np.log10([np.nanmin(mflux), np.nanmax(mflux)])
+        ydelt = yrange[1] - yrange[0]
+        yrange[0] = 10 ** (yrange[0] - 0.1 * ydelt)
+        yrange[1] = 10 ** (yrange[1] + 0.1 * ydelt)
+        ax.set_ylim(yrange)
+
+        axes[1].set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.3 * fontsize)
+        ax.set_ylabel(r"$\lambda^4 F(\lambda)$ [RJ units]", fontsize=1.3 * fontsize)
+        axes[1].set_ylabel("residuals [%]", fontsize=1.0 * fontsize)
+        ax.tick_params("both", length=10, width=2, which="major")
+        ax.tick_params("both", length=5, width=1, which="minor")
+        axes[1].set_ylim(-10.0, 10.0)
+        axes[1].plot([0.1, 2.5], [0.0, 0.0], "k:")
+
+        k = 0
+        for cname in self.paramnames:
+            param = getattr(self, cname)
+            if not param.fixed and (cname != "norm"):
+                ptxt = f"{cname} = {param.value:.2f}"
+                # ptxt = fr"{cname} = ${val:.2f} \pm {params_unc[k]:.2f}$"
+                ax.text(
+                    0.7,
+                    0.5 - k * 0.04,
+                    ptxt,
+                    horizontalalignment="left",
+                    verticalalignment="center",
+                    transform=ax.transAxes,
+                    fontsize=fontsize,
+                )
+                k += 1
+
+        ax.text(0.1, 0.9, obsdata.file, transform=ax.transAxes, fontsize=fontsize)
+
+        fig.tight_layout()
+
+        plt.show()
