@@ -54,6 +54,9 @@ class MEModel(object):
     vel_exgal = MEParameter(value=0.0, bounds=(-300.0, 1000.0), fixed=True)  # km/s
     logHI_exgal = MEParameter(value=16.0, bounds=(16.0, 24.0), fixed=True)
 
+    # full FM90+optnir fitting (default) or G23 for the full wavelength range
+    g23_dust_ext = False
+
     #  bad regions are defined as those were we know the models do not work
     #  or the data is bad
     exclude_regions = [
@@ -71,7 +74,11 @@ class MEModel(object):
     ] / u.micron
 
     # some fitters don't like inf, can be changed here
-    lnp_bignnum = -np.inf
+    lnp_bignum = -np.inf
+
+    # approximate dust extinction in bands
+    # speeds up calculations, but is an approximation
+    approx_band_ext = False
 
     def __init__(self, modinfo=None):
         """
@@ -133,7 +140,7 @@ class MEModel(object):
         i = 0
         for cname in self.paramnames:
             if not getattr(self, cname).fixed:
-                setattr(self, cname, fit_params[i])
+                getattr(self, cname).value = fit_params[i]
                 i += 1
 
     def check_param_limits(self):
@@ -221,7 +228,7 @@ class MEModel(object):
 
         return sed
 
-    def dust_extinguished_sed(self, moddata, sed, fit_range="all"):
+    def dust_extinguished_sed(self, moddata, sed):
         """
         Dust extinguished sed given the extinction parameters
 
@@ -233,10 +240,6 @@ class MEModel(object):
         sed : dict
             fluxes for each spectral piece
 
-        fit_range : string, optional
-            keyword to toggle SED fitting to be done with G23 only or
-            to also include curve_F99_method
-
         Returns
         -------
         extinguished sed : dict
@@ -246,15 +249,14 @@ class MEModel(object):
 
         # create the extinguished sed
         ext_sed = {}
-        if fit_range.lower() == "g23":
+        if self.g23_dust_ext:
             for cspec in moddata.fluxes.keys():
-                shifted_waves = (1.0 - self.velocity.value / 2.998e5) * self.waves[
+                shifted_waves = (1.0 - self.velocity.value / 2.998e5) * moddata.waves[
                     cspec
                 ]
                 axav = g23mod(shifted_waves)
-                ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * self.Av))
-
-        elif fit_range.lower() == "all":
+                ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * self.Av.value))
+        else:
             optnir_axav_x = np.flip(1.0 / (np.arange(0.35, 30.0, 0.1) * u.micron))
             optnir_axav_y = g23mod(optnir_axav_x)
 
@@ -289,13 +291,9 @@ class MEModel(object):
                 )
 
                 ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * self.Av.value))
-        else:
-            raise ValueError(
-                "Incorrect input for fit_range argument in dust_extinguished_sed(). Available options are: g23, all"
-            )
 
         # update the BAND fluxes by integrating the reddened MODEL_FULL spectrum
-        if "BAND" in moddata.fluxes.keys():
+        if "BAND" in moddata.fluxes.keys() and not self.approx_band_ext:
             band_sed = np.zeros(moddata.n_bands)
             for k, cband in enumerate(moddata.band_names):
                 gvals = np.isfinite(ext_sed["MODEL_FULL_LOWRES"])
@@ -381,7 +379,7 @@ class MEModel(object):
 
         return hi_sed
 
-    def lnlike(self, obsdata, modeldata, fit_range="all"):
+    def lnlike(self, obsdata, modeldata):
         """
         Compute the natural log of the likelihood that the data
         fits the model.
@@ -394,10 +392,6 @@ class MEModel(object):
         moddata : ModelData object
             all the information about the model spectra
 
-        fit_range : string, optional
-            keyword to toggle SED fitting to be done with G23 only or
-            to also include curve_F99_method
-
         Returns
         -------
         lnp : float
@@ -407,7 +401,7 @@ class MEModel(object):
         modsed = self.stellar_sed(modeldata)
 
         # dust extinguished sed
-        ext_modsed = self.dust_extinguished_sed(modeldata, modsed, fit_range=fit_range)
+        ext_modsed = self.dust_extinguished_sed(modeldata, modsed)
 
         # hi absorbed (ly-alpha) sed
         hi_ext_modsed = self.hi_abs_sed(modeldata, ext_modsed)
@@ -476,7 +470,7 @@ class MEModel(object):
 
         return lnp
 
-    def lnprob(self, obsdata, modeldata, fit_range="all"):
+    def lnprob(self, obsdata, modeldata):
         """
         Compute the natural log of the probability
 
@@ -489,7 +483,7 @@ class MEModel(object):
             all the information about the model spectra
         """
         lnp = self.lnprior()
-        if lnp == self.lnp_bignnum:
+        if lnp == self.lnp_bignum:
             return lnp
         else:
-            return lnp + self.lnlike(obsdata, modeldata, fit_range=fit_range)
+            return lnp + self.lnlike(obsdata, modeldata)
