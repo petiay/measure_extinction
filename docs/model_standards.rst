@@ -41,6 +41,27 @@ Using stellar models for standards:
 - con: models are approximate at some level (can be missing lines/physics)
 - con: dependent on the absolute calibration
 
+Model Fitting
+-------------
+
+When using a model as the standard, fitting the observed data can be done to 
+determine the stellar and dust extinction parameters.  This is done by using
+a grid of stellar atmosphere models with a model for the dust extinction curve.
+The model of the dust extinction curve that is often used is a combination of
+a FM90 parameterization for the ultraviolet and and a R(V) dependent model for the 
+longer wavelengths that are joined with carefully chosen splines.
+
+Fitting is supported through the `ModelData` and `MEModel` classes.  The `ModelData`
+class stores the stellar atmosphere mocked data.  The `MEModel` class has all the 
+model parameters and functions to compute dust extinguished model data, fit with 
+a minimizer or a sampler observed data, and plot the resulting fits including
+diagnostic plots.
+
+.. toctree::
+   :maxdepth: 2
+
+   Model Details <model_capabilities.rst>
+
 Tlusty Stellar Atmosphere Models
 --------------------------------
 
@@ -59,6 +80,10 @@ observed.  The specific code is `utils/make_obsdata_from_model.py`.
 This code uses the 'merge_obsspec' functions to transform the model SEDs
 to the observed spectral formats.
 The `utils/make_all_tlusty_obsdata.py` runs on the `*.flux.gz` tlusty files.
+
+Most spectra are simulated/mocked using the appropriate width Gaussian for the 
+line-spread-function (LSF).  For some cases, the LSF is known to deviate 
+from a Gaussian and then a numerical LSF is used with the details given below.
 
 STIS Mocking
 ^^^^^^^^^^^^

@@ -46,7 +46,6 @@ class MEModel(object):
                   "vel_MW", "logHI_MW", "vel_exgal", "logHI_exgal",
                   "norm"]
     # fmt: on
-    nparams = len(paramnames)
 
     # stellar
     logTeff = MEParameter(value=4.0, bounds=(0.0, 10.0))
@@ -75,7 +74,11 @@ class MEModel(object):
     norm = MEParameter(value=1.0)
 
     # full FM90+optnir fitting (default) or G23 for the full wavelength range
-    g23_dust_ext = False
+    g23_all_ext = False
+
+    # approximate dust extinction in bands
+    # speeds up calculations, but is an approximation
+    approx_band_ext = False
 
     #  bad regions are defined as those were we know the models do not work
     #  or the data is bad
@@ -96,10 +99,6 @@ class MEModel(object):
     # some fitters don't like inf, can be changed here
     lnp_bignum = -np.inf
 
-    # approximate dust extinction in bands
-    # speeds up calculations, but is an approximation
-    approx_band_ext = False
-
     def __init__(self, modinfo=None):
         """
         Initialize the object, optionally using the min/max of the input model info
@@ -118,6 +117,15 @@ class MEModel(object):
             self.logZ.bounds = (modinfo.mets_min, modinfo.mets_max)
             self.logZ.value = np.average(self.logZ.bounds)
 
+    def pprint_parameters(self):
+        """
+        Print the parameters with names and values
+        """
+        for cname in self.paramnames:
+            print(
+                f"{cname}: {getattr(self, cname).value} (fixed={getattr(self, cname).fixed})"
+            )
+
     def parameters(self):
         """
         Give all the parameters values in a vector (fixed or not).
@@ -131,15 +139,6 @@ class MEModel(object):
         for cname in self.paramnames:
             vals.append(getattr(self, cname).value)
         return np.array(vals)
-
-    def pprint_parameters(self):
-        """
-        Print the parameters with names and values
-        """
-        for cname in self.paramnames:
-            print(
-                f"{cname}: {getattr(self, cname).value} (fixed={getattr(self, cname).fixed})"
-            )
 
     def parameters_to_fit(self):
         """
@@ -297,7 +296,7 @@ class MEModel(object):
 
         # create the extinguished sed
         ext_sed = {}
-        if self.g23_dust_ext:
+        if self.g23_all_ext:
             for cspec in moddata.fluxes.keys():
                 shifted_waves = (1.0 - self.velocity.value / 2.998e5) * moddata.waves[
                     cspec
