@@ -12,6 +12,9 @@ from dust_extinction.parameter_averages import G23
 from dust_extinction.shapes import _curve_F99_method
 
 
+__all__ = ["MEParameter", "MEModel"]
+
+
 class MEParameter(object):
     """
     Provide parameter info in a flexible format.
@@ -32,8 +35,8 @@ class MEParameter(object):
 
 class MEModel(object):
     """
-    Model
-        Provide all the parameters for the measure_extinction fitting.
+    Model object for the measure_extinction fitting.  Includes all parameters and
+    useful functions.
     Inspired by astropy modeling.
     """
 
@@ -429,6 +432,7 @@ class MEModel(object):
         Set the initial normalization that puts the current model at the average
         level of the observed data.
         The normalization is a fit parameter, so is included fully in the fitting.
+
         Parameters
         ----------
         obsdata : StarData object

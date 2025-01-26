@@ -68,10 +68,7 @@ contributors page on Github
 Reference API
 =============
 
-.. automodapi:: measure_extinction.stardata
+.. toctree::
+   :maxdepth: 1
 
-.. automodapi:: measure_extinction.modeldata
-
-.. automodapi:: measure_extinction.extdata
-
-.. automodapi:: measure_extinction.merge_obsspec
+   reference_api.rst
