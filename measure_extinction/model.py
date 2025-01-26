@@ -4,6 +4,10 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 import scipy.optimize as op
 
+import emcee
+import corner
+from multiprocessing import Pool
+
 from dust_extinction.parameter_averages import G23
 from dust_extinction.shapes import _curve_F99_method
 
@@ -14,8 +18,11 @@ class MEParameter(object):
     Inspired by astropy modeling.
     """
 
-    def __init__(self, value=0.0, bounds=(None, None), prior=None, fixed=False):
+    def __init__(
+        self, value=0.0, unc=None, bounds=(None, None), prior=None, fixed=False
+    ):
         self.value = value
+        self.unc = unc
         # square bounds supported by giving (min, max) as the bounds
         self.bounds = bounds
         # currently only Gaussian priors supports by giving (mean, sigma) as the prior
@@ -46,7 +53,7 @@ class MEModel(object):
 
     # dust - values, bounds, and priors based on VCG04 and FM07 MW samples (expect Av)
     Av = MEParameter(value=0.5, bounds=(0.0, 100.0))
-    Rv = MEParameter(value=3.0, bounds=(2.0, 6.0), prior=(3.0, 0.4))
+    Rv = MEParameter(value=3.0, bounds=(2.3, 5.6), prior=(3.0, 0.4))
     C2 = MEParameter(value=0.73, bounds=(-0.1, 5.0), prior=(0.73, 0.25))
     B3 = MEParameter(value=3.6, bounds=(-1.0, 8.0), prior=(3.6, 0.6))
     C4 = MEParameter(value=0.4, bounds=(-0.5, 1.5), prior=(0.4, 0.2))
@@ -146,7 +153,7 @@ class MEModel(object):
                 vals.append(getattr(self, cname).value)
         return np.array(vals)
 
-    def fit_to_parameters(self, fit_params):
+    def fit_to_parameters(self, fit_params, uncs=None):
         """
         Set the parameter values based on a vector of the non-fixed values.
         Needed for most fitters/samplers.
@@ -158,9 +165,24 @@ class MEModel(object):
         """
         i = 0
         for cname in self.paramnames:
-            if not getattr(self, cname).fixed:
-                getattr(self, cname).value = fit_params[i]
+            cparam = getattr(self, cname)
+            if not cparam.fixed:
+                cparam.value = fit_params[i]
+                if uncs is not None:
+                    cparam.unc = uncs[i]
                 i += 1
+
+    def get_nonfixed_paramnames(self):
+        """
+        Get the non-fixed parameter names.  Useful for plotting.
+        """
+        names = []
+        for cname in self.paramnames:
+            cparam = getattr(self, cname)
+            if not cparam.fixed:
+                names.append(cname)
+
+        return names
 
     def check_param_limits(self):
         """
@@ -594,6 +616,144 @@ class MEModel(object):
 
         return (outmod, result)
 
+    def fit_sampler(self, obsdata, modinfo, nsteps=1000, burnfrac=0.1):
+        """
+        Run a samplier (specifically emcee) to find the detailed
+        parameters including uncertainties.
+
+        Parameters
+        ----------
+        obsdata : StarData object
+            observed data for a reddened star
+
+        moddata : ModelData object
+            all the information about the model spectra
+
+        nsteps : int
+            number of steps for the samplier chains [default=1000]
+
+        burnfrac : float
+            fraction of nsteps to discard as the burn in [default=0.1]
+
+        Returns
+        -------
+        fitmod, result : list
+            fitmod is a MEModel with the best fit parameters
+            result is the scipy minimizer output
+        """
+        # make a copy of the model
+        outmod = copy.copy(self)
+
+        # check that the parameters are all within the bounds
+        self.check_param_limits()
+
+        # check that the initial starting position returns a valid values
+        if not np.isfinite(outmod.lnlike(obsdata, modinfo)):
+            raise ValueError("ln(likelihood) is not finite")
+        if not np.isfinite(outmod.lnprior()):
+            raise ValueError("ln(prior) is not finite")
+
+        # simple function to turn the log(likelihood) into the chisqr
+        #  required as op.minimize function searches for the minimum chisqr (not max likelihood like MCMC algorithms)
+        def lnprob(params, memodel, *args):
+            memodel.fit_to_parameters(params)
+            return memodel.lnprob(*args)
+
+        # get the non-fixed initial parameters
+        p0 = outmod.parameters_to_fit()
+
+        # setup the sampliers
+        ndim = len(p0)
+        nwalkers = 2 * ndim
+        # setting up the walkers to start "near" the inital guess
+        p = [p0 * (1 + 0.01 * np.random.normal(0, 1.0, ndim)) for k in range(nwalkers)]
+
+        # setup and run the sampler
+        multiproc = False
+        if multiproc:
+            with Pool() as pool:
+                sampler = emcee.EnsembleSampler(
+                    nwalkers,
+                    ndim,
+                    lnprob,
+                    args=(outmod, obsdata, modinfo),
+                    pool=pool,
+                )
+                sampler.run_mcmc(p, nsteps, progress=True)
+        else:
+            sampler = emcee.EnsembleSampler(
+                nwalkers,
+                ndim,
+                lnprob,
+                args=(outmod, obsdata, modinfo),
+            )
+            sampler.run_mcmc(p, nsteps, progress=True)
+
+        # create the samples variable for later use
+        flat_samples = sampler.get_chain(discard=int(burnfrac * nsteps), flat=True)
+
+        # get the 50 percentile and +/- uncertainties
+        params_per = map(
+            lambda v: (v[1], v[2] - v[1], v[1] - v[0]),
+            zip(*np.percentile(flat_samples, [16, 50, 84], axis=0)),
+        )
+
+        # now package the fit parameters into two vectors, averaging the +/- uncs
+        n_params = len(p0)
+        params_p50 = np.zeros(n_params)
+        params_unc = np.zeros(n_params)
+        for k, val in enumerate(params_per):
+            params_p50[k] = val[0]
+            params_unc[k] = 0.5 * (val[1] + val[2])
+
+        # set the best fit parameters in the output model
+        outmod.fit_to_parameters(params_p50, uncs=params_unc)
+
+        return (outmod, flat_samples, sampler)
+
+    def plot_sampler_chains(self, sampler):
+        """
+        Plot the samplier chains.
+
+        Parameters
+        ----------
+        sampler : object
+            emcee sampler object
+
+        Returns
+        -------
+        fig : object
+            returns the standard matplotlib fig info
+        """
+
+        samples = sampler.get_chain()
+        fig, axes = plt.subplots(samples.shape[2], figsize=(10, 15), sharex=True)
+        labels = self.get_nonfixed_paramnames()
+        for i in range(samples.shape[2]):
+            ax = axes[i]
+            ax.plot(samples[:, :, i], "k", alpha=0.3)
+            ax.set_xlim(0, len(samples))
+            ax.set_ylabel(labels[i])
+            ax.yaxis.set_label_coords(-0.1, 0.5)
+
+        axes[-1].set_xlabel("step number")
+
+        return fig
+
+    def plot_samplier_corner(self, flat_samples):
+        """
+        Plot the standard corner plot.
+
+        Returns
+        -------
+        fig : object
+            returns the standard matplotlib fig info
+        """
+        labels = self.get_nonfixed_paramnames()
+        fig = corner.corner(flat_samples, labels=labels)
+
+        return fig
+
     def plot(self, obsdata, modinfo):
         """
         Standard plot showing the data and best fit.
@@ -697,8 +857,10 @@ class MEModel(object):
         for cname in self.paramnames:
             param = getattr(self, cname)
             if not param.fixed and (cname != "norm"):
-                ptxt = f"{cname} = {param.value:.2f}"
-                # ptxt = fr"{cname} = ${val:.2f} \pm {params_unc[k]:.2f}$"
+                if param.unc is not None:
+                    ptxt = rf"{cname} = ${param.value:.2f} \pm {param.unc:.2f}$"
+                else:
+                    ptxt = f"{cname} = {param.value:.2f}"
                 ax.text(
                     0.7,
                     0.5 - k * 0.04,
@@ -714,4 +876,4 @@ class MEModel(object):
 
         fig.tight_layout()
 
-        plt.show()
+        return fig
