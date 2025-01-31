@@ -202,6 +202,21 @@ class MEModel(object):
                     f"{cname} = {pval} is above the bounds ({pbounds[0]}, {pbounds[1]})"
                 )
 
+    def add_exclude_region(self, exreg):
+        """
+        Add an exclude region to the list of such regions.
+
+        Parameters
+        ----------
+        exreg : list
+            2 element list with min/max given in 1/micron
+        """
+        if exreg[0] > exreg[1]:
+            raise ValueError(
+                "exclude region to be added has [max, min], reverse needed"
+            )
+        self.exclude_regions = np.append(self.exclude_regions, [exreg], axis=0)
+
     def fit_weights(self, obsdata):
         """
         Compute the weight to be used for fitting.
