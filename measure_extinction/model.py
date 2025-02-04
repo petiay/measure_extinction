@@ -15,7 +15,8 @@ from dust_extinction.shapes import _curve_F99_method
 __all__ = ["MEParameter", "MEModel"]
 
 
-def lnprob(params, memodel, *args):
+# required to be outside of the class to allow for emcee to be able to run in parallel
+def _lnprob(params, memodel, *args):
     memodel.fit_to_parameters(params)
     return memodel.lnprob(*args)
 
@@ -46,7 +47,7 @@ class MEModel(object):
     """
 
     # fmt: off
-    paramnames = ["logTeff", "logg", "logZ", "velocity",
+    paramnames = ["logTeff", "logg", "logZ", "vturb", "velocity",
                   "Av", "Rv", "C2", "B3", "C4", "xo", "gamma",
                   "vel_MW", "logHI_MW", "vel_exgal", "logHI_exgal",
                   "norm"]
@@ -56,10 +57,11 @@ class MEModel(object):
     logTeff = MEParameter(value=4.0, bounds=(0.0, 10.0))
     logg = MEParameter(value=3.0, bounds=(0.0, 10.0))
     logZ = MEParameter(value=0.0, bounds=(-1.0, 1.0))
+    vturb = MEParameter(value=5.0, bounds=(2.0, 10.0))
     velocity = MEParameter(value=0.0, bounds=[-1000.0, 1000.0], fixed=True)  # km/s
 
     # dust - values, bounds, and priors based on VCG04 and FM07 MW samples (expect Av)
-    Av = MEParameter(value=0.5, bounds=(0.0, 100.0))
+    Av = MEParameter(value=1.0, bounds=(0.0, 100.0))
     Rv = MEParameter(value=3.0, bounds=(2.3, 5.6), prior=(3.0, 0.4))
     C2 = MEParameter(value=0.73, bounds=(-0.1, 5.0), prior=(0.73, 0.25))
     B3 = MEParameter(value=3.6, bounds=(-1.0, 8.0), prior=(3.6, 0.6))
@@ -128,7 +130,7 @@ class MEModel(object):
         """
         # line 1
         pnames = [
-            ["logTeff", "logg", "logZ", "velocity"],
+            ["logTeff", "logg", "logZ", "vturb", "velocity"],
             ["Av", "Rv", "C2", "B3", "C4", "xo", "gamma"],
             ["vel_MW", "logHI_MW", "vel_exgal", "logHI_exgal"],
         ]
@@ -652,7 +654,7 @@ class MEModel(object):
 
         return (outmod, result)
 
-    def fit_sampler(self, obsdata, modinfo, nsteps=1000, burnfrac=0.1):
+    def fit_sampler(self, obsdata, modinfo, nsteps=1000, burnfrac=0.1, multiproc=False):
         """
         Run a samplier (specifically emcee) to find the detailed
         parameters including uncertainties.
@@ -670,6 +672,9 @@ class MEModel(object):
 
         burnfrac : float
             fraction of nsteps to discard as the burn in [default=0.1]
+
+        multiproc : boolean
+            set to run the emcee in parallel (does not speed up things much) [default=False]
 
         Returns
         -------
@@ -705,13 +710,12 @@ class MEModel(object):
         p = [p0 * (1 + 0.01 * np.random.normal(0, 1.0, ndim)) for k in range(nwalkers)]
 
         # setup and run the sampler
-        multiproc = False
         if multiproc:
             with Pool() as pool:
                 sampler = emcee.EnsembleSampler(
                     nwalkers,
                     ndim,
-                    lnprob,
+                    _lnprob,
                     args=(outmod, obsdata, modinfo),
                     pool=pool,
                 )
@@ -720,7 +724,7 @@ class MEModel(object):
             sampler = emcee.EnsembleSampler(
                 nwalkers,
                 ndim,
-                lnprob,
+                _lnprob,
                 args=(outmod, obsdata, modinfo),
             )
             sampler.run_mcmc(p, nsteps, progress=True)

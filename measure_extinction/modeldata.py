@@ -168,7 +168,7 @@ class ModelData(object):
 
         # provide the width in model space for each parameter
         #   used in calculating the nearest neighbors
-        self.n_nearest = 11
+        self.n_nearest = 21
 
         self.temps_min = min(self.temps)
         self.temps_max = max(self.temps)

@@ -19,6 +19,16 @@ def fit_model_parser():
     parser.add_argument("starname", help="Name of star")
     parser.add_argument("--path", help="Path to star data", default="./")
     parser.add_argument(
+        "--modtype",
+        help="Pick the type of model grid",
+        choices=["obstars", "whitedwarfs"],
+        default="obsstars",
+    )
+    parser.add_argument("--modpath", help="path to the model files", default="./")
+    parser.add_argument(
+        "--modstr", help="Alternative model string for grid (expert)", default=None
+    )
+    parser.add_argument(
         "--picmodel",
         help="Set to read model grid from pickle file",
         action="store_true",
@@ -47,14 +57,19 @@ def main():
     data_names = list(reddened_star.data.keys())
 
     # model data
-    model_file_path = "/home/kgordon/Python/extstar_data/"
-
     start_time = time.time()
     print("reading model files")
-    if args.picmodel:
-        modinfo = pickle.load(open("modinfo.p", "rb"))
+    if args.modtype == "whitedwarfs":
+        modstr = "wd_hubeny_"
     else:
-        tlusty_models_fullpath = glob.glob(f"{model_file_path}/Models/wd_hubeny_*.dat")
+        modstr = "tlusty_"
+    if args.modstr is not None:
+        modstr = args.modstr
+    print("modstr: ", modstr)
+    if args.picmodel:
+        modinfo = pickle.load(open(f"{modstr}_modinfo.p", "rb"))
+    else:
+        tlusty_models_fullpath = glob.glob(f"{args.modpath}/{modstr}*.dat")
         tlusty_models = [
             tfile[tfile.rfind("/") + 1 : len(tfile)] for tfile in tlusty_models_fullpath
         ]
@@ -62,11 +77,11 @@ def main():
         # get the models with just the reddened star band data and spectra
         modinfo = ModelData(
             tlusty_models,
-            path=f"{model_file_path}/Models/",
+            path=f"{args.modpath}/",
             band_names=band_names,
             spectra_names=data_names,
         )
-        pickle.dump(modinfo, open("modinfo.p", "wb"))
+        pickle.dump(modinfo, open(f"{modstr}_modinfo.p", "wb"))
     print("finished reading model files")
     print("--- %s seconds ---" % (time.time() - start_time))
 
@@ -87,6 +102,9 @@ def main():
         memod.velocity.fixed = True
 
     memod.fit_weights(reddened_star)
+    #memod.weights["BAND"] *= 100.0
+    #memod.weights["IUE"] *= 10.0
+
     memod.set_initial_norm(reddened_star, modinfo)
 
     print("initial parameters")
