@@ -15,6 +15,11 @@ from dust_extinction.shapes import _curve_F99_method
 __all__ = ["MEParameter", "MEModel"]
 
 
+def lnprob(params, memodel, *args):
+    memodel.fit_to_parameters(params)
+    return memodel.lnprob(*args)
+
+
 class MEParameter(object):
     """
     Provide parameter info in a flexible format.
@@ -121,10 +126,23 @@ class MEModel(object):
         """
         Print the parameters with names and values
         """
-        for cname in self.paramnames:
-            print(
-                f"{cname}: {getattr(self, cname).value} (fixed={getattr(self, cname).fixed})"
-            )
+        # line 1
+        pnames = [
+            ["logTeff", "logg", "logZ", "velocity"],
+            ["Av", "Rv", "C2", "B3", "C4", "xo", "gamma"],
+            ["vel_MW", "logHI_MW", "vel_exgal", "logHI_exgal"],
+        ]
+        for cnames in pnames:
+            hline = ""
+            tline = ""
+            for cname in cnames:
+                if getattr(self, cname).fixed:
+                    fstr = "F"
+                else:
+                    fstr = ""
+                hline += f"{cname} "
+                tline += f"{getattr(self, cname).value:.2f}{fstr} "
+            print(f"{tline[:-1]} ({hline[:-1]})")
 
     def parameters(self):
         """
@@ -673,9 +691,9 @@ class MEModel(object):
 
         # simple function to turn the log(likelihood) into the chisqr
         #  required as op.minimize function searches for the minimum chisqr (not max likelihood like MCMC algorithms)
-        def lnprob(params, memodel, *args):
-            memodel.fit_to_parameters(params)
-            return memodel.lnprob(*args)
+        # def lnprob(params, memodel, *args):
+        #    memodel.fit_to_parameters(params)
+        #    return memodel.lnprob(*args)
 
         # get the non-fixed initial parameters
         p0 = outmod.parameters_to_fit()
@@ -885,7 +903,7 @@ class MEModel(object):
 
         return fig
 
-    def plot_samplier_corner(self, flat_samples):
+    def plot_sampler_corner(self, flat_samples):
         """
         Plot the standard corner plot.
 
@@ -895,6 +913,8 @@ class MEModel(object):
             returns the standard matplotlib fig info
         """
         labels = self.get_nonfixed_paramnames()
-        fig = corner.corner(flat_samples, labels=labels)
+        fig = corner.corner(
+            flat_samples, labels=labels, show_title=True, quantiles=[0.16, 0.5, 0.84]
+        )
 
         return fig

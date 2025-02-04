@@ -1184,7 +1184,15 @@ class StarData:
             self.data["BAND"].get_band_fluxes()
 
         # go through and get info before reading the spectra
-        poss_mod_params = ["model_type", "Z", "vturb", "logg", "Teff", "origin"]
+        poss_mod_params = [
+            "model_type",
+            "Z",
+            "vturb",
+            "logg",
+            "Teff",
+            "velocity",
+            "origin",
+        ]
         for line in self.datfile_lines:
             cpair = self._parse_dfile_line(line)
             if cpair is not None:
