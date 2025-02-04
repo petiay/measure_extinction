@@ -729,49 +729,6 @@ class MEModel(object):
 
         return (outmod, flat_samples, sampler)
 
-    def plot_sampler_chains(self, sampler):
-        """
-        Plot the samplier chains.
-
-        Parameters
-        ----------
-        sampler : object
-            emcee sampler object
-
-        Returns
-        -------
-        fig : object
-            returns the standard matplotlib fig info
-        """
-
-        samples = sampler.get_chain()
-        fig, axes = plt.subplots(samples.shape[2], figsize=(10, 15), sharex=True)
-        labels = self.get_nonfixed_paramnames()
-        for i in range(samples.shape[2]):
-            ax = axes[i]
-            ax.plot(samples[:, :, i], "k", alpha=0.3)
-            ax.set_xlim(0, len(samples))
-            ax.set_ylabel(labels[i])
-            ax.yaxis.set_label_coords(-0.1, 0.5)
-
-        axes[-1].set_xlabel("step number")
-
-        return fig
-
-    def plot_samplier_corner(self, flat_samples):
-        """
-        Plot the standard corner plot.
-
-        Returns
-        -------
-        fig : object
-            returns the standard matplotlib fig info
-        """
-        labels = self.get_nonfixed_paramnames()
-        fig = corner.corner(flat_samples, labels=labels)
-
-        return fig
-
     def plot(self, obsdata, modinfo):
         """
         Standard plot showing the data and best fit.
@@ -785,7 +742,7 @@ class MEModel(object):
             all the information about the model spectra
         """
         # plotting setup for easier to read plots
-        fontsize = 18
+        fontsize = 16
         font = {"size": fontsize}
         plt.rc("font", **font)
         plt.rc("lines", linewidth=1)
@@ -798,7 +755,7 @@ class MEModel(object):
         # setup the plot
         fig, axes = plt.subplots(
             nrows=2,
-            figsize=(13, 10),
+            figsize=(10, 8),
             gridspec_kw={"height_ratios": [3, 1]},
             sharex=True,
         )
@@ -817,12 +774,15 @@ class MEModel(object):
             else:
                 ptype = "-"
                 rcolor = "k"
-            multval = self.norm.value * np.power(modinfo.waves[cspec], 4.0)
-            ax.plot(modinfo.waves[cspec], modsed[cspec] * multval, rcolor + ptype)
-            ax.plot(modinfo.waves[cspec], ext_modsed[cspec] * multval, rcolor + ptype)
-            ax.plot(
-                modinfo.waves[cspec], hi_ext_modsed[cspec] * multval, rcolor + ptype
-            )
+            cwaves = modinfo.waves[cspec]
+
+            # nan models where no data or excluded
+            nvals = np.full(len(cwaves), 1.0)
+            nvals[self.weights[cspec] == 0.0] = np.nan
+            multval = self.norm.value * np.power(cwaves, 4.0) * nvals
+            ax.plot(cwaves, modsed[cspec] * multval, "b" + ptype)
+            ax.plot(cwaves, ext_modsed[cspec] * multval, "g" + ptype)
+            ax.plot(cwaves, hi_ext_modsed[cspec] * multval, "r" + ptype)
 
             gvals = obsdata.data[cspec].fluxes > 0.0
             ax.plot(
@@ -834,7 +794,7 @@ class MEModel(object):
                 alpha=0.7,
             )
 
-            gvals = hi_ext_modsed[cspec] > 0.0
+            gvals = (hi_ext_modsed[cspec] > 0.0) & (self.weights[cspec] > 0.0)
             modspec = hi_ext_modsed[cspec][gvals] * self.norm.value
             diff = 100.0 * (obsdata.data[cspec].fluxes.value[gvals] - modspec) / modspec
             if cspec != "BAND":
@@ -886,12 +846,55 @@ class MEModel(object):
                     horizontalalignment="left",
                     verticalalignment="center",
                     transform=ax.transAxes,
-                    fontsize=fontsize,
+                    fontsize=0.8 * fontsize,
                 )
                 k += 1
 
         ax.text(0.1, 0.9, obsdata.file, transform=ax.transAxes, fontsize=fontsize)
 
         fig.tight_layout()
+
+        return fig
+
+    def plot_sampler_chains(self, sampler):
+        """
+        Plot the samplier chains.
+
+        Parameters
+        ----------
+        sampler : object
+            emcee sampler object
+
+        Returns
+        -------
+        fig : object
+            returns the standard matplotlib fig info
+        """
+
+        samples = sampler.get_chain()
+        fig, axes = plt.subplots(samples.shape[2], figsize=(10, 15), sharex=True)
+        labels = self.get_nonfixed_paramnames()
+        for i in range(samples.shape[2]):
+            ax = axes[i]
+            ax.plot(samples[:, :, i], "k", alpha=0.3)
+            ax.set_xlim(0, len(samples))
+            ax.set_ylabel(labels[i])
+            ax.yaxis.set_label_coords(-0.1, 0.5)
+
+        axes[-1].set_xlabel("step number")
+
+        return fig
+
+    def plot_samplier_corner(self, flat_samples):
+        """
+        Plot the standard corner plot.
+
+        Returns
+        -------
+        fig : object
+            returns the standard matplotlib fig info
+        """
+        labels = self.get_nonfixed_paramnames()
+        fig = corner.corner(flat_samples, labels=labels)
 
         return fig

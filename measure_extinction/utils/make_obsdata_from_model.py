@@ -330,8 +330,8 @@ def make_obsdata_from_model(
     iue_file = "%s_iue.fits" % (output_filebase)
     if not only_dat:
         # IUE mock observation
-        # Resolution approximately 300
-        iue_fwhm_pix = rbres / 300.0
+        # Resolution approximately 400-600
+        iue_fwhm_pix = rbres / 600.0
         g = Gaussian1DKernel(stddev=iue_fwhm_pix / 2.355)
         # Convolve data to give the expected observed spectral resolution
         nflux = convolve(otable["FLUX"].data, g)
@@ -434,8 +434,8 @@ def make_obsdata_from_model(
     miri_lrs_file = "%s_miri_lrs.fits" % (output_filebase)
     if not only_dat:
         # MIRI LRS mock observation
-        # Resolution approximately 100
-        miri_lrs_fwhm_pix = rbres / 100.0
+        # Resolution approximately 40-160
+        miri_lrs_fwhm_pix = rbres / 160.0
         g = Gaussian1DKernel(stddev=miri_lrs_fwhm_pix / 2.355)
         # Convolve data
         nflux = convolve(otable["FLUX"].data, g)
