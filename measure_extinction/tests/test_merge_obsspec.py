@@ -73,7 +73,7 @@ def test_nircam_ss():
 
 def test_miri_lrs():
     wave_range = [4.0, 15.0] * u.micron
-    resolution = 150.0
+    resolution = 160.0
     _check_genmerge(wave_range, resolution, merge_miri_lrs_obsspec)
 
 
