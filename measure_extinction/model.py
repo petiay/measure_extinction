@@ -106,15 +106,18 @@ class MEModel(object):
     # some fitters don't like inf, can be changed here
     lnp_bignum = -np.inf
 
-    def __init__(self, modinfo=None):
+    def __init__(self, modinfo=None, obsdata=None):
         """
         Initialize the object, optionally using the min/max of the input model info
         to set the value and bounds on the stellar parameters
 
         Parameters
         ----------
-        moddata : ModelData object
+        modinfo : ModelData object
             all the information about the model spectra
+
+        obsdata : StarData object
+            observed data for a reddened star
         """
         if modinfo is not None:
             self.logTeff.bounds = (modinfo.temps_min, modinfo.temps_max)
@@ -125,6 +128,13 @@ class MEModel(object):
             self.logZ.value = np.average(self.logZ.bounds)
             self.vturb.bounds = (modinfo.vturb_min, modinfo.vturb_max)
             self.vturb.value = np.average(self.vturb.bounds)
+
+        # setup the fractional underestimation values for each type of data
+        #    fittable parameter to handle underestimating uncertainties
+        if obsdata is not None:
+            self.logf = {}
+            for cspec in obsdata.data.keys():
+                self.logf[cspec] = -1.0
 
     def pprint_parameters(self):
         """
@@ -148,6 +158,14 @@ class MEModel(object):
                 tline += f"{getattr(self, cname).value:.2f}{fstr} "
             print(f"{tline[:-1]} ({hline[:-1]})")
 
+        if hasattr(self, "logf"):
+            hline = "logf: "
+            tline = ""
+            for cname in self.logf.keys():
+                hline += f"{cname} "
+                tline += f"{self.logf[cname]:.2f} "
+            print(f"{tline[:-1]} ({hline[:-1]})")
+
     def parameters(self):
         """
         Give all the parameters values in a vector (fixed or not).
@@ -160,6 +178,9 @@ class MEModel(object):
         vals = []
         for cname in self.paramnames:
             vals.append(getattr(self, cname).value)
+        if hasattr(self, "logf"):
+            for ckey in self.logf.keys():
+                vals.append(self.logf[ckey])
         return np.array(vals)
 
     def parameters_to_fit(self):
@@ -175,6 +196,9 @@ class MEModel(object):
         for cname in self.paramnames:
             if not getattr(self, cname).fixed:
                 vals.append(getattr(self, cname).value)
+        if hasattr(self, "logf"):
+            for ckey in self.logf.keys():
+                vals.append(self.logf[ckey])
         return np.array(vals)
 
     def fit_to_parameters(self, fit_params, uncs=None):
@@ -194,6 +218,10 @@ class MEModel(object):
                 cparam.value = fit_params[i]
                 if uncs is not None:
                     cparam.unc = uncs[i]
+                i += 1
+        if hasattr(self, "logf"):
+            for ckey in self.logf.keys():
+                self.logf[ckey] = fit_params[i]
                 i += 1
 
     def get_nonfixed_paramnames(self):
@@ -541,13 +569,24 @@ class MEModel(object):
                 raise ValueError(
                     "Oops! The model data and reddened star data did not match.\n Hint: Make sure that the BAND name in the .dat files match."
                 )
+            model = hi_ext_modsed[cspec][gvals] * self.norm.value
+
+            if hasattr(self, "logf"):
+                unc = 1. / self.weights[cspec][gvals]
+                unc2 = unc**2 + model**2 + np.exp(2. * self.logf[cspec])
+                weights = 1. / np.sqrt(unc2)
+                lnextra = np.log(unc2)
+            else:
+                weights = self.weights[cspec][gvals]
+                lnextra = 0.0
+
             chiarr = np.square(
                 (
                     (
                         obsdata.data[cspec].fluxes[gvals].value
-                        - (hi_ext_modsed[cspec][gvals] * self.norm.value)
+                        - model
                     )
-                    * self.weights[cspec][gvals]
+                    * weights + lnextra
                 )
             )
             lnl += -0.5 * np.sum(chiarr)
