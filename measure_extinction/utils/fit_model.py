@@ -65,7 +65,6 @@ def main():
         modstr = "tlusty_"
     if args.modstr is not None:
         modstr = args.modstr
-    print("modstr: ", modstr)
     if args.picmodel:
         modinfo = pickle.load(open(f"{modstr}_modinfo.p", "rb"))
     else:
@@ -73,6 +72,10 @@ def main():
         tlusty_models = [
             tfile[tfile.rfind("/") + 1 : len(tfile)] for tfile in tlusty_models_fullpath
         ]
+        if len(tlusty_models) > 1:
+            print(f"{len(tlusty_models)} model files found.")
+        else:
+            raise ValueError("no model files found.")
 
         # get the models with just the reddened star band data and spectra
         modinfo = ModelData(

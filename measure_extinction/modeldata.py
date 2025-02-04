@@ -188,6 +188,12 @@ class ModelData(object):
         if self.mets_width2 == 0.0:
             self.mets_width2 = 1.0
 
+        self.vturb_min = min(self.vturb)
+        self.vturb_max = max(self.vturb)
+        self.vturb_width2 = (self.vturb_max - self.vturb_min) ** 2
+        if self.vturb_width2 == 0.0:
+            self.vturb_width2 = 1.0
+
     def SED_to_StarData(self, sed):
         """
         Convert the model created SED into a StarData object.

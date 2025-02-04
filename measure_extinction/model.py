@@ -123,6 +123,8 @@ class MEModel(object):
             self.logg.value = np.average(self.logg.bounds)
             self.logZ.bounds = (modinfo.mets_min, modinfo.mets_max)
             self.logZ.value = np.average(self.logZ.bounds)
+            self.vturb.bounds = (modinfo.vturb_min, modinfo.vturb_max)
+            self.vturb.value = np.average(self.vturb.bounds)
 
     def pprint_parameters(self):
         """
@@ -282,6 +284,7 @@ class MEModel(object):
             (self.logTeff.value - moddata.temps) ** 2 / moddata.temps_width2
             + (self.logg.value - moddata.gravs) ** 2 / moddata.gravs_width2
             + (self.logZ.value - moddata.mets) ** 2 / moddata.mets_width2
+            + (self.vturb.value - moddata.vturb) ** 2 / moddata.vturb_width2
         )
         sindxs = np.argsort(dist2)
         gsindxs = sindxs[0 : moddata.n_nearest]
