@@ -5,7 +5,9 @@ Model Capabilities
 ==================
 
 The `MEModel` is specific to the needs of fitting observed data with a 
-dust extinguished model.  This model 
+dust extinguished model.  This model provides all the model parameters,
+functions to predict the SED based on the input model grid, and functions
+to fit the data (minimizer and sampler), and plotting functions.
 
 Parameters
 **********
@@ -100,14 +102,19 @@ plotting, and fitting.
        variable `weights`.
     * `set_initial_norm(obsdata, moddata)`: Set the `norm` value based on the model parameters
       and the observed data.
-    * `lnlike()`:
-    * `lnprior()`:
-    * `lnpprop()`:
-    * `fit_minimizer()`:
-    * `fit_sampler()`:
+    * `lnlike()`: Compute the natural log of the likelihood assuming Gaussian uncertainties.
+    * `lnprior()`: Compute the natural log of the priors.
+    * `lnprob()`: Compute the natural log of the probability = sum of lnlike and lnprior.
+    * `fit_minimizer()`: Determine the best fit by minimizing the -1 * lnprob value using 
+      a scipy optimizer.  Returns a model with the best fit parameters.
+    * `fit_sampler()`: Determine the nD probability function using the `emcee` Monte Carlo 
+      Markov Chain sampler.  Returns a model with the p50 parameters and uncertainties based
+      on the sample.  Also returns the samples and the sampler object.
 
 * Plotting
 
-    * `plot()`:
-    * `plot_sampler_chains()`:
-    * `plot_sampler_corner()`:
+    * `plot()`: Plot the data, stellar model, and extinguished stellar model in the top panel
+      and the residuals to the fit in the bottom (smaller) panel.
+    * `plot_sampler_chains()`: Plot the sampler chains in a multi-panel plot.
+    * `plot_sampler_corner()`: Plot the 2D distributions of the samples using the starndard
+      "corner" plot.
