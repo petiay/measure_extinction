@@ -3,7 +3,6 @@ import glob
 import pickle
 import time
 import numpy as np
-import astropy.units as u
 import matplotlib.pyplot as plt
 
 from measure_extinction.stardata import StarData
@@ -11,6 +10,7 @@ from measure_extinction.modeldata import ModelData
 from measure_extinction.model import MEModel
 
 import os
+
 os.environ["OMP_NUM_THREADS"] = "1"
 
 
@@ -19,10 +19,14 @@ def fit_model_parser():
     parser.add_argument("starname", help="Name of star")
     parser.add_argument("--path", help="Path to star data", default="./")
     parser.add_argument(
-        "--picmodel", help="Set to read model grid from pickle file", action="store_true"
+        "--picmodel",
+        help="Set to read model grid from pickle file",
+        action="store_true",
     )
     parser.add_argument("--mcmc", help="run EMCEE MCMC fitting", action="store_true")
-    parser.add_argument("--mcmc_nsteps", help="number of MCMC steps", default=1000, type=int)
+    parser.add_argument(
+        "--mcmc_nsteps", help="number of MCMC steps", default=1000, type=int
+    )
     return parser
 
 
@@ -109,7 +113,9 @@ def main():
         # using an MCMC sampler to define nD probability function
         # use best fit result as the starting point
         fitmod2, flat_samples, sampler = fitmod.fit_sampler(
-            reddened_star, modinfo, nsteps=args.mcmc_nsteps,
+            reddened_star,
+            modinfo,
+            nsteps=args.mcmc_nsteps,
         )
 
         print("finished sampling")
