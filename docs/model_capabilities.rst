@@ -25,10 +25,13 @@ fixed by default, all have default bounds set (expect `norm`).
 
 * Stellar
 
+    * `velocity`: velocity of the star in km/s
     * `logTeff`: log10 of the surface effective temperature
     * `logg`: log10 of the surface gravity
     * `logZ`: log10 of the stellar metallicity divided by the solar metallicity
-    * `velocity`: velocity of the star in km/s
+    * `vturb`: stellar atmosphere turbulent velocity 
+    * `windamp`: wind amplitude, only affects 1 micron and longer
+    * `windalpha`: powerlaw of the wind emission
 
 * Dust
 
