@@ -163,5 +163,6 @@ def main():
     fitmod.plot(reddened_star, modinfo)
     plt.show()
 
+
 if __name__ == "__main__":
     main()
