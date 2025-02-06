@@ -89,7 +89,8 @@ def main():
     print("--- %s seconds ---" % (time.time() - start_time))
 
     # setup the model
-    memod = MEModel(modinfo=modinfo, obsdata=reddened_star)
+    # memod = MEModel(modinfo=modinfo, obsdata=reddened_star)  # use to activate logf fitting
+    memod = MEModel(modinfo=modinfo)
 
     if "Teff" in reddened_star.model_params.keys():
         memod.logTeff.value = np.log10(float(reddened_star.model_params["Teff"]))
@@ -104,9 +105,13 @@ def main():
         memod.velocity.value = float(reddened_star.model_params["velocity"])
         memod.velocity.fixed = True
 
+    memod.windamp.value = 1e-3
+    memod.windamp.fixed = False
+    memod.windalpha.fixed = False
+
     memod.fit_weights(reddened_star)
-    #memod.weights["BAND"] *= 100.0
-    #memod.weights["IUE"] *= 10.0
+    memod.weights["BAND"] *= 10.0
+    memod.weights["IUE"] *= 10.0
 
     memod.set_initial_norm(reddened_star, modinfo)
 
@@ -116,7 +121,7 @@ def main():
     start_time = time.time()
     print("starting fitting")
 
-    fitmod, result = memod.fit_minimizer(reddened_star, modinfo, maxiter=1000)
+    fitmod, result = memod.fit_minimizer(reddened_star, modinfo, maxiter=10000)
 
     print("finished fitting")
     print("--- %s seconds ---" % (time.time() - start_time))
@@ -153,6 +158,10 @@ def main():
         fitmod2.plot_sampler_corner(flat_samples)
         plt.savefig(f"{outname}_mcmc_corner.png")
 
+        fitmod = fitmod2
+
+    fitmod.plot(reddened_star, modinfo)
+    plt.show()
 
 if __name__ == "__main__":
     main()

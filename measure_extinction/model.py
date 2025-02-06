@@ -47,7 +47,7 @@ class MEModel(object):
     """
 
     # fmt: off
-    paramnames = ["logTeff", "logg", "logZ", "vturb", "velocity",
+    paramnames = ["logTeff", "logg", "logZ", "vturb", "velocity", "windamp", "windalpha",
                   "Av", "Rv", "C2", "B3", "C4", "xo", "gamma",
                   "vel_MW", "logHI_MW", "vel_exgal", "logHI_exgal",
                   "norm"]
@@ -59,6 +59,8 @@ class MEModel(object):
     logZ = MEParameter(value=0.0, bounds=(-1.0, 1.0))
     vturb = MEParameter(value=5.0, bounds=(2.0, 10.0))
     velocity = MEParameter(value=0.0, bounds=[-1000.0, 1000.0], fixed=True)  # km/s
+    windamp = MEParameter(value=0.0, bounds=(0.0, 1.0), fixed=True)
+    windalpha = MEParameter(value=2.0, bounds=(0.5, 3.5), fixed=True)
 
     # dust - values, bounds, and priors based on VCG04 and FM07 MW samples (expect Av)
     Av = MEParameter(value=1.0, bounds=(0.0, 100.0))
@@ -142,7 +144,7 @@ class MEModel(object):
         """
         # line 1
         pnames = [
-            ["logTeff", "logg", "logZ", "vturb", "velocity"],
+            ["logTeff", "logg", "logZ", "vturb", "velocity", "windamp", "windalpha"],
             ["Av", "Rv", "C2", "B3", "C4", "xo", "gamma"],
             ["vel_MW", "logHI_MW", "vel_exgal", "logHI_exgal"],
         ]
@@ -155,7 +157,7 @@ class MEModel(object):
                 else:
                     fstr = ""
                 hline += f"{cname} "
-                tline += f"{getattr(self, cname).value:.2f}{fstr} "
+                tline += f"{getattr(self, cname).value:.3f}{fstr} "
             print(f"{tline[:-1]} ({hline[:-1]})")
 
         if hasattr(self, "logf"):
@@ -333,10 +335,18 @@ class MEModel(object):
 
             sed[cspec][sed[cspec] == 0] = np.nan
             # shift spectrum if velocity given
-            if self.velocity is not None:
+            if self.velocity.value != 0.0:
                 cwaves = moddata.waves[cspec]
                 sed[cspec] = np.interp(
                     cwaves, (1.0 + self.velocity.value / 2.998e5) * cwaves, sed[cspec]
+                )
+            if (self.windamp.value != 0.0) and np.min(
+                moddata.waves[cspec] > 1.0 * u.micron
+            ):
+                cwaves = moddata.waves[cspec].value
+                sed[cspec] *= 1.0 + self.windamp.value * (
+                    np.power(cwaves, self.windalpha.value)
+                    - np.power(1.0, self.windalpha.value)
                 )
 
         return sed
@@ -572,22 +582,16 @@ class MEModel(object):
             model = hi_ext_modsed[cspec][gvals] * self.norm.value
 
             if hasattr(self, "logf"):
-                unc = 1. / self.weights[cspec][gvals]
-                unc2 = unc**2 + model**2 + np.exp(2. * self.logf[cspec])
-                weights = 1. / np.sqrt(unc2)
+                unc = 1.0 / self.weights[cspec][gvals]
+                unc2 = unc**2 + model**2 + np.exp(2.0 * self.logf[cspec])
+                weights = 1.0 / np.sqrt(unc2)
                 lnextra = np.log(unc2)
             else:
                 weights = self.weights[cspec][gvals]
                 lnextra = 0.0
 
             chiarr = np.square(
-                (
-                    (
-                        obsdata.data[cspec].fluxes[gvals].value
-                        - model
-                    )
-                    * weights + lnextra
-                )
+                ((obsdata.data[cspec].fluxes[gvals].value - model) * weights + lnextra)
             )
             lnl += -0.5 * np.sum(chiarr)
 
@@ -900,9 +904,9 @@ class MEModel(object):
             param = getattr(self, cname)
             if not param.fixed and (cname != "norm"):
                 if param.unc is not None:
-                    ptxt = rf"{cname} = ${param.value:.2f} \pm {param.unc:.2f}$"
+                    ptxt = rf"{cname} = ${param.value:.3f} \pm {param.unc:.3f}$"
                 else:
-                    ptxt = f"{cname} = {param.value:.2f}"
+                    ptxt = f"{cname} = {param.value:.3f}"
                 ax.text(
                     0.7,
                     0.5 - k * 0.04,
