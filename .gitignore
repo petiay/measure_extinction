@@ -61,3 +61,6 @@ distribute-*.tar.gz
 
 # package specific
 *.ipynb
+*.png
+*.p
+*.fits

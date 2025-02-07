@@ -29,7 +29,7 @@ User Documentation
    :maxdepth: 2
 
    Extinction Calculation <calc_extinction.rst>
-   Capabilities <code_capabilities.rst>
+   Core Capabilities <code_capabilities.rst>
    Data Formats <data_formats.rst>
    Plotting <plotting.rst>
    Stellar Models as Standards <model_standards.rst>
@@ -68,10 +68,7 @@ contributors page on Github
 Reference API
 =============
 
-.. automodapi:: measure_extinction.stardata
+.. toctree::
+   :maxdepth: 1
 
-.. automodapi:: measure_extinction.modeldata
-
-.. automodapi:: measure_extinction.extdata
-
-.. automodapi:: measure_extinction.merge_obsspec
+   reference_api.rst

@@ -1,0 +1,4 @@
+
+ignore:
+  - "measure_extinction/utils/"
+  - "measure_extinction/plotting/"

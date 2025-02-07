@@ -393,7 +393,7 @@ def merge_nircam_ss_obsspec(obstables, output_resolution=1600):
     return otable
 
 
-def merge_miri_lrs_obsspec(obstables, output_resolution=100):
+def merge_miri_lrs_obsspec(obstables, output_resolution=160):
     """
     Merge one or more MIRI LRS spectra into a single spectrum
     on a uniform wavelength scale
