@@ -862,15 +862,21 @@ class MEModel(object):
                 alpha=0.7,
             )
 
+            # plot the residuals
             gvals = (hi_ext_modsed[cspec] > 0.0) & (self.weights[cspec] > 0.0)
             modspec = hi_ext_modsed[cspec][gvals] * self.norm.value
             diff = 100.0 * (obsdata.data[cspec].fluxes.value[gvals] - modspec) / modspec
+            uncs = 100.0 * obsdata.data[cspec].uncs.value[gvals] / modspec
             if cspec != "BAND":
                 calpha = 0.5
             else:
                 calpha = 0.75
-            axes[1].plot(
-                modinfo.waves[cspec][gvals], diff, rcolor + ptype, alpha=calpha
+            axes[1].errorbar(
+                modinfo.waves[cspec][gvals],
+                diff,
+                yerr=uncs,
+                fmt=rcolor + ptype,
+                alpha=calpha,
             )
 
         ax.set_xscale("log")

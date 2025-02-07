@@ -24,6 +24,7 @@ def fit_model_parser():
         choices=["obstars", "whitedwarfs"],
         default="obsstars",
     )
+    parser.add_argument("--wind", help="add IR (lambda > 1 um) wind emission model", action="store_true")
     parser.add_argument("--modpath", help="path to the model files", default="./")
     parser.add_argument(
         "--modstr", help="Alternative model string for grid (expert)", default=None
@@ -37,6 +38,8 @@ def fit_model_parser():
     parser.add_argument(
         "--mcmc_nsteps", help="number of MCMC steps", default=1000, type=int
     )
+    parser.add_argument("--showfit", help="display the best fit model plot", action="store_true")
+    parser.add_argument("--png", help="save plots as png instead of pdf", action="store_true")
     return parser
 
 
@@ -45,6 +48,10 @@ def main():
     args = parser.parse_args()
 
     outname = f"{args.starname}_mefit"
+    if args.png:
+        outtype = "png"
+    else:
+        outtype = "pdf"
 
     # get data
     fstarname = f"{args.starname}.dat"
@@ -105,13 +112,18 @@ def main():
         memod.velocity.value = float(reddened_star.model_params["velocity"])
         memod.velocity.fixed = True
 
-    memod.windamp.value = 1e-3
-    memod.windamp.fixed = False
-    memod.windalpha.fixed = False
-
     memod.fit_weights(reddened_star)
-    memod.weights["BAND"] *= 10.0
-    memod.weights["IUE"] *= 10.0
+
+    if args.modtype == "whitedwarfs":
+        memod.vturb.value = 0.0
+        memod.vturb.fixed = True
+        memod.Av.value = 0.5
+        memod.weights["BAND"] *= 10.0
+        memod.weights["STIS"] *= 10.0
+    if args.wind:
+        memod.windamp.value = 1e-3
+        memod.windamp.fixed = False
+        memod.windalpha.fixed = False
 
     memod.set_initial_norm(reddened_star, modinfo)
 
@@ -132,7 +144,8 @@ def main():
     fitmod.pprint_parameters()
 
     fitmod.plot(reddened_star, modinfo)
-    plt.savefig(f"{outname}_minimizer.png")
+    plt.savefig(f"{outname}_minimizer.{outtype}")
+    plt.close()
 
     if args.mcmc:
         print("starting sampling")
@@ -150,18 +163,22 @@ def main():
         fitmod2.pprint_parameters()
 
         fitmod2.plot(reddened_star, modinfo)
-        plt.savefig(f"{outname}_mcmc.png")
+        plt.savefig(f"{outname}_mcmc.{outtype}")
+        plt.close()
 
         fitmod2.plot_sampler_chains(sampler)
-        plt.savefig(f"{outname}_mcmc_chains.png")
+        plt.savefig(f"{outname}_mcmc_chains.{outtype}")
+        plt.close()
 
         fitmod2.plot_sampler_corner(flat_samples)
-        plt.savefig(f"{outname}_mcmc_corner.png")
+        plt.savefig(f"{outname}_mcmc_corner.{outtype}")
+        plt.close()
 
         fitmod = fitmod2
 
-    fitmod.plot(reddened_star, modinfo)
-    plt.show()
+    if args.showfit:
+        fitmod.plot(reddened_star, modinfo)
+        plt.show()
 
 
 if __name__ == "__main__":
