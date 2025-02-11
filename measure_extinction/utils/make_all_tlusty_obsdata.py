@@ -99,9 +99,6 @@ if __name__ == "__main__":
         default="v2",
         help="Microturbulent velocity (only applies to tlusty grid)",
     )
-    parser.add_argument(
-        "--specs", help="only create the DAT files", action="store_true"
-    )
 
     args = parser.parse_args()
 
