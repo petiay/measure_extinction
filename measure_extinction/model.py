@@ -285,7 +285,11 @@ class MEModel(object):
         for cspec in list(obsdata.data.keys()):
             # base weights
             self.weights[cspec] = np.full(len(obsdata.data[cspec].fluxes), 0.0)
-            gvals = (obsdata.data[cspec].npts > 0) & np.isfinite(obsdata.data[cspec].fluxes)
+            gvals = (
+                (obsdata.data[cspec].npts > 0)
+                & np.isfinite(obsdata.data[cspec].fluxes)
+                & (obsdata.data[cspec].uncs.value > 0.0)
+            )
             self.weights[cspec][gvals] = 1.0 / obsdata.data[cspec].uncs[gvals].value
 
             x = 1.0 / obsdata.data[cspec].waves

@@ -759,7 +759,7 @@ def plot_extinction(
         ax.set_title(starpair, fontsize=50)
     else:
         ax.set_title(extdata.red_file.replace(".dat", ""), fontsize=50)
-    if extdata.comp_file != "":
+    if (extdata.comp_file is not None) and (extdata.comp_file != ""):
         ax.text(
             0.99,
             0.95,
