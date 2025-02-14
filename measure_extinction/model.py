@@ -136,7 +136,7 @@ class MEModel(object):
         if obsdata is not None:
             self.logf = {}
             for cspec in obsdata.data.keys():
-                self.logf[cspec] = -1.0
+                self.logf[cspec] = MEParameter(value=-3.0, bounds=(-9.0, 9.0))
 
     def pprint_parameters(self):
         """
@@ -165,7 +165,7 @@ class MEModel(object):
             tline = ""
             for cname in self.logf.keys():
                 hline += f"{cname} "
-                tline += f"{self.logf[cname]:.2f} "
+                tline += f"{self.logf[cname].value:.2f} "
             print(f"{tline[:-1]} ({hline[:-1]})")
 
     def parameters(self):
@@ -182,7 +182,7 @@ class MEModel(object):
             vals.append(getattr(self, cname).value)
         if hasattr(self, "logf"):
             for ckey in self.logf.keys():
-                vals.append(self.logf[ckey])
+                vals.append(self.logf[ckey].value)
         return np.array(vals)
 
     def parameters_to_fit(self):
@@ -200,7 +200,7 @@ class MEModel(object):
                 vals.append(getattr(self, cname).value)
         if hasattr(self, "logf"):
             for ckey in self.logf.keys():
-                vals.append(self.logf[ckey])
+                vals.append(self.logf[ckey].value)
         return np.array(vals)
 
     def fit_to_parameters(self, fit_params, uncs=None):
@@ -223,7 +223,7 @@ class MEModel(object):
                 i += 1
         if hasattr(self, "logf"):
             for ckey in self.logf.keys():
-                self.logf[ckey] = fit_params[i]
+                self.logf[ckey].value = fit_params[i]
                 i += 1
 
     def get_nonfixed_paramnames(self):
@@ -235,6 +235,10 @@ class MEModel(object):
             cparam = getattr(self, cname)
             if not cparam.fixed:
                 names.append(cname)
+        if hasattr(self, "logf"):
+            for ckey in self.logf.keys():
+                if not self.logf[ckey].fixed:
+                    names.append(f"logf[{ckey}]")
 
         return names
 
@@ -253,6 +257,18 @@ class MEModel(object):
                 raise ValueError(
                     f"{cname} = {pval} is above the bounds ({pbounds[0]}, {pbounds[1]})"
                 )
+        if hasattr(self, "logf"):
+            for ckey in self.logf.keys():
+                pval = self.logf[ckey].value
+                pbounds = self.logf[ckey].bounds
+                if (pbounds[0] is not None) and (pval < pbounds[0]):
+                    raise ValueError(
+                        f"logf[{ckey}] = {pval} is below the bounds ({pbounds[0]}, {pbounds[1]})"
+                    )
+                elif (pbounds[1] is not None) and (pval > pbounds[1]):
+                    raise ValueError(
+                        f"logf[{cname}] = {pval} is above the bounds ({pbounds[0]}, {pbounds[1]})"
+                    )
 
     def add_exclude_region(self, exreg):
         """
@@ -587,15 +603,16 @@ class MEModel(object):
 
             if hasattr(self, "logf"):
                 unc = 1.0 / self.weights[cspec][gvals]
-                unc2 = unc**2 + model**2 + np.exp(2.0 * self.logf[cspec])
+                unc2 = unc**2 + model**2 + np.exp(2.0 * self.logf[cspec].value)
                 weights = 1.0 / np.sqrt(unc2)
                 lnextra = np.log(unc2)
             else:
                 weights = self.weights[cspec][gvals]
                 lnextra = 0.0
 
-            chiarr = np.square(
-                ((obsdata.data[cspec].fluxes[gvals].value - model) * weights + lnextra)
+            chiarr = (
+                np.square(((obsdata.data[cspec].fluxes[gvals].value - model) * weights))
+                + lnextra
             )
             lnl += -0.5 * np.sum(chiarr)
 
@@ -626,6 +643,15 @@ class MEModel(object):
                     return self.lnp_bignum
                 if pprior is not None:
                     lnp += -0.5 * ((pval - pprior[0]) / pprior[1]) ** 2
+
+        if hasattr(self, "logf"):
+            for ckey in self.logf.keys():
+                pval = self.logf[ckey].value
+                pbounds = self.logf[ckey].bounds
+                if (pbounds[0] is not None) and (pval < pbounds[0]):
+                    return self.lnp_bignum
+                elif (pbounds[1] is not None) and (pval > pbounds[1]):
+                    return self.lnp_bignum
 
         return lnp
 
