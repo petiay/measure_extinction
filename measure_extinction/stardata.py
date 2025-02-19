@@ -116,10 +116,10 @@ class BandData:
                 if colpos == -1:
                     colpos = len(line)
                 # if there is both a reference and a unit
-                elif line.find(";") != -1 and (
-                    line.find("mJy") != -1 or line.find("ABmag") != -1
-                ):
-                    colpos = min(line.find(";"), line.find("mJy"), line.find("ABmag"))
+                elif (line.find(";") != -1) and (line.find("mJy") != -1):
+                    colpos = min(line.find(";"), line.find("mJy"))
+                elif (line.find(";") != -1) and (line.find("ABmag") != -1):
+                    colpos = min(line.find(";"), line.find("ABmag"))
                 band_name = line[0:eqpos].strip()
 
                 save_band = False
