@@ -152,7 +152,11 @@ class ModelData(object):
                                 bp_cam = "UVIS1"
                             bp = STS.band(f"WFC3,{bp_cam},{bp_info[1]}")
                         else:
-                            if ("WISE" in cband) or ("IRAC" in cband) or ("MIPS" in cband):
+                            if (
+                                ("WISE" in cband)
+                                or ("IRAC" in cband)
+                                or ("MIPS" in cband)
+                            ):
                                 estr = ""
                             else:
                                 estr = "John"
