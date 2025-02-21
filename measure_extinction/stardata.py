@@ -1733,6 +1733,10 @@ class StarData:
                     & (waves <= annotate_wave_range[1])
                 )
                 ann_val = np.nanmedian(yplotvals[ann_indxs])
+                if yoffset_type == "multiply":
+                    ann_val *= 10**annotate_yoffset
+                else:
+                    ann_val += yoffset
                 ann_val += (annotate_yoffset,)
                 ann_xval = 0.5 * np.sum(annotate_wave_range.value)
                 if wavenum:
