@@ -865,6 +865,7 @@ class MEModel(object):
         hi_ext_modsed = self.hi_abs_sed(modinfo, ext_modsed)
 
         ax = axes[0]
+        yrange = [100.0, -100.0]
         for cspec in obsdata.data.keys():
             if cspec == "BAND":
                 ptype = "o"
@@ -909,19 +910,21 @@ class MEModel(object):
                 alpha=calpha,
             )
 
+            # info for y limits of plot - make sure not not include Ly-alpha
+            gvals = np.logical_or(
+                modinfo.waves[cspec] > 0.125 * u.micron,
+                modinfo.waves[cspec] < 0.118 * u.micron,
+            )
+            gvals = np.logical_and(gvals, modinfo.waves[cspec] > 0.11 * u.micron)
+            multval = self.norm.value * np.power(modinfo.waves[cspec][gvals], 4.0)
+            mflux = (hi_ext_modsed[cspec][gvals] * multval).value
+            tyrange = np.log10([np.nanmin(mflux), np.nanmax(mflux)])
+            yrange[0] = np.min([tyrange[0], yrange[0]])
+            yrange[1] = np.max([tyrange[1], yrange[1]])
+
         ax.set_xscale("log")
         ax.set_yscale("log")
 
-        # get a reasonable y range
-        cspec = "MODEL_FULL_LOWRES"
-        gvals = np.logical_or(
-            modinfo.waves[cspec] > 0.125 * u.micron,
-            modinfo.waves[cspec] < 0.118 * u.micron,
-        )
-        gvals = np.logical_and(gvals, modinfo.waves[cspec] > 0.11 * u.micron)
-        multval = self.norm.value * np.power(modinfo.waves[cspec][gvals], 4.0)
-        mflux = (hi_ext_modsed[cspec][gvals] * multval).value
-        yrange = np.log10([np.nanmin(mflux), np.nanmax(mflux)])
         ydelt = yrange[1] - yrange[0]
         yrange[0] = 10 ** (yrange[0] - 0.1 * ydelt)
         yrange[1] = 10 ** (yrange[1] + 0.1 * ydelt)
@@ -933,7 +936,7 @@ class MEModel(object):
         ax.tick_params("both", length=10, width=2, which="major")
         ax.tick_params("both", length=5, width=1, which="minor")
         axes[1].set_ylim(-10.0, 10.0)
-        axes[1].plot([0.1, 2.5], [0.0, 0.0], "k:")
+        axes[1].axhline(0.0, color="k", linestyle=":")
 
         k = 0
         for cname in self.paramnames:
