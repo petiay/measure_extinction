@@ -730,7 +730,15 @@ class MEModel(object):
 
         return (outmod, result)
 
-    def fit_sampler(self, obsdata, modinfo, nsteps=1000, burnfrac=0.1, multiproc=False):
+    def fit_sampler(
+        self,
+        obsdata,
+        modinfo,
+        nsteps=1000,
+        burnfrac=0.1,
+        save_samples=None,
+        multiproc=False,
+    ):
         """
         Run a samplier (specifically emcee) to find the detailed
         parameters including uncertainties.
@@ -748,6 +756,9 @@ class MEModel(object):
 
         burnfrac : float
             fraction of nsteps to discard as the burn in [default=0.1]
+
+        save_samples : filename
+            name of hd5 file to save the MCMC samples
 
         multiproc : boolean
             set to run the emcee in parallel (does not speed up things much) [default=False]
@@ -770,20 +781,20 @@ class MEModel(object):
         if not np.isfinite(outmod.lnprior()):
             raise ValueError("ln(prior) is not finite")
 
-        # simple function to turn the log(likelihood) into the chisqr
-        #  required as op.minimize function searches for the minimum chisqr (not max likelihood like MCMC algorithms)
-        # def lnprob(params, memodel, *args):
-        #    memodel.fit_to_parameters(params)
-        #    return memodel.lnprob(*args)
-
         # get the non-fixed initial parameters
         p0 = outmod.parameters_to_fit()
 
         # setup the sampliers
         ndim = len(p0)
         nwalkers = 2 * ndim
+
         # setting up the walkers to start "near" the inital guess
         p = [p0 * (1 + 0.01 * np.random.normal(0, 1.0, ndim)) for k in range(nwalkers)]
+
+        if save_samples:
+            # Don't forget to clear it in case the file already exists
+            save_backend = emcee.backends.HDFBackend(save_samples)
+            save_backend.reset(nwalkers, ndim)
 
         # setup and run the sampler
         if multiproc:
@@ -802,6 +813,7 @@ class MEModel(object):
                 ndim,
                 _lnprob,
                 args=(outmod, obsdata, modinfo),
+                backend=save_backend,
             )
             sampler.run_mcmc(p, nsteps, progress=True)
 
