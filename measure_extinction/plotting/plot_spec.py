@@ -4,7 +4,6 @@ import numpy as np
 import astropy.units as u
 import pandas as pd
 
-from measure_extinction.utils.helpers import get_datapath
 from measure_extinction.stardata import StarData
 
 
@@ -475,7 +474,7 @@ def main():
     parser.add_argument(
         "--path",
         help="path to the data files",
-        default=get_datapath(),
+        default="./",
     )
     parser.add_argument("--mlam4", help="plot lambda^4*F(lambda)", action="store_true")
     parser.add_argument("--HI_lines", help="indicate the HI-lines", action="store_true")
