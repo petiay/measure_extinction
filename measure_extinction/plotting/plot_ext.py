@@ -455,8 +455,8 @@ def plot_multi_extinction(
         Wavelength range to be plotted (in micron) - [min,max]
 
     spread : float [default=0]
-        Amount to addiatively spread the curves 
- 
+        Amount to addiatively spread the curves
+
     exclude : list of strings [default=[]]
         List of data type(s) to exclude from the plot (e.g., "IRS", "IRAC1")
 
@@ -518,7 +518,7 @@ def plot_multi_extinction(
         if ".fits" not in starpair:
             fname = "%s%s_ext.fits" % (path, starpair.lower())
         else:
-            fname = starpair 
+            fname = starpair
 
         # read in the extinction curve data
         extdata = ExtData(fname)
