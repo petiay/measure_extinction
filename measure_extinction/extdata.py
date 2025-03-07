@@ -961,6 +961,7 @@ class ExtData:
         self,
         ext_filename,
         column_info=None,
+        fit_params=None,
         save_params=None,
         fm90_best_params=None,
         fm90_per_params=None,
@@ -1195,6 +1196,14 @@ class ExtData:
                 )
             tbhdu.header.set("EXTNAME", "MODEXT", "Fitted model extinction")
             hdulist.append(tbhdu)
+
+
+        # save parameters passed as tables in extensions
+        if fit_params is not None:
+            for ptype in fit_params.keys():
+                tbhdu = fits.table_to_hdu(fit_params[ptype])
+                tbhdu.header.set("EXTNAME", ptype, f"{ptype} fit parameters")
+                hdulist.append(tbhdu)
 
         hdulist.writeto(ext_filename, overwrite=True)
 
