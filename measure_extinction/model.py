@@ -304,6 +304,7 @@ class MEModel(object):
             gvals = (
                 (obsdata.data[cspec].npts > 0)
                 & np.isfinite(obsdata.data[cspec].fluxes)
+                & (obsdata.data[cspec].fluxes.value > 0.0)
                 & (obsdata.data[cspec].uncs.value > 0.0)
             )
             self.weights[cspec][gvals] = 1.0 / obsdata.data[cspec].uncs[gvals].value
