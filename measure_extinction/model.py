@@ -446,6 +446,8 @@ class MEModel(object):
                 ][gvals]
                 iflux = ext_sed["MODEL_FULL_LOWRES"][gvals]
                 iresp = moddata.band_resp[cband](iwave)
+                # set nans to zero - happens for ACS bands
+                iresp[~np.isfinite(iresp)] = 0.0
                 inttop = np.trapezoid(iwave * iresp * iflux, iwave)
                 intbot = np.trapezoid(iwave * iresp, iwave)
                 band_sed[k] = inttop / intbot
@@ -736,7 +738,7 @@ class MEModel(object):
         obsdata,
         modinfo,
         nsteps=1000,
-        burnfrac=0.1,
+        burnfrac=0.5,
         save_samples=None,
         multiproc=False,
     ):
@@ -840,7 +842,7 @@ class MEModel(object):
 
         return (outmod, flat_samples, sampler)
 
-    def plot(self, obsdata, modinfo):
+    def plot(self, obsdata, modinfo, resid_range=10.0):
         """
         Standard plot showing the data and best fit.
 
@@ -851,6 +853,9 @@ class MEModel(object):
 
         moddata : ModelData object
             all the information about the model spectra
+
+        resid_range : float
+            percentage value for the +/- range for the residual plot
         """
         # plotting setup for easier to read plots
         fontsize = 16
@@ -903,7 +908,16 @@ class MEModel(object):
                 * np.power(obsdata.data[cspec].waves[gvals], 4.0),
                 "k" + ptype,
                 label="data",
-                alpha=0.7,
+                alpha=0.2,
+            )
+            ax.plot(
+                obsdata.data[cspec].waves * nvals,
+                obsdata.data[cspec].fluxes
+                * np.power(obsdata.data[cspec].waves, 4.0)
+                * nvals,
+                "k" + ptype,
+                label="data",
+                alpha=0.75,
             )
 
             # plot the residuals
@@ -948,7 +962,7 @@ class MEModel(object):
         axes[1].set_ylabel("residuals [%]", fontsize=1.0 * fontsize)
         ax.tick_params("both", length=10, width=2, which="major")
         ax.tick_params("both", length=5, width=1, which="minor")
-        axes[1].set_ylim(-10.0, 10.0)
+        axes[1].set_ylim(-1.0 * resid_range, resid_range)
         axes[1].axhline(0.0, color="k", linestyle=":")
 
         k = 0
