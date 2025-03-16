@@ -842,7 +842,7 @@ class MEModel(object):
 
         return (outmod, flat_samples, sampler)
 
-    def plot(self, obsdata, modinfo, resid_range=10.0):
+    def plot(self, obsdata, modinfo, resid_range=10.0, lyaplot=False):
         """
         Standard plot showing the data and best fit.
 
@@ -869,12 +869,29 @@ class MEModel(object):
         plt.rc("ytick.minor", width=2)
 
         # setup the plot
+        if lyaplot:
+            ncols = 2
+            figsize = (14, 8)
+            gs_info = {"height_ratios": [3, 1], "width_ratios": [3, 1]}
+        else:
+            ncols = 1
+            figsize = (10, 8)
+            gs_info = {"height_ratios": [3, 1]}
+
         fig, axes = plt.subplots(
             nrows=2,
-            figsize=(10, 8),
-            gridspec_kw={"height_ratios": [3, 1]},
-            sharex=True,
+            ncols=ncols,
+            figsize=figsize,
+            gridspec_kw=gs_info,
+            sharex=False,
         )
+        if lyaplot:
+            axes = [axes[0, 0], axes[1, 0], axes[0, 1], axes[1, 1]]
+            tax = [axes[0], axes[2]]
+            tax_resid = [axes[1], axes[3]]
+        else:
+            tax = [axes[0]]
+            tax_resid = [axes[1]]
 
         modsed = self.stellar_sed(modinfo)
 
@@ -884,6 +901,7 @@ class MEModel(object):
 
         ax = axes[0]
         yrange = [100.0, -100.0]
+        yrange_lya = [100.0, -100.0]
         for cspec in obsdata.data.keys():
             if cspec == "BAND":
                 ptype = "o"
@@ -897,28 +915,30 @@ class MEModel(object):
             nvals = np.full(len(cwaves), 1.0)
             nvals[self.weights[cspec] == 0.0] = np.nan
             multval = self.norm.value * np.power(cwaves, 4.0) * nvals
-            ax.plot(cwaves, modsed[cspec] * multval, "b" + ptype)
-            ax.plot(cwaves, ext_modsed[cspec] * multval, "g" + ptype)
-            ax.plot(cwaves, hi_ext_modsed[cspec] * multval, "r" + ptype)
 
-            gvals = obsdata.data[cspec].fluxes > 0.0
-            ax.plot(
-                obsdata.data[cspec].waves[gvals],
-                obsdata.data[cspec].fluxes[gvals]
-                * np.power(obsdata.data[cspec].waves[gvals], 4.0),
-                "k" + ptype,
-                label="data",
-                alpha=0.2,
-            )
-            ax.plot(
-                obsdata.data[cspec].waves * nvals,
-                obsdata.data[cspec].fluxes
-                * np.power(obsdata.data[cspec].waves, 4.0)
-                * nvals,
-                "k" + ptype,
-                label="data",
-                alpha=0.75,
-            )
+            for cax in tax:
+                cax.plot(cwaves, modsed[cspec] * multval, "b" + ptype)
+                cax.plot(cwaves, ext_modsed[cspec] * multval, "g" + ptype)
+                cax.plot(cwaves, hi_ext_modsed[cspec] * multval, "r" + ptype)
+
+                gvals = obsdata.data[cspec].fluxes > 0.0
+                cax.plot(
+                    obsdata.data[cspec].waves[gvals],
+                    obsdata.data[cspec].fluxes[gvals]
+                    * np.power(obsdata.data[cspec].waves[gvals], 4.0),
+                    "k" + ptype,
+                    label="data",
+                    alpha=0.2,
+                )
+                cax.plot(
+                    obsdata.data[cspec].waves * nvals,
+                    obsdata.data[cspec].fluxes
+                    * np.power(obsdata.data[cspec].waves, 4.0)
+                    * nvals,
+                    "k" + ptype,
+                    label="data",
+                    alpha=0.75,
+                )
 
             # plot the residuals
             gvals = (hi_ext_modsed[cspec] > 0.0) & (self.weights[cspec] > 0.0)
@@ -929,13 +949,14 @@ class MEModel(object):
                 calpha = 0.5
             else:
                 calpha = 0.75
-            axes[1].errorbar(
-                modinfo.waves[cspec][gvals],
-                diff,
-                yerr=uncs,
-                fmt=rcolor + ptype,
-                alpha=calpha,
-            )
+            for cax in tax_resid:
+                cax.errorbar(
+                    modinfo.waves[cspec][gvals],
+                    diff,
+                    yerr=uncs,
+                    fmt=rcolor + ptype,
+                    alpha=calpha,
+                )
 
             # info for y limits of plot - make sure not not include Ly-alpha
             gvals = np.logical_or(
@@ -949,13 +970,34 @@ class MEModel(object):
             yrange[0] = np.min([tyrange[0], yrange[0]])
             yrange[1] = np.max([tyrange[1], yrange[1]])
 
+            # info for y limits of lya plot
+            if lyaplot:
+                gvals = np.logical_and(
+                    modinfo.waves[cspec] < 0.140 * u.micron,
+                    modinfo.waves[cspec] > 0.118 * u.micron,
+                )
+                if np.sum(gvals) > 0:
+                    gvals = np.logical_and(gvals, modinfo.waves[cspec] > 0.11 * u.micron)
+                    multval = self.norm.value * np.power(modinfo.waves[cspec][gvals], 4.0)
+                    mflux = (hi_ext_modsed[cspec][gvals] * multval).value
+                    tyrange = np.log10([np.nanmin(mflux), np.nanmax(mflux)])
+                    yrange_lya[0] = np.min([tyrange[0], yrange_lya[0]])
+                    yrange_lya[1] = np.max([tyrange[1], yrange_lya[1]])
+
         ax.set_xscale("log")
+        axes[1].set_xscale("log")
         ax.set_yscale("log")
 
         ydelt = yrange[1] - yrange[0]
         yrange[0] = 10 ** (yrange[0] - 0.1 * ydelt)
         yrange[1] = 10 ** (yrange[1] + 0.1 * ydelt)
         ax.set_ylim(yrange)
+
+        if lyaplot:
+            axes[2].set_ylim(0.0, 10 ** yrange_lya[1])
+            axes[2].set_xlim(0.115, 0.13)
+            axes[3].set_xlim(0.115, 0.13)
+            axes[3].set_ylim(-1.0 * resid_range, resid_range)
 
         axes[1].set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.3 * fontsize)
         ax.set_ylabel(r"$\lambda^4 F(\lambda)$ [RJ units]", fontsize=1.3 * fontsize)
