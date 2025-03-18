@@ -914,11 +914,15 @@ class MEModel(object):
             # nan models where no data or excluded
             nvals = np.full(len(cwaves), 1.0)
             nvals[self.weights[cspec] == 0.0] = np.nan
-            multval = self.norm.value * np.power(cwaves, 4.0) * nvals
+            multlam = self.norm.value * np.power(cwaves, 4.0)
+            multval = multlam * nvals
 
             for cax in tax:
+                cax.plot(cwaves, modsed[cspec] * multlam, "b" + ptype, alpha=0.2)
                 cax.plot(cwaves, modsed[cspec] * multval, "b" + ptype)
+                cax.plot(cwaves, ext_modsed[cspec] * multlam, "g" + ptype, alpha=0.2)
                 cax.plot(cwaves, ext_modsed[cspec] * multval, "g" + ptype)
+                cax.plot(cwaves, hi_ext_modsed[cspec] * multlam, "r" + ptype, alpha=0.2)
                 cax.plot(cwaves, hi_ext_modsed[cspec] * multval, "r" + ptype)
 
                 gvals = obsdata.data[cspec].fluxes > 0.0
@@ -941,10 +945,14 @@ class MEModel(object):
                 )
 
             # plot the residuals
-            gvals = (hi_ext_modsed[cspec] > 0.0) & (self.weights[cspec] > 0.0)
+            gvals = (hi_ext_modsed[cspec] > 0.0)
             modspec = hi_ext_modsed[cspec][gvals] * self.norm.value
             diff = 100.0 * (obsdata.data[cspec].fluxes.value[gvals] - modspec) / modspec
             uncs = 100.0 * obsdata.data[cspec].uncs.value[gvals] / modspec
+
+            nvals = np.full(len(diff), 1.0)
+            nvals[(self.weights[cspec])[gvals] == 0.0] = np.nan
+
             if cspec != "BAND":
                 calpha = 0.5
             else:
@@ -953,6 +961,13 @@ class MEModel(object):
                 cax.errorbar(
                     modinfo.waves[cspec][gvals],
                     diff,
+                    yerr=uncs,
+                    fmt=rcolor + ptype,
+                    alpha=0.2,
+                )
+                cax.errorbar(
+                    modinfo.waves[cspec][gvals] * nvals,
+                    diff * nvals,
                     yerr=uncs,
                     fmt=rcolor + ptype,
                     alpha=calpha,
