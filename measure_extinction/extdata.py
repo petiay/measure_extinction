@@ -576,7 +576,8 @@ class ExtData:
         self.type_rel_band = rel_band
         self.red_file = redstar.file
         self.comp_file = compstar.file
-        for cursrc in _poss_datasources:
+        # for cursrc in _poss_datasources:
+        for cursrc in redstar.data.keys():
             if cursrc == "BAND":
                 self.calc_elx_bands(redstar, compstar, rel_band=rel_band)
             else:

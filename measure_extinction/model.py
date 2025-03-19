@@ -309,11 +309,12 @@ class MEModel(object):
             )
             self.weights[cspec][gvals] = 1.0 / obsdata.data[cspec].uncs[gvals].value
 
-            x = 1.0 / obsdata.data[cspec].waves
-            for cexreg in self.exclude_regions:
-                self.weights[cspec][
-                    np.logical_and(x >= cexreg[0], x <= cexreg[1])
-                ] = 0.0
+            if self.exclude_regions is not None:
+                x = 1.0 / obsdata.data[cspec].waves
+                for cexreg in self.exclude_regions:
+                    self.weights[cspec][
+                        np.logical_and(x >= cexreg[0], x <= cexreg[1])
+                    ] = 0.0
 
     def stellar_sed(self, moddata):
         """
@@ -1013,6 +1014,7 @@ class MEModel(object):
             axes[2].set_xlim(0.115, 0.13)
             axes[3].set_xlim(0.115, 0.13)
             axes[3].set_ylim(-1.0 * resid_range, resid_range)
+            axes[3].axhline(0.0, color="k", linestyle=":")
 
         axes[1].set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.3 * fontsize)
         ax.set_ylabel(r"$\lambda^4 F(\lambda)$ [RJ units]", fontsize=1.3 * fontsize)
