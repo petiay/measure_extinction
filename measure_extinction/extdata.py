@@ -27,8 +27,10 @@ _poss_datasources = [
     "SpeX_SXD",
     "SpeX_LXD",
     "IRS",
+    "NIRISS_SOSS",
     "NIRCam_SS",
     "MIRI_IFU",
+    "MIRI_LRS",
 ]
 
 

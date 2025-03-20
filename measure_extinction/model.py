@@ -368,7 +368,7 @@ class MEModel(object):
                 cwaves = moddata.waves[cspec].value
                 sed[cspec] *= 1.0 + self.windamp.value * (
                     np.power(cwaves, self.windalpha.value)
-                    - np.power(1.0, self.windalpha.value)
+                    # - np.power(4.0, self.windalpha.value
                 )
 
         return sed
