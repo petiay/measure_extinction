@@ -888,7 +888,7 @@ class ExtData:
 
     def get_fitdata(
         self,
-        req_datasources,
+        req_datasources=None,
         remove_uvwind_region=False,
         remove_lya_region=False,
         remove_below_lya=False,
@@ -899,8 +899,8 @@ class ExtData:
 
         Parameters
         ----------
-        req_datasources : list of str
-            list of data sources (e.g., ['IUE', 'BAND'])
+        req_datasources : list of str, optional (default=None)
+            None means all, otherwise list of data sources (e.g., ['IUE', 'BAND'])
 
         remove_uvwind_region : boolean, optional (default=False)
             remove the UV wind regions from the returned data
@@ -922,6 +922,8 @@ class ExtData:
         ydata = []
         uncdata = []
         nptsdata = []
+        if req_datasources is None:
+            req_datasources = list(self.waves.keys())
         for cursrc in req_datasources:
             if cursrc in self.waves.keys():
                 if (cursrc == "BAND") & remove_irsblue:
