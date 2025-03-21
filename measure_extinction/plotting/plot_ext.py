@@ -8,7 +8,7 @@ import os
 
 from measure_extinction.utils.helpers import get_datapath
 from measure_extinction.extdata import ExtData
-from dust_extinction.parameter_averages import CCM89
+from dust_extinction.parameter_averages import G23
 
 
 def plot_average(
@@ -174,7 +174,7 @@ def plot_average(
 
 def plot_extmodels(extdata, alax=False, wavenum=False):
     """
-    Plot Milky Way extinction curve models of Cardelli, Clayton, and Mathis (1989, ApJ, 345, 245), only possible for wavelengths between 0.1 and 3.33 micron
+    Plot Milky Way extinction curve models of Gordon et al. (2023)
 
     Parameters
     ----------
@@ -191,14 +191,14 @@ def plot_extmodels(extdata, alax=False, wavenum=False):
     -------
     Overplots extinction curve models
     """
-    x = np.arange(0.1, 3.33, 0.01) * u.micron
-    Rvs = [2.0, 3.1, 4.0, 5.0]
+    x = np.logspace(np.log10(0.1), np.log10(30.0), 1000) * u.micron
+    Rvs = [2.3, 3.1, 4.0, 5.6]
     style = ["--", "-", ":", "-."]
     for i, cRv in enumerate(Rvs):
-        curve = CCM89(Rv=cRv)
+        curve = G23(Rv=cRv)
         if alax:
             if extdata.type_rel_band != "V":
-                emod = CCM89(cRv)
+                emod = G23(cRv)
                 (indx,) = np.where(extdata.type_rel_band == extdata.names["BAND"])
                 axav = emod(extdata.waves["BAND"][indx[0]])
             else:

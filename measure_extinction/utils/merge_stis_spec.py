@@ -51,42 +51,47 @@ if __name__ == "__main__":
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
 
+    stable = []
     if args.ralph:
-        sfilename = "%s/%s/%s.mrg" % (args.inpath, args.waveregion, args.starname)
-        sfilename = f"{args.inpath}{args.starname}.mrg"
+        if args.waveregion == "UV":
+            regtypes = ["140", "230"]
+        else:
+            regtypes = ["430", "750"]
+        sfiles = [f"{args.inpath}{args.starname}.g{grating}l" for grating in regtypes]
 
-        # determine the line for the 1st data (can vary between files)
-        f = open(sfilename, "r")
-        k = 0
-        for x in f:
-            if "###" in x:
-                dstart = k + 1
-            else:
-                k += 1
-        f.close()
+        for sfilename in sfiles:
+            print(sfilename)
 
-        stable = Table.read(
-            sfilename,
-            format="ascii",
-            data_start=dstart,
-            names=[
-                "WAVELENGTH",
-                "COUNT-RATE",
-                "FLUX",
-                "STAT-ERROR",
-                "SYS-ERROR",
-                "NPTS",
-                "TIME",
-                "QUAL",
-            ],
-        )
-        stable = [stable]
+            # determine the line for the 1st data (can vary between files)
+            f = open(sfilename, "r")
+            k = 0
+            for x in f:
+                if "###" in x:
+                    dstart = k + 1
+                else:
+                    k += 1
+            f.close()
+
+            # read
+            t1 = Table.read(
+                sfilename,
+                format="ascii",
+                data_start=dstart,
+                names=[
+                    "WAVELENGTH",
+                    "COUNT-RATE",
+                    "FLUX",
+                    "STAT-ERROR",
+                    "SYS-ERROR",
+                    "NPTS",
+                    "TIME",
+                    "QUAL",
+                ],
+            )
+            stable.append(t1)
     else:
         sfilename = f"{args.inpath}{args.starname}*.fits"
-        print(sfilename)
         sfiles = glob.glob(sfilename)
-        print(sfiles)
-        stable = []
         for cfile in sfiles:
             print(cfile)
             t1 = read_stis_archive_format(cfile)
