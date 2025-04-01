@@ -50,7 +50,7 @@ class MEModel(object):
     # fmt: off
     paramnames = ["logTeff", "logg", "logZ", "vturb", "velocity", "windamp", "windalpha",
                   "Av", "Rv", "C2", "B3", "C4", "xo", "gamma",
-                  "vel_MW", "logHI_MW", "vel_exgal", "logHI_exgal",
+                  "vel_MW", "logHI_MW", "fore_Av", "fore_Rv", "vel_exgal", "logHI_exgal",
                   "norm"]
     # fmt: on
 
@@ -193,7 +193,7 @@ class MEModel(object):
                 vals.append(self.logf[ckey].value)
         return np.array(vals)
 
-    def save_parameters(self, filename):
+    def save_parameters(self, filename=None):
         """
         Save the parameters and uncertainties to a table.  Include if they were
         fixed, their bounds, and their priors.
@@ -202,6 +202,11 @@ class MEModel(object):
         ----------
         filename : str
             name of the file for the saved info
+
+        Returns
+        -------
+        otab : astropy table
+            table giving the results, often output with the computed extinction curve
         """
         nparams = len(self.paramnames)
         paramuncs = np.zeros(nparams)
@@ -228,7 +233,10 @@ class MEModel(object):
         otab["prior"] = paramprior
         otab["prior_val"] = paramprior_val
         otab["prior_unc"] = paramprior_unc
-        otab.write(filename, overwrite=True)
+        if filename is not None:
+            otab.write(filename, overwrite=True)
+
+        return otab
 
     def parameters_to_fit(self):
         """
