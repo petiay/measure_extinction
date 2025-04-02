@@ -28,10 +28,9 @@ parameter space.
 Tlusty Stellar Atmosphere Models
 --------------------------------
 
-The
-`Ostar <http://tlusty.oca.eu/Tlusty2002/tlusty-frames-OS02.html>`_ and
-`Bstar <http://tlusty.oca.eu/Tlusty2002/tlusty-frames-BS06.html>`_
-grids of Tlusty stellar atmosphere models
+The update in 2025 
+`Ostar and Bstar grids <https://scixplorer.org/abs/2025AJ....169..178H/abstract>`_
+of Tlusty stellar atmosphere models
 (`Hubeny & Lanz 1995 <https://ui.adsabs.harvard.edu/abs/1995ApJ...439..875H/abstract>`_)
 provide good standards, especially of hot, early type stars often used
 in extinction studies as they are bright in the ultraviolet.
