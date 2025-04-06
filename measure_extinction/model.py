@@ -993,6 +993,12 @@ class MEModel(object):
 
         modsed = self.stellar_sed(modinfo)
 
+        if self.fore_Av.value > 0.0:
+            save_fore_Av = self.fore_Av.value
+            self.fore_Av.value = 0.0
+            modsed_nofore = self.stellar_sed(modinfo)
+            self.fore_Av.value = save_fore_Av
+
         ext_modsed = self.dust_extinguished_sed(modinfo, modsed)
 
         hi_ext_modsed = self.hi_abs_sed(modinfo, ext_modsed)
@@ -1020,6 +1026,11 @@ class MEModel(object):
             multval = multlam * nvals
 
             for cax in tax:
+                if self.fore_Av.value > 0.0:
+                    cax.plot(
+                        cwaves, modsed_nofore[cspec] * multlam, "c" + ptype, alpha=0.2
+                    )
+                    cax.plot(cwaves, modsed_nofore[cspec] * multval, "c" + ptype)
                 cax.plot(cwaves, modsed[cspec] * multlam, "b" + ptype, alpha=0.2)
                 cax.plot(cwaves, modsed[cspec] * multval, "b" + ptype)
                 cax.plot(cwaves, ext_modsed[cspec] * multlam, "g" + ptype, alpha=0.2)
