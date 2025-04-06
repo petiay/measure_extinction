@@ -91,10 +91,6 @@ class MEModel(object):
     # full FM90+optnir fitting (default) or G23 for the full wavelength range
     g23_all_ext = False
 
-    # approximate dust extinction in bands
-    # speeds up calculations, but is an approximation
-    approx_band_ext = False
-
     #  bad regions are defined as those were we know the models do not work
     #  or the data is bad
     exclude_regions = [
@@ -114,7 +110,7 @@ class MEModel(object):
     # some fitters don't like inf, can be changed here
     lnp_bignum = -np.inf
 
-    def __init__(self, modinfo=None, obsdata=None):
+    def __init__(self, modinfo=None, obsdata=None, logf=False):
         """
         Initialize the object, optionally using the min/max of the input model info
         to set the value and bounds on the stellar parameters
@@ -137,9 +133,25 @@ class MEModel(object):
             self.vturb.bounds = (modinfo.vturb_min, modinfo.vturb_max)
             self.vturb.value = np.average(self.vturb.bounds)
 
+        # setup the mapping between the observed data and model bands
+        self.obsdata_bands = None
+        self.obsdata_gvals = None
+        if obsdata is not None:
+            if "BAND" in obsdata.data.keys():
+                obsbands = obsdata.data["BAND"].get_band_names()
+                obsbands_gvals = [
+                    True if cband in obsbands else False for cband in modinfo.band_names
+                ]
+                if np.sum(obsbands_gvals) != len(obsbands):
+                    print("Model: ", modinfo.band_names)
+                    print("  Obs: ", obsbands)
+                    raise Exception("Model bands do not include all the observed bands")
+                self.obsdata_bands = obsbands
+                self.obsdata_gvals = obsbands_gvals
+
         # setup the fractional underestimation values for each type of data
         #    fittable parameter to handle underestimating uncertainties
-        if obsdata is not None:
+        if (obsdata is not None) and logf:
             self.logf = {}
             for cspec in obsdata.data.keys():
                 self.logf[cspec] = MEParameter(value=-3.0, bounds=(-9.0, 9.0))
@@ -435,6 +447,10 @@ class MEModel(object):
                 axav = g23mod(moddata.waves[cspec])
                 sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * self.fore_Av.value))
 
+            # remove bands not int he observed data
+            if (cspec == "BAND") and (self.obsdata_bands is not None):
+                sed[cspec] = sed[cspec][self.obsdata_gvals]
+
         return sed
 
     def dust_extinguished_sed(self, moddata, sed):
@@ -473,38 +489,44 @@ class MEModel(object):
             C1 = 2.18 - 2.91 * self.C2.value
 
             for cspec in moddata.fluxes.keys():
-                # get the dust extinguished SED (account for the
-                #  systemic velocity of the galaxy [opposite regular sense])
-                shifted_waves = (1.0 - self.velocity.value / 2.998e5) * moddata.waves[
-                    cspec
-                ]
+                if cspec != "BAND":
+                    # get the dust extinguished SED (account for the
+                    #  systemic velocity of the galaxy [opposite regular sense])
+                    shifted_waves = (
+                        1.0 - self.velocity.value / 2.998e5
+                    ) * moddata.waves[cspec]
 
-                # convert to 1/micron as _curve_F99_method does not do this (as of Nov 2024)
-                with u.add_enabled_equivalencies(u.spectral()):
-                    shifted_waves_imicron = u.Quantity(
-                        shifted_waves, 1.0 / u.micron, dtype=np.float64
+                    # convert to 1/micron as _curve_F99_method does not do this (as of Nov 2024)
+                    with u.add_enabled_equivalencies(u.spectral()):
+                        shifted_waves_imicron = u.Quantity(
+                            shifted_waves, 1.0 / u.micron, dtype=np.float64
+                        )
+
+                    axav = _curve_F99_method(
+                        shifted_waves_imicron.value,
+                        self.Rv.value,
+                        C1,
+                        self.C2.value,
+                        self.B3.value,
+                        self.C4.value,
+                        xo=self.xo.value,
+                        gamma=self.gamma.value,
+                        optnir_axav_x=optnir_axav_x.value,
+                        optnir_axav_y=optnir_axav_y,
+                        fm90_version="B3",
                     )
 
-                axav = _curve_F99_method(
-                    shifted_waves_imicron.value,
-                    self.Rv.value,
-                    C1,
-                    self.C2.value,
-                    self.B3.value,
-                    self.C4.value,
-                    xo=self.xo.value,
-                    gamma=self.gamma.value,
-                    optnir_axav_x=optnir_axav_x.value,
-                    optnir_axav_y=optnir_axav_y,
-                    fm90_version="B3",
-                )
-
-                ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * self.Av.value))
+                    ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * self.Av.value))
 
         # update the BAND fluxes by integrating the reddened MODEL_FULL spectrum
-        if "BAND" in moddata.fluxes.keys() and not self.approx_band_ext:
-            band_sed = np.zeros(moddata.n_bands)
-            for k, cband in enumerate(moddata.band_names):
+        # only do this for the observed bands (model can have many more)
+        if "BAND" in moddata.fluxes.keys():
+            if self.obsdata_bands is not None:
+                tbands = self.obsdata_bands
+            else:
+                tbands = moddata.band_names
+            band_sed = np.zeros(len(tbands))
+            for k, cband in enumerate(tbands):
                 gvals = np.isfinite(ext_sed["MODEL_FULL_LOWRES"])
                 iwave = (1.0 - self.velocity.value / 2.998e5) * moddata.waves[
                     "MODEL_FULL_LOWRES"
@@ -985,7 +1007,11 @@ class MEModel(object):
             else:
                 ptype = "-"
                 rcolor = "k"
-            cwaves = modinfo.waves[cspec]
+
+            if cspec == "BAND":
+                cwaves = obsdata.data[cspec].waves
+            else:
+                cwaves = modinfo.waves[cspec]
 
             # nan models where no data or excluded
             nvals = np.full(len(cwaves), 1.0)
@@ -1035,14 +1061,14 @@ class MEModel(object):
                 calpha = 0.75
             for cax in tax_resid:
                 cax.errorbar(
-                    modinfo.waves[cspec][gvals],
+                    cwaves[gvals],
                     diff,
                     yerr=uncs,
                     fmt=rcolor + ptype,
                     alpha=0.2,
                 )
                 cax.errorbar(
-                    modinfo.waves[cspec][gvals] * nvals,
+                    cwaves[gvals] * nvals,
                     diff * nvals,
                     yerr=uncs,
                     fmt=rcolor + ptype,
@@ -1051,11 +1077,11 @@ class MEModel(object):
 
             # info for y limits of plot - make sure not not include Ly-alpha
             gvals = np.logical_or(
-                modinfo.waves[cspec] > 0.125 * u.micron,
-                modinfo.waves[cspec] < 0.118 * u.micron,
+                cwaves > 0.125 * u.micron,
+                cwaves < 0.118 * u.micron,
             )
-            gvals = np.logical_and(gvals, modinfo.waves[cspec] > 0.11 * u.micron)
-            multval = self.norm.value * np.power(modinfo.waves[cspec][gvals], 4.0)
+            gvals = np.logical_and(gvals, cwaves > 0.11 * u.micron)
+            multval = self.norm.value * np.power(cwaves[gvals], 4.0)
             mflux = (hi_ext_modsed[cspec][gvals] * multval).value
             tyrange = np.log10([np.nanmin(mflux), np.nanmax(mflux)])
             yrange[0] = np.min([tyrange[0], yrange[0]])
@@ -1064,16 +1090,12 @@ class MEModel(object):
             # info for y limits of lya plot
             if lyaplot:
                 gvals = np.logical_and(
-                    modinfo.waves[cspec] < 0.140 * u.micron,
-                    modinfo.waves[cspec] > 0.118 * u.micron,
+                    cwaves < 0.140 * u.micron,
+                    cwaves > 0.118 * u.micron,
                 )
                 if np.sum(gvals) > 0:
-                    gvals = np.logical_and(
-                        gvals, modinfo.waves[cspec] > 0.11 * u.micron
-                    )
-                    multval = self.norm.value * np.power(
-                        modinfo.waves[cspec][gvals], 4.0
-                    )
+                    gvals = np.logical_and(gvals, cwaves > 0.11 * u.micron)
+                    multval = self.norm.value * np.power(cwaves[gvals], 4.0)
                     mflux = (hi_ext_modsed[cspec][gvals] * multval).value
                     tyrange = np.log10([np.nanmin(mflux), np.nanmax(mflux)])
                     yrange_lya[0] = np.min([tyrange[0], yrange_lya[0]])
