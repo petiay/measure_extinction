@@ -68,7 +68,7 @@ class ModelData(object):
         self,
         modelfiles,
         path="./",
-        band_names=["U", "B", "V", "J", "H", "K"],
+        band_names=None,
         spectra_names=["BAND", "STIS"],
     ):
 
@@ -82,8 +82,12 @@ class ModelData(object):
         self.vturb = np.zeros(self.n_models)
 
         # photometric band data
-        self.n_bands = len(band_names)
-        self.band_names = band_names
+        if band_names is None:
+            self.n_bands = 0
+            self.band_names = None
+        else:
+            self.n_bands = len(band_names)
+            self.band_names = band_names
         # path for non-HST band response curves
         band_resp_path = f"{get_datapath()}/Band_RespCurves/"
 
@@ -99,14 +103,6 @@ class ModelData(object):
             self.fluxes[cspec] = None
             self.flux_uncs[cspec] = None
 
-        if "BAND" in spectra_names:
-            # initialize the BAND dictionary entry as the number of elements
-            # is set by the desired bands, not the bands in the files
-            self.waves["BAND"] = np.zeros((self.n_bands))
-            self.fluxes["BAND"] = np.zeros((self.n_models, self.n_bands))
-            self.flux_uncs["BAND"] = np.zeros((self.n_models, self.n_bands))
-            self.band_resp = {}
-
         # read and store the model data
         for k, cfile in enumerate(modelfiles):
             moddata = StarData(cfile, path=path)
@@ -116,6 +112,18 @@ class ModelData(object):
             self.gravs[k] = float(moddata.model_params["logg"])
             self.mets[k] = np.log10(float(moddata.model_params["Z"]))
             self.vturb[k] = float(moddata.model_params["vturb"])
+
+            if ("BAND" in spectra_names) and (k == 0):
+                # switch to all the possible bands if band_names not set
+                if self.band_names is None:
+                    self.band_names = moddata.data["BAND"].get_band_names()
+                    self.n_bands = len(self.band_names)
+
+                # initialize the BAND dictionary entry as the number of elements
+                self.waves["BAND"] = np.zeros((self.n_bands))
+                self.fluxes["BAND"] = np.zeros((self.n_models, self.n_bands))
+                self.flux_uncs["BAND"] = np.zeros((self.n_models, self.n_bands))
+                self.band_resp = {}
 
             # spectra
             for cspec in self.spectra_names:
@@ -137,34 +145,36 @@ class ModelData(object):
                         self.fluxes[cspec][k, i] = band_flux[0]
                         self.flux_uncs[cspec][k, i] = band_flux[1]
 
-                        # read in the band response functions for determining the reddened photometry
-                        if "ACS" in cband:
-                            bp_info = cband.split("_")
-                            bp = STS.band(f"ACS,WFC1,{bp_info[1]}")
-                        elif "WFPC2" in cband:
-                            bp_info = cband.split("_")
-                            bp = STS.band(f"WFPC2,4,{bp_info[1]}")
-                        elif "WFC3" in cband:
-                            bp_info = cband.split("_")
-                            if bp_info[1] in ["F110W", "F160W"]:
-                                bp_cam = "IR"
+                        if k == 0:
+                            # read in the band response functions for determining the reddened photometry
+                            if "ACS" in cband:
+                                bp_info = cband.split("_")
+                                bp = STS.band(f"ACS,WFC1,{bp_info[1]}")
+                            elif "WFPC2" in cband:
+                                bp_info = cband.split("_")
+                                bp = STS.band(f"WFPC2,4,{bp_info[1]}")
+                            elif "WFC3" in cband:
+                                bp_info = cband.split("_")
+                                if bp_info[1] in ["F110W", "F160W"]:
+                                    bp_cam = "IR"
+                                else:
+                                    bp_cam = "UVIS1"
+                                bp = STS.band(f"WFC3,{bp_cam},{bp_info[1]}")
                             else:
-                                bp_cam = "UVIS1"
-                            bp = STS.band(f"WFC3,{bp_cam},{bp_info[1]}")
-                        else:
-                            if (
-                                ("WISE" in cband)
-                                or ("IRAC" in cband)
-                                or ("MIPS" in cband)
-                            ):
-                                estr = ""
-                            else:
-                                estr = "John"
-                            band_filename = f"{estr}{cband}.dat"
-                            bp = SpectralElement.from_file(
-                                f"{band_resp_path}/{band_filename}"
-                            )
-                        self.band_resp[cband] = bp
+                                if (
+                                    ("WISE" in cband)
+                                    or ("IRAC" in cband)
+                                    or ("MIPS" in cband)
+                                    or ("IRS" in cband)
+                                ):
+                                    estr = ""
+                                else:
+                                    estr = "John"
+                                band_filename = f"{estr}{cband}.dat"
+                                bp = SpectralElement.from_file(
+                                    f"{band_resp_path}/{band_filename}"
+                                )
+                            self.band_resp[cband] = bp
                 else:
                     # get the spectral data
                     self.fluxes[cspec][k, :] = moddata.data[cspec].fluxes
