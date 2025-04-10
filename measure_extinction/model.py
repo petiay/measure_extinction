@@ -884,7 +884,10 @@ class MEModel(object):
 
         if not resume:
             # setting up the walkers to start "near" the inital guess
-            p = [p0 * (1 + 0.01 * np.random.normal(0, 1.0, ndim)) for k in range(nwalkers)]
+            p = [
+                p0 * (1 + 0.01 * np.random.normal(0, 1.0, ndim))
+                for k in range(nwalkers)
+            ]
 
             # check the value so p to make sure they are within the bounds, set to bounds if not
             for k, cp in enumerate(p):
@@ -904,6 +907,8 @@ class MEModel(object):
             save_backend = emcee.backends.HDFBackend(save_samples)
             if not resume:
                 save_backend.reset(nwalkers, ndim)
+        else:
+            save_backend = None
 
         # setup and run the sampler
         if multiproc:
@@ -914,6 +919,7 @@ class MEModel(object):
                     _lnprob,
                     args=(outmod, obsdata, modinfo),
                     pool=pool,
+                    backgend=save_backend,
                 )
                 sampler.run_mcmc(p, nsteps, progress=True)
         else:
