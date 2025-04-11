@@ -828,6 +828,7 @@ class MEModel(object):
         burnfrac=0.5,
         save_samples=None,
         multiproc=False,
+        resume=False,
     ):
         """
         Run a samplier (specifically emcee) to find the detailed
@@ -852,6 +853,9 @@ class MEModel(object):
 
         multiproc : boolean
             set to run the emcee in parallel (does not speed up things much) [default=False]
+
+        resume : boolean
+            resume from previous run (requires save_samples to be an existing emcee hd5 save file)
 
         Returns
         -------
@@ -878,24 +882,33 @@ class MEModel(object):
         ndim = len(p0)
         nwalkers = 2 * ndim
 
-        # setting up the walkers to start "near" the inital guess
-        p = [p0 * (1 + 0.01 * np.random.normal(0, 1.0, ndim)) for k in range(nwalkers)]
+        if not resume:
+            # setting up the walkers to start "near" the inital guess
+            p = [
+                p0 * (1 + 0.01 * np.random.normal(0, 1.0, ndim))
+                for k in range(nwalkers)
+            ]
 
-        # check the value so p to make sure they are within the bounds, set to bounds if not
-        for k, cp in enumerate(p):
-            for j, cname in enumerate(self.get_nonfixed_paramnames()):
-                param = getattr(self, cname)
-                pval = cp[j]
-                pbounds = param.bounds
-                if (pbounds[0] is not None) and (pval < pbounds[0]):
-                    param.value = pbounds[0]
-                elif (pbounds[1] is not None) and (pval > pbounds[1]):
-                    param.value = pbounds[1]
+            # check the value so p to make sure they are within the bounds, set to bounds if not
+            for k, cp in enumerate(p):
+                for j, cname in enumerate(self.get_nonfixed_paramnames()):
+                    param = getattr(self, cname)
+                    pval = cp[j]
+                    pbounds = param.bounds
+                    if (pbounds[0] is not None) and (pval < pbounds[0]):
+                        param.value = pbounds[0]
+                    elif (pbounds[1] is not None) and (pval > pbounds[1]):
+                        param.value = pbounds[1]
+        else:
+            p = None
 
         if save_samples:
             # Don't forget to clear it in case the file already exists
             save_backend = emcee.backends.HDFBackend(save_samples)
-            save_backend.reset(nwalkers, ndim)
+            if not resume:
+                save_backend.reset(nwalkers, ndim)
+        else:
+            save_backend = None
 
         # setup and run the sampler
         if multiproc:
@@ -906,6 +919,7 @@ class MEModel(object):
                     _lnprob,
                     args=(outmod, obsdata, modinfo),
                     pool=pool,
+                    backgend=save_backend,
                 )
                 sampler.run_mcmc(p, nsteps, progress=True)
         else:
