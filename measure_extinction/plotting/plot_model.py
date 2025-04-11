@@ -3,7 +3,6 @@ import pickle
 import emcee
 import matplotlib.pyplot as plt
 import numpy as np
-import astropy.units as u
 
 from measure_extinction.model import MEModel
 from measure_extinction.stardata import StarData
@@ -21,7 +20,9 @@ def main():
     )
     parser.add_argument("--burnfrac", help="burn fraction", default=0.5, type=float)
     parser.add_argument(
-        "--obspath", help="path to observed data", default="/home/kgordon/Python/extstar_data/MW/"
+        "--obspath",
+        help="path to observed data",
+        default="/home/kgordon/Python/extstar_data/MW/",
     )
     parser.add_argument(
         "--picmodname", help="name of pickled model", default="tlusty_z100_modinfo.p"
