@@ -27,6 +27,9 @@ def main():
     parser.add_argument(
         "--picmodname", help="name of pickled model", default="tlusty_z100_modinfo.p"
     )
+    parser.add_argument(
+        "--bands", help="only use these observed bands", nargs="+", default=None
+    )
     args = parser.parse_args()
 
     # base filename
@@ -34,7 +37,7 @@ def main():
 
     # get the observed data
     fstarname = f"{args.starname}.dat"
-    reddened_star = StarData(fstarname, path=f"{args.obspath}")
+    reddened_star = StarData(fstarname, path=f"{args.obspath}", only_bands=args.bands)
 
     # get the modeling info
     modinfo = pickle.load(open(args.picmodname, "rb"))
@@ -66,6 +69,20 @@ def main():
     reader = emcee.backends.HDFBackend(sampfile)
     samples = reader.get_chain()
     nsteps = samples.shape[0]
+
+    # analyze chains for convergence
+    tau = reader.get_autocorr_time(quiet=True)
+    # burnin = int(2 * np.max(tau))
+    # thin = int(0.5 * np.min(tau))
+    # samples = reader.get_chain(discard=burnin, flat=True, thin=thin)
+    # log_prob_samples = reader.get_log_prob(discard=burnin, flat=True, thin=thin)
+    # log_prior_samples = reader.get_blobs(discard=burnin, flat=True, thin=thin)
+
+    # print("burn-in: {0}".format(burnin))
+    # print("thin: {0}".format(thin))
+    # print("flat chain shape: {0}".format(samples.shape))
+    # print("flat log prob shape: {0}".format(log_prob_samples.shape))
+    # print("flat log prior shape: {0}".format(log_prior_samples.shape))
 
     flat_samples = reader.get_chain(discard=int(args.burnfrac * nsteps), flat=True)
 
