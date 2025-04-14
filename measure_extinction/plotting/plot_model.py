@@ -66,7 +66,7 @@ def main():
     memod.fit_weights(reddened_star)
 
     # get the MCMC chains
-    sampfile = f"{outname.replace("figs", "exts")}_.h5"
+    sampfile = f"{tstr}_.h5"
     reader = emcee.backends.HDFBackend(sampfile)
     samples = reader.get_chain()
     nsteps = samples.shape[0]
