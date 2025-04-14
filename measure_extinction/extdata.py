@@ -1296,7 +1296,6 @@ class ExtData:
             if "FIT" in cname:
                 fname = cname.split("_")[0]
                 self.fit_params[fname] = QTable.read(ext_filename, hdu=cname)
-                print(self.fit_params[fname])
 
         # legacy code for old way of saving fit parameters
         # should remove at some point, or make it so that the above new format is created
