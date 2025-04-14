@@ -46,7 +46,8 @@ def main():
     memod = MEModel(obsdata=reddened_star, modinfo=modinfo)
 
     # get the extinction curve
-    extfile = f"{outname.replace("figs", "exts")}_ext.fits"
+    tstr = outname.replace("figs", "exts")
+    extfile = f"{tstr}_ext.fits"
     ext = ExtData(filename=extfile)
     ptab = ext.fit_params["MCMC"]
     for k, cname in enumerate(ptab["name"]):
@@ -72,6 +73,7 @@ def main():
 
     # analyze chains for convergence
     tau = reader.get_autocorr_time(quiet=True)
+    print("taus = ", tau)
     # burnin = int(2 * np.max(tau))
     # thin = int(0.5 * np.min(tau))
     # samples = reader.get_chain(discard=burnin, flat=True, thin=thin)
