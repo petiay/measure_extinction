@@ -1011,11 +1011,6 @@ class ExtData:
         ext_filename,
         column_info=None,
         fit_params=None,
-        save_params=None,
-        fm90_best_params=None,
-        fm90_per_params=None,
-        p92_best_params=None,
-        p92_per_params=None,
     ):
         """
         Save the extinction curve to a FITS file
