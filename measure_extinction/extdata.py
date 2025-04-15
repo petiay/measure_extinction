@@ -14,7 +14,7 @@ from dust_extinction.conversions import AxAvToExv
 
 from measure_extinction.merge_obsspec import _wavegrid
 
-__all__ = ["ExtData", "AverageExtData", "conv55toAv", "conv55toRv"]
+__all__ = ["ExtData", "AverageExtData", "conv55toAv", "conv55toRv", "conv55toEbv"]
 
 
 # globals
@@ -253,6 +253,36 @@ def conv55toRv(R55):
     """
     val = 1.01 * (R55[0] + 0.049)
     unc = 1.01 * R55[1]
+
+    return np.array([val, unc])
+
+
+def conv55toEbv(A55, E4455, R55):
+    """
+    Function to compute E(B-V) from A(55) and E(44-55).  Conversion derived from equation 4 & 5
+    of Fitzpatrick et al. (2019)
+
+    Parameters
+    ----------
+    A55 : float vector
+        A(55) given as [val, unc]
+
+    E4455 : float vector
+        E(44-55) given as [val, unc]
+
+    R55 : float vector
+        R(55) given as [val, unc]
+
+    Returns
+    -------
+    EBV : float vector
+        E(B-V) given as [val, unc]
+    """
+    av = conv55toAv(A55, E4455)
+    rv = conv55toRv(R55)
+
+    val = av[0] / rv[0]
+    unc = val * np.sqrt(((av[1] / av[0]) ** 2) + ((rv[1] / rv[0]) ** 2))
 
     return np.array([val, unc])
 
@@ -774,7 +804,11 @@ class ExtData:
         -------
         Updates self.(exts, uncs)
         """
-        if (self.type_rel_band != "V") and (self.type_rel_band != 0.55 * u.micron) and (self.type_rel_band != 5500. * u.angstrom):
+        if (
+            (self.type_rel_band != "V")
+            and (self.type_rel_band != 0.55 * u.micron)
+            and (self.type_rel_band != 5500.0 * u.angstrom)
+        ):
             warnings.warn(
                 "attempt to normalize a non-E(lambda-V) curve with A(V)", UserWarning
             )
@@ -967,8 +1001,14 @@ class ExtData:
         unc = unc[gindxs]
         return (wave, y, unc)
 
-    def create_param_table(self, param_names, parameters, type="best",
-                           parameters_punc=None, parameters_munc=None):
+    def create_param_table(
+        self,
+        param_names,
+        parameters,
+        type="best",
+        parameters_punc=None,
+        parameters_munc=None,
+    ):
         """
         Parameters
         ----------
@@ -1000,7 +1040,9 @@ class ExtData:
             ptable.add_row(np.concatenate([["best"], parameters]))
         else:
             ptable.add_row(np.concatenate([["p50"], parameters]))
-            ptable.add_row(np.concatenate([["unc"], 0.5 * (parameters_munc + parameters_munc)]))
+            ptable.add_row(
+                np.concatenate([["unc"], 0.5 * (parameters_munc + parameters_munc)])
+            )
             ptable.add_row(np.concatenate([["punc"], parameters_punc]))
             ptable.add_row(np.concatenate([["munc"], parameters_munc]))
 
