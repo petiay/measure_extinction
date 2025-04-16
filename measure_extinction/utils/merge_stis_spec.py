@@ -46,9 +46,9 @@ if __name__ == "__main__":
         "--ralph", action="store_true", help="Ralph Bohlin reduced data"
     )
     parser.add_argument(
-        "--normralph", 
+        "--normralph",
         action="store_true",
-        help="pix=3 normalized versions of Ralph Bohlin reduced data"
+        help="pix=3 normalized versions of Ralph Bohlin reduced data",
     )
     parser.add_argument("--outname", help="Output filebase")
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
@@ -66,7 +66,9 @@ if __name__ == "__main__":
             estr = "norm"
         else:
             estr = ""
-        sfiles = [f"{args.inpath}{args.starname}.g{grating}l{estr}" for grating in regtypes]
+        sfiles = [
+            f"{args.inpath}{args.starname}.g{grating}l{estr}" for grating in regtypes
+        ]
 
         for sfilename in sfiles:
             print(sfilename)
