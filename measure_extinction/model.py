@@ -470,7 +470,10 @@ class MEModel(object):
         extinguished sed : dict
             SED with {'bands': band_sed, 'spec': spec_sed, ...}
         """
-        g23mod = G23(Rv=self.Rv.value)
+        g23mod = G23()
+
+        g23mod.Rv_range = self.Rv.bounds
+        g23mod.Rv = self.Rv.value
 
         # create the extinguished sed
         ext_sed = {}
