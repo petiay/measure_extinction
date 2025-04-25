@@ -489,9 +489,9 @@ class MEModel(object):
             if cspec != "BAND":
                 # get the dust extinguished SED (account for the
                 #  systemic velocity of the galaxy [opposite regular sense])
-                shifted_waves = (
-                    1.0 - self.velocity.value / 2.998e5
-                ) * moddata.waves[cspec]
+                shifted_waves = (1.0 - self.velocity.value / 2.998e5) * moddata.waves[
+                    cspec
+                ]
 
                 # convert to 1/micron as _curve_F99_method does not do this (as of Nov 2024)
                 with u.add_enabled_equivalencies(u.spectral()):
@@ -500,7 +500,7 @@ class MEModel(object):
                     )
 
                 if self.g23_all_ext:
-                        axav = g23mod(shifted_waves_imicron)
+                    axav = g23mod(shifted_waves_imicron)
                 else:
                     axav = _curve_F99_method(
                         shifted_waves_imicron.value,
