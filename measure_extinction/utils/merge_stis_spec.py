@@ -69,7 +69,6 @@ if __name__ == "__main__":
         sfiles = [
             f"{args.inpath}{args.starname}.g{grating}l{estr}" for grating in regtypes
         ]
-
         for sfilename in sfiles:
             print(sfilename)
 
