@@ -472,39 +472,36 @@ class MEModel(object):
         """
         g23mod = G23()
 
+        # allows for extrapolation outside of bounds for the G23 R(V) relationship
         g23mod.Rv_range = self.Rv.bounds
         g23mod.Rv = self.Rv.value
 
         # create the extinguished sed
         ext_sed = {}
-        if self.g23_all_ext:
-            for cspec in moddata.fluxes.keys():
-                shifted_waves = (1.0 - self.velocity.value / 2.998e5) * moddata.waves[
-                    cspec
-                ]
-                axav = g23mod(shifted_waves)
-                ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * self.Av.value))
-        else:
+        if not self.g23_all_ext:
             optnir_axav_x = np.flip(1.0 / (np.arange(0.35, 30.0, 0.1) * u.micron))
             optnir_axav_y = g23mod(optnir_axav_x)
 
             # updated F04 C1-C2 correlation
             C1 = 2.18 - 2.91 * self.C2.value
 
-            for cspec in moddata.fluxes.keys():
-                if cspec != "BAND":
-                    # get the dust extinguished SED (account for the
-                    #  systemic velocity of the galaxy [opposite regular sense])
-                    shifted_waves = (
-                        1.0 - self.velocity.value / 2.998e5
-                    ) * moddata.waves[cspec]
+        for cspec in moddata.fluxes.keys():
+            if cspec != "BAND":
+                # get the dust extinguished SED (account for the
+                #  systemic velocity of the galaxy [opposite regular sense])
+                shifted_waves = (
+                    1.0 - self.velocity.value / 2.998e5
+                ) * moddata.waves[cspec]
 
-                    # convert to 1/micron as _curve_F99_method does not do this (as of Nov 2024)
-                    with u.add_enabled_equivalencies(u.spectral()):
-                        shifted_waves_imicron = u.Quantity(
-                            shifted_waves, 1.0 / u.micron, dtype=np.float64
-                        )
+                # convert to 1/micron as _curve_F99_method does not do this (as of Nov 2024)
+                with u.add_enabled_equivalencies(u.spectral()):
+                    shifted_waves_imicron = u.Quantity(
+                        shifted_waves, 1.0 / u.micron, dtype=np.float64
+                    )
 
+                if self.g23_all_ext:
+                        axav = g23mod(shifted_waves_imicron)
+                else:
                     axav = _curve_F99_method(
                         shifted_waves_imicron.value,
                         self.Rv.value,
@@ -519,7 +516,7 @@ class MEModel(object):
                         fm90_version="B3",
                     )
 
-                    ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * self.Av.value))
+                ext_sed[cspec] = sed[cspec] * (10 ** (-0.4 * axav * self.Av.value))
 
         # update the BAND fluxes by integrating the reddened MODEL_FULL spectrum
         # only do this for the observed bands (model can have many more)
