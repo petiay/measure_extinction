@@ -826,6 +826,7 @@ class MEModel(object):
         modinfo,
         nsteps=1000,
         burnfrac=0.5,
+        initfrac=0.01,
         save_samples=None,
         multiproc=False,
         resume=False,
@@ -847,6 +848,9 @@ class MEModel(object):
 
         burnfrac : float
             fraction of nsteps to discard as the burn in [default=0.1]
+
+        initfrac : float
+            fraction for walker ball around initial position
 
         save_samples : filename
             name of hd5 file to save the MCMC samples
@@ -885,7 +889,7 @@ class MEModel(object):
         if not resume:
             # setting up the walkers to start "near" the inital guess
             p = [
-                p0 * (1 + 0.01 * np.random.normal(0, 1.0, ndim))
+                p0 * (1 + initfrac * np.random.normal(0, 1.0, ndim))
                 for k in range(nwalkers)
             ]
 
