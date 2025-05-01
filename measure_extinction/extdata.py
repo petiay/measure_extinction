@@ -757,7 +757,11 @@ class ExtData:
         -------
         Updates self.(exts, uncs)
         """
-        if self.type_rel_band != "V":
+        if (
+            (self.type_rel_band != "V")
+            and (self.type_rel_band != 0.55 * u.micron)
+            and (self.type_rel_band != 5500.0 * u.angstrom)
+        ):
             warnings.warn(
                 "attempt to normalize a non E(lambda-V) curve with E(B-V)", UserWarning
             )
@@ -1258,6 +1262,8 @@ class ExtData:
         self.type_rel_band = pheader.get("EXTBAND")
         if self.type_rel_band is None:
             self.type_rel_band = "V"
+        if ("Angstrom" in self.type_rel_band) or ("micron" in self.type_rel_band):
+            self.type_rel_band = u.Quantity(self.type_rel_band)
         self.red_file = pheader.get("R_FILE")
         self.comp_file = pheader.get("C_FILE")
 
