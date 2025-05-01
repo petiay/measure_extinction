@@ -198,9 +198,11 @@ def plot_extmodels(extdata, alax=False, wavenum=False):
         curve = G23(Rv=cRv)
         if alax:
             if extdata.type_rel_band != "V":
-                emod = G23(cRv)
-                (indx,) = np.where(extdata.type_rel_band == extdata.names["BAND"])
-                axav = emod(extdata.waves["BAND"][indx[0]])
+                if isinstance(extdata.type_rel_band, str):  # reference photometric band
+                    (indx,) = np.where(extdata.type_rel_band == extdata.names["BAND"])
+                    axav = curve(extdata.waves["BAND"][indx[0]])
+                else:  # reference spectroscopic wavelength
+                    axav = curve(extdata.type_rel_band)
             else:
                 axav = 1.0
             y = curve(x) / axav
