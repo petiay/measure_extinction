@@ -414,6 +414,12 @@ class MEModel(object):
         #   should handle the case where dist2 has an element that is zero
         #   i.e., one of the precomputed models exactly matches the request
         if np.sum(dist2[gsindxs]) > 0:
+            # check for any zero distance cases, requested parameters are directly on a model
+            # in this case set the distance to 0.01 of the min distance so this model dominates
+            tvals = dist2[gsindxs] == 0.0
+            if (sum(tvals) > 0):
+                dist2[gsindxs[tvals]] = 0.01 * np.min(dist2[gsindxs[~tvals]])
+
             weights = 1.0 / np.sqrt(dist2[gsindxs])
         else:
             weights = np.full(len(gsindxs), 1.0)
