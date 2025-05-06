@@ -911,7 +911,6 @@ class MEModel(object):
                         p[k][j] = pbounds[1]
         else:
             p = None
-        exit()
 
         if save_samples:
             # Don't forget to clear it in case the file already exists
