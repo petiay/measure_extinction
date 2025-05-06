@@ -906,11 +906,12 @@ class MEModel(object):
                     pval = cp[j]
                     pbounds = param.bounds
                     if (pbounds[0] is not None) and (pval < pbounds[0]):
-                        param.value = pbounds[0]
+                        p[k][j] = pbounds[0]
                     elif (pbounds[1] is not None) and (pval > pbounds[1]):
-                        param.value = pbounds[1]
+                        p[k][j] = pbounds[1]
         else:
             p = None
+        exit()
 
         if save_samples:
             # Don't forget to clear it in case the file already exists
