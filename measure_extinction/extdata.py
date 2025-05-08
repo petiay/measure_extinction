@@ -1213,7 +1213,10 @@ class ExtData:
             tbhdu.header.set("EXTNAME", "MODEXT", "Fitted model extinction")
             hdulist.append(tbhdu)
 
-        # save parameters passed as tables in extensions
+        # save parameters passed as tables in extensions or is a member variable
+        if self.fit_params is not None:
+            fit_params = self.fit_params
+
         if fit_params is not None:
             for ptype in fit_params.keys():
                 tbhdu = fits.table_to_hdu(fit_params[ptype])
