@@ -457,7 +457,7 @@ class ExtData:
         self.npts = {}
         self.names = {}
         self.model = {}
-        self.fit_param = None
+        self.fit_params = None
 
         if filename is not None:
             self.read(filename)
