@@ -3,6 +3,7 @@ from astropy.table import Table, Column
 import astropy.units as u
 
 __all__ = [
+    "merge_gen_obsspec",
     "merge_iue_obsspec",
     "merge_stis_obsspec",
     "merge_spex_obsspec",
@@ -13,6 +14,10 @@ __all__ = [
 ]
 
 fluxunit = u.erg / (u.s * u.cm * u.cm * u.angstrom)
+
+
+# define the basic info for each type of spectra
+obsspecinfo = {"wfc3_g102": (210, (0.8, 1.15)), "wfc3_g141": (130, (1.075, 1.70))}
 
 
 def _wavegrid(resolution, wave_range):
@@ -307,7 +312,9 @@ def merge_iue_obsspec(obstables, output_resolution=1000):
     wave_range = [1000.0, 3400.0] * u.angstrom
 
     otable = merge_gen_obsspec(
-        obstables, wave_range, output_resolution=output_resolution,
+        obstables,
+        wave_range,
+        output_resolution=output_resolution,
     )
     return otable
 
@@ -334,7 +341,9 @@ def merge_irs_obsspec(obstables, output_resolution=150):
     """
     wave_range = [5.0, 40.0] * u.micron
     otable = merge_gen_obsspec(
-        obstables, wave_range, output_resolution=output_resolution,
+        obstables,
+        wave_range,
+        output_resolution=output_resolution,
     )
     return otable
 
@@ -415,7 +424,9 @@ def merge_miri_lrs_obsspec(obstables, output_resolution=160):
     """
     wave_range = [5.0, 13.0] * u.micron
     otable = merge_gen_obsspec(
-        obstables, wave_range, output_resolution=output_resolution,
+        obstables,
+        wave_range,
+        output_resolution=output_resolution,
     )
     return otable
 
@@ -442,7 +453,9 @@ def merge_miri_ifu_obsspec(obstables, output_resolution=3000):
     """
     wave_range = [4.8, 29.0] * u.micron
     otable = merge_gen_obsspec(
-        obstables, wave_range, output_resolution=output_resolution,
+        obstables,
+        wave_range,
+        output_resolution=output_resolution,
     )
 
     return otable

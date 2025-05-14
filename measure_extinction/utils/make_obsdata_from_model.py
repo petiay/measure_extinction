@@ -12,6 +12,8 @@ import stsynphot as STS
 from measure_extinction.utils.helpers import get_datapath
 from measure_extinction.stardata import BandData
 from measure_extinction.merge_obsspec import (
+    obsspecinfo,
+    merge_gen_obsspec,
     merge_iue_obsspec,
     merge_stis_obsspec,
     merge_irs_obsspec,
@@ -488,6 +490,27 @@ def make_obsdata_from_model(
         rb_mrs.write("%s/Models/%s" % (output_path, mrs_file), overwrite=True)
 
     specinfo["MIRI_IFU"] = mrs_file
+
+    for cspec in obsspecinfo.keys():
+        cres = obsspecinfo[cspec][0]
+        ofile = f"{output_filebase}_{cspec}.fits"
+        if (specs is not None) and (cspec in specs):
+            fwhm_pix = rbres / cres
+            g = Gaussian1DKernel(stddev=fwhm_pix / 2.355)
+            nflux = convolve(otable["FLUX"].data, g)
+
+            otable = QTable()
+            otable["WAVELENGTH"] = otable["WAVELENGTH"]
+            otable["FLUX"] = nflux * fluxunit
+            otable["NPTS"] = otable["NPTS"]
+            otable["ERROR"] = Column(np.full((len(otable)), 1.0)) * fluxunit
+
+            rb_info = merge_gen_obsspec([otable], obsspecinfo[cspec][1], output_resoluttion=cres)
+
+            rb_info["SIGMA"] = rb_info["FLUX"] * 0.0
+            rb_info.write(f"{output_path}/Models/{ofile}", overwrite=True)
+
+        specinfo[cspec.upper()] = ofile
 
     # compute photometry
     # band_path = "%s/Band_RespCurves/" % output_path
