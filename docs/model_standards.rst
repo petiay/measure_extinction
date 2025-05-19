@@ -1,3 +1,5 @@
+.. _model standards:
+
 ===========================
 Stellar Models as Standards
 ===========================
@@ -39,40 +41,24 @@ Using stellar models for standards:
 - con: models are approximate at some level (can be missing lines/physics)
 - con: dependent on the absolute calibration
 
-Tlusty Stellar Atmosphere Models
---------------------------------
+Model Fitting
+-------------
 
-The
-`Ostar <http://tlusty.oca.eu/Tlusty2002/tlusty-frames-OS02.html>`_ and
-`Bstar <http://tlusty.oca.eu/Tlusty2002/tlusty-frames-BS06.html>`_
-grids of Tlusty stellar atmosphere models
-(`Hubeny & Lanz 1995 <https://ui.adsabs.harvard.edu/abs/1995ApJ...439..875H/abstract>`_)
-provide good standards, especially of hot, early type stars often used
-in extinction studies as they are bright in the ultraviolet.
+When using a model as the standard, fitting the observed data can be done to 
+determine the stellar and dust extinction parameters.  This is done by using
+a grid of stellar atmosphere models with a model for the dust extinction curve.
+The model of the dust extinction curve that is often used is a combination of
+a FM90 parameterization for the ultraviolet and and a R(V) dependent model for the 
+longer wavelengths that are joined with carefully chosen splines.
 
-The `measure_extinction` package provides code to transform the tlusty
-SEDs into the same format as the observed data.  In other words, it mocks
-the spectroscopy and photometry allowing for models to look like they were
-observed.  The specific code is `utils/make_obsdata_from_model.py`.
-This code uses the 'merge_obsspec' functions to transform the model SEDs
-to the observed spectral formats.
-The `utils/make_all_tlusty_obsdata.py` runs on the `*.flux.gz` tlusty files.
+Fitting is supported through the `ModelData` and `MEModel` classes.  The `ModelData`
+class stores the stellar atmosphere mocked data.  The `MEModel` class has all the 
+model parameters and functions to compute dust extinguished model data, fit with 
+a minimizer or a sampler observed data, and plot the resulting fits including
+diagnostic plots.
 
-STIS Mocking
-^^^^^^^^^^^^
+.. toctree::
+   :maxdepth: 2
 
-The HST STIS observations are simulated by convolving the high spectral
-resolution model spectra to the STIS resolution using STIS line-spread-fuctions (LSFs)
-retrieved from
-`STScI <https://www.stsci.edu/hst/instrumentation/stis/performance/spectral-resolution>`_.
-These line-spread functions are provided at specific wavelengths and are linearly
-interpolated/extrapolated for other wavelengths (see `utils/mock_spectra_data.py`
-for details.)
-
-STIS LSFs (52x2 slit):
-
-.. image:: images/stis_lsfs.png
-
-Example of mocked STIS observations for all four low-resolution grating settings:
-
-.. image:: images/mock_stis_obs.png
+   Model Details <model_capabilities.rst>
+   Model Data <model_data.rst>

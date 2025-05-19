@@ -81,17 +81,19 @@ class BandData:
         self.band_waves = OrderedDict()
         self.band_fluxes = OrderedDict()
 
-    def read_bands(self, lines):
+    def read_bands(self, lines, only_bands=None):
         """
         Read the photometric band data from a DAT file
-        and upate class variables.
+        and update class variables.
         Bands are filled in wavelength order to make life
-        easier in subsequent calcuations (interpolations!)
+        easier in subsequent calculations (interpolations!)
 
         Parameters
         ----------
         lines : list of string
             lines from a DAT formatted file
+        only_bands : list
+            Only read in the bands given
 
         Returns
         -------
@@ -103,22 +105,41 @@ class BandData:
 
             if (eqpos >= 0) & (pmpos >= 0) & (line[0] != "#"):
                 # check for reference or unit
-                colpos = max((line.find(";"), line.find("#"), line.find("mJy")))
+                colpos = max(
+                    (
+                        line.find(";"),
+                        line.find("#"),
+                        line.find("mJy"),
+                        line.find("ABmag"),
+                    )
+                )
                 if colpos == -1:
                     colpos = len(line)
                 # if there is both a reference and a unit
-                elif line.find(";") != -1 and line.find("mJy") != -1:
+                elif (line.find(";") != -1) and (line.find("mJy") != -1):
                     colpos = min(line.find(";"), line.find("mJy"))
+                elif (line.find(";") != -1) and (line.find("ABmag") != -1):
+                    colpos = min(line.find(";"), line.find("ABmag"))
                 band_name = line[0:eqpos].strip()
-                self.bands[band_name] = (
-                    float(line[eqpos + 1 : pmpos]),
-                    float(line[pmpos + 3 : colpos]),
-                )
-                # units
-                if line.find("mJy") >= 0:
-                    self.band_units[band_name] = "mJy"
+
+                save_band = False
+                if only_bands is None:
+                    save_band = True
                 else:
-                    self.band_units[band_name] = "mag"
+                    if band_name in only_bands:
+                        save_band = True
+                if save_band:
+                    self.bands[band_name] = (
+                        float(line[eqpos + 1 : pmpos]),
+                        float(line[pmpos + 3 : colpos]),
+                    )
+                    # units
+                    if line.find("mJy") >= 0:
+                        self.band_units[band_name] = "mJy"
+                    elif line.find("ABmag") >= 0:
+                        self.band_units[band_name] = "ABmag"
+                    else:
+                        self.band_units[band_name] = "mag"
 
         self.n_bands = len(self.bands)
 
@@ -131,7 +152,8 @@ class BandData:
         -------
         band_info : dict of band_name: value
             value is tuple of ( zeromag_flux, wavelength [micron] )
-            The zeromag_flux is the flux in erg/cm2/s/A for a star of (Vega) mag=0. It gives the conversion factor from Vega magnitudes to erg/cm2/s/A.
+            The zeromag_flux is the flux in erg/cm2/s/A for a star of (Vega) mag=0.
+            It gives the conversion factor from Vega magnitudes to erg/cm2/s/A.
         """
         _johnson_band_names = ["U", "B", "V", "R", "I", "J", "H", "K", "L", "M"]
         _johnson_band_waves = np.array(
@@ -156,6 +178,12 @@ class BandData:
         _wise_band_zeromag_fluxes = np.array(
             [8.1787e-12, 2.415e-12, 6.5151e-14, 5.0901e-15]
         )
+
+        # JWST/MIRI bands
+        _miri_band_names = ["MIRI_FND"]
+        _miri_band_waves = np.array([12.9])
+        _miri_band_zeromag_fluxes = np.array([5.175e-14])
+
         # WFPC2 bands
         _wfpc2_band_names = [
             "WFPC2_F170W",
@@ -173,7 +201,7 @@ class BandData:
         _n_wfpc2_bands = len(_wfpc2_vegamag)
         _wfpc2_band_zeromag_fluxes = np.zeros(_n_wfpc2_bands)
 
-        # zeromag Vega flux not given in standard WFPC2 documenation
+        # zeromag Vega flux not given in standard WFPC2 documentation
         # instead the flux and Vega magnitudes are given for 1 DN/sec
         # the following code coverts these numbers to zeromag Vega fluxes
         for i in range(_n_wfpc2_bands):
@@ -181,24 +209,50 @@ class BandData:
                 10 ** (0.4 * _wfpc2_vegamag[i])
             )
 
-        # WFC3 bands
+        # WFC3 bands - updated for 2020 solutions  Assuming UVIS1
         _wfc3_band_names = [
             "WFC3_F275W",
             "WFC3_F336W",
             "WFC3_F475W",
+            "WFC3_F625W",
+            "WFC3_F775W",
             "WFC3_F814W",
             "WFC3_F110W",
             "WFC3_F160W",
         ]
-        _wfc3_band_waves = np.array([0.2710, 0.3355, 0.4772, 0.8053, 1.1534, 1.5369])
-        _wfc3_photflam = np.array(
-            [3.186e-18, 1.267e-18, 2.458e-19, 1.477e-19, 1.53e-20, 1.93e-20]
+        # from Calamida et al. 2022 (Amp C)
+        _wfc3_band_waves = np.array(
+            [
+                0.270330,
+                0.335465,
+                0.477217,
+                0.624196,
+                0.764830,
+                0.802932,
+                1.153446,
+                1.536918,
+            ]
         )
-        _wfc3_vegamag = np.array([22.331, 23.513, 25.809, 24.712, 26.063, 24.695])
+
+        _wfc3_photflam = np.array(
+            [
+                3.223e-18,
+                1.286e-18,
+                2.498e-19,
+                1.723e-19,
+                2.093e-18,
+                1.477e-19,
+                1.53e-20,
+                1.93e-20,
+            ]
+        )
+        _wfc3_vegamag = np.array(
+            [22.676, 23.526, 25.809, 25.374, 24.84, 24.712, 26.063, 24.695]
+        )
         _n_wfc3_bands = len(_wfc3_vegamag)
         _wfc3_band_zeromag_fluxes = np.zeros(_n_wfc3_bands)
 
-        # zeromag Vega flux not given in standard WFPC2 documenation
+        # zeromag Vega flux not given in standard WFC3 documentation
         # instead the flux and Vega magnitudes are given for 1 DN/sec
         # the following code coverts these numbers to zeromag Vega fluxes
         for i in range(_n_wfc3_bands):
@@ -228,6 +282,7 @@ class BandData:
                 _johnson_band_names,
                 _spitzer_band_names,
                 _wise_band_names,
+                _miri_band_names,
                 _wfpc2_band_names,
                 _wfc3_band_names,
                 _acs_band_names,
@@ -238,6 +293,7 @@ class BandData:
                 _johnson_band_waves,
                 _spitzer_band_waves,
                 _wise_band_waves,
+                _miri_band_waves,
                 _wfpc2_band_waves,
                 _wfc3_band_waves,
                 _acs_band_waves,
@@ -248,6 +304,7 @@ class BandData:
                 _johnson_band_zeromag_fluxes,
                 _spitzer_band_zeromag_fluxes,
                 _wise_band_zeromag_fluxes,
+                _miri_band_zeromag_fluxes,
                 _wfpc2_band_zeromag_fluxes,
                 _wfc3_band_zeromag_fluxes,
                 _acs_band_zeromag_fluxes,
@@ -454,6 +511,32 @@ class BandData:
                         0.5 * (_flux2 - _flux1),
                     )
                     self.band_waves[pband_name] = poss_bands[pband_name][1]
+                elif _mag_vals[2] == "ABmag":
+                    _flux1_nu = np.power(
+                        10.0, (-0.4 * (_mag_vals[0] + _mag_vals[1] + 48.60))
+                    )
+                    _flux1_nu *= u.erg / (u.cm * u.cm * u.s * u.Hz)
+                    _flux1 = _flux1_nu.to(
+                        fluxunit,
+                        equivalencies=u.spectral_density(
+                            poss_bands[pband_name][1] * u.micron
+                        ),
+                    )
+                    _flux2_nu = np.power(
+                        10.0, (-0.4 * (_mag_vals[0] - _mag_vals[1] + 48.60))
+                    )
+                    _flux2_nu *= u.erg / (u.cm * u.cm * u.s * u.Hz)
+                    _flux2 = _flux2_nu.to(
+                        fluxunit,
+                        equivalencies=u.spectral_density(
+                            poss_bands[pband_name][1] * u.micron
+                        ),
+                    )
+                    self.band_fluxes[pband_name] = (
+                        0.5 * (_flux1.value + _flux2.value),
+                        0.5 * (_flux2.value - _flux1.value),
+                    )
+                    self.band_waves[pband_name] = poss_bands[pband_name][1]
                 elif _mag_vals[2] == "mJy":
                     self.band_waves[pband_name] = poss_bands[pband_name][1]
                     mfac = (
@@ -533,7 +616,7 @@ def _getspecfilename(line, path):
     eqpos = line.find("=")
     tfile = line[eqpos + 2 :].rstrip()
 
-    return path + tfile
+    return f"{path}/{tfile}"
 
 
 class SpecData:
@@ -702,7 +785,7 @@ class SpecData:
         ----------
         line : string
             formatted line from DAT file
-            example: 'STIS = hd029647_stis.fits'
+            example: 'STIS = hd029647_stis.fits' or 'STIS_Opt = hd029647_stis_Opt.fits'
 
         path : string, optional
             location of the FITS files path
@@ -811,19 +894,20 @@ class SpecData:
             if len(indxs) > 0:
                 self.npts[indxs] = 0
 
-        # add units
-        self.fluxes = self.fluxes.value * (u.Jy)
-        self.uncs = self.uncs.value * (u.Jy)
+        self.fluxes = self.fluxes.to(
+            fluxunit, equivalencies=u.spectral_density(self.waves)
+        )
+        self.uncs = self.uncs.to(fluxunit, equivalencies=u.spectral_density(self.waves))
 
-    def read_miri_ifu(self, line, path="./"):
+    def read_nircam_ss(self, line, path="./"):
         """
-        Read in Webb/MRS IFU spectra
+        Read in Webb/NIRCam slitless spectra
 
         Parameters
         ----------
         line : string
             formatted line from DAT file
-            example: 'IRS = hd029647_irs.fits'
+            example: 'NIRCam_SS = hd029647_nircam_ss.fits'
 
         path : string, optional
             location of the FITS files path
@@ -834,9 +918,102 @@ class SpecData:
         """
         self.read_spectra(line, path)
 
-        # add units
-        self.fluxes = self.fluxes.value * u.Jy
-        self.uncs = self.uncs.value * u.Jy
+        self.fluxes = self.fluxes.to(
+            fluxunit, equivalencies=u.spectral_density(self.waves)
+        )
+        self.uncs = self.uncs.to(fluxunit, equivalencies=u.spectral_density(self.waves))
+
+    def read_niriss_soss(self, line, path="./"):
+        """
+        Read in Webb/NIRISS single object slitless spectra
+
+        Parameters
+        ----------
+        line : string
+            formatted line from DAT file
+            example: 'NIRISS_SOSS = hd029647_niriss_soss.fits'
+
+        path : string, optional
+            location of the FITS files path
+
+        Returns
+        -------
+        Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
+        """
+        self.read_spectra(line, path)
+
+        self.fluxes = self.fluxes.to(
+            fluxunit, equivalencies=u.spectral_density(self.waves)
+        )
+        self.uncs = self.uncs.to(fluxunit, equivalencies=u.spectral_density(self.waves))
+
+    def read_miri_lrs(self, line, path="./"):
+        """
+        Read in Webb/MIRI LRS spectra
+
+        Parameters
+        ----------
+        line : string
+            formatted line from DAT file
+            example: 'MIRI_LRS = hd029647_miri_lrs.fits'
+
+        path : string, optional
+            location of the FITS files path
+
+        Returns
+        -------
+        Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
+        """
+        self.read_spectra(line, path)
+
+        self.fluxes = self.fluxes.to(
+            fluxunit, equivalencies=u.spectral_density(self.waves)
+        )
+        self.uncs = self.uncs.to(fluxunit, equivalencies=u.spectral_density(self.waves))
+
+    def read_miri_ifu(self, line, path="./"):
+        """
+        Read in Webb/MRS IFU spectra
+
+        Parameters
+        ----------
+        line : string
+            formatted line from DAT file
+            example: 'MIRI_IFU = hd029647_miri_ifu.fits'
+
+        path : string, optional
+            location of the FITS files path
+
+        Returns
+        -------
+        Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
+        """
+        self.read_spectra(line, path)
+
+        self.fluxes = self.fluxes.to(
+            fluxunit, equivalencies=u.spectral_density(self.waves)
+        )
+        self.uncs = self.uncs.to(fluxunit, equivalencies=u.spectral_density(self.waves))
+
+    def read_model_full(self, line, path="./"):
+        """
+        Read in full model spectra (only available for model spectra)
+
+        Parameters
+        ----------
+        line : string
+            formatted line from DAT file
+            example: 'MODEL_FULL = tlusty_z200t55000g475v10_full.fits'
+
+        path : string, optional
+            location of the FITS files path
+
+        Returns
+        -------
+        Updates self.(file, wave_range, waves, flux, uncs, npts, n_waves)
+        """
+        self.read_spectra(line, path)
+
         self.fluxes = self.fluxes.to(
             fluxunit, equivalencies=u.spectral_density(self.waves)
         )
@@ -934,7 +1111,14 @@ class StarData:
     """
 
     def __init__(
-        self, datfile, path="", photonly=False, use_corfac=True, deredden=False
+        self,
+        datfile,
+        path="",
+        photonly=False,
+        use_corfac=True,
+        deredden=False,
+        only_bands=None,
+        only_data="ALL",
     ):
         """
         Parameters
@@ -955,6 +1139,12 @@ class StarData:
         deredden : boolean [default=False]
            Deredden the data based on dereddening parameters given in the DAT file.
            Generally used to deredden standards.
+
+        only_bands : list
+            Only read in the bands given
+
+         only_data : list
+            Only read in the data given
         """
         self.file = datfile
         self.path = path
@@ -969,9 +1159,9 @@ class StarData:
         self.dereddened = deredden
 
         if self.file is not None:
-            self.read(deredden=deredden)
+            self.read(deredden=deredden, only_bands=only_bands, only_data=only_data)
 
-    def read(self, deredden=False):
+    def read(self, deredden=False, only_bands=None, only_data="ALL"):
         """
         Populate the object from a DAT file + spectral files
 
@@ -980,21 +1170,40 @@ class StarData:
         deredden : boolean [default=False]
            Deredden the data based on dereddening parameters given in the DAT file.
            Generally used to deredden standards.
+        only_bands : list
+            Only read in the bands given
+        only_data : list
+            Only read in the data given
         """
 
         # open and read all the lines in the file
-        f = open(self.path + self.file, "r")
+        f = open(f"{self.path}/{self.file}", "r")
         self.datfile_lines = list(f)
         f.close()
+
         # get the photometric band data
         self.data["BAND"] = BandData("BAND")
-        self.data["BAND"].read_bands(self.datfile_lines)
+        self.data["BAND"].read_bands(self.datfile_lines, only_bands=only_bands)
 
-        # covert the photoemtric band data to fluxes in all possible bands
-        self.data["BAND"].get_band_fluxes()
+        if self.data["BAND"].n_bands == 0:
+            # no bands, delete BAND entry
+            del self.data["BAND"]
+        else:
+            # covert the photoemtric band data to fluxes in all possible bands
+            self.data["BAND"].get_band_fluxes()
 
         # go through and get info before reading the spectra
-        poss_mod_params = ["model_type", "Z", "vturb", "logg", "Teff", "origin"]
+        poss_mod_params = [
+            "model_type",
+            "Z",
+            "vturb",
+            "logg",
+            "logg_unc",
+            "Teff",
+            "Teff_unc",
+            "velocity",
+            "origin",
+        ]
         for line in self.datfile_lines:
             cpair = self._parse_dfile_line(line)
             if cpair is not None:
@@ -1029,35 +1238,47 @@ class StarData:
         # read the spectra
         if not self.photonly:
             for line in self.datfile_lines:
-                if line.find("IUE") == 0:
+                if line[0] == "#":
+                    pass
+                elif line.startswith("IUE") and (
+                    "IUE" in only_data or only_data == "ALL"
+                ):
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["IUE"] = SpecData("IUE")
                         self.data["IUE"].read_iue(line, path=self.path)
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("FUSE") == 0:
+                elif line.startswith("FUSE") and (
+                    "FUSE" in only_data or only_data == "ALL"
+                ):
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["FUSE"] = SpecData("FUSE")
                         self.data["FUSE"].read_fuse(line, path=self.path)
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("STIS_Opt") == 0:
+                elif line.startswith("STIS_Opt") and (
+                    "STIS_Opt" in only_data or only_data == "ALL"
+                ):
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["STIS_Opt"] = SpecData("STIS_Opt")
                         self.data["STIS_Opt"].read_stis(line, path=self.path)
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("STIS") == 0:
+                elif line.startswith("STIS") and (
+                    "STIS" in only_data or only_data == "ALL"
+                ):
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["STIS"] = SpecData("STIS")
                         self.data["STIS"].read_stis(line, path=self.path)
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("SpeX_SXD") == 0:
+                elif line.startswith("SpeX_SXD") and (
+                    "SpeX_SXD" in only_data or only_data == "ALL"
+                ):
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["SpeX_SXD"] = SpecData("SpeX_SXD")
@@ -1069,7 +1290,9 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("SpeX_LXD") == 0:
+                elif line.startswith("SpeX_LXD") and (
+                    "SpeX_LXD" in only_data or only_data == "ALL"
+                ):
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["SpeX_LXD"] = SpecData("SpeX_LXD")
@@ -1081,7 +1304,11 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("IRS") == 0 and line.find("IRS15") < 0:
+                elif (
+                    line.startswith("IRS")
+                    and "IRS15" not in line
+                    and ("IRS" in only_data or only_data == "ALL")
+                ):
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["IRS"] = SpecData("IRS")
@@ -1093,11 +1320,73 @@ class StarData:
                         )
                     else:
                         warnings.warn(f"{fname} does not exist", UserWarning)
-                elif line.find("MIRI_IFU") == 0:
+                elif line.startswith("NIRISS_SOSS") and (
+                    "NIRISS_SOSS" in only_data or only_data == "ALL"
+                ):
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["NIRISS_SOSS"] = SpecData("NIRISS_SOSS")
+                        self.data["NIRISS_SOSS"].read_niriss_soss(
+                            line,
+                            path=self.path,
+                        )
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
+                elif line.startswith("NIRCam_SS") and (
+                    "NIRCam_SS" in only_data or only_data == "ALL"
+                ):
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["NIRCam_SS"] = SpecData("NIRCam_SS")
+                        self.data["NIRCam_SS"].read_miri_ifu(
+                            line,
+                            path=self.path,
+                        )
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
+                elif line.startswith("MIRI_LRS") and (
+                    "MIRI_LRS" in only_data or only_data == "ALL"
+                ):
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["MIRI_LRS"] = SpecData("MIRI_LRS")
+                        self.data["MIRI_LRS"].read_miri_lrs(
+                            line,
+                            path=self.path,
+                        )
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
+                elif line.startswith("MIRI_IFU") and (
+                    "MIRI_IFU" in only_data or only_data == "ALL"
+                ):
                     fname = _getspecfilename(line, self.path)
                     if os.path.isfile(fname):
                         self.data["MIRI_IFU"] = SpecData("MIRI_IFU")
                         self.data["MIRI_IFU"].read_miri_ifu(
+                            line,
+                            path=self.path,
+                        )
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
+                elif line.startswith("MODEL_FULL_LOWRES") and (
+                    "MODEL_FULL_LOWRES" in only_data or only_data == "ALL"
+                ):
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["MODEL_FULL_LOWRES"] = SpecData("MODEL_FULL_LOWRES")
+                        self.data["MODEL_FULL_LOWRES"].read_model_full(
+                            line,
+                            path=self.path,
+                        )
+                    else:
+                        warnings.warn(f"{fname} does not exist", UserWarning)
+                elif line.startswith("MODEL_FULL") and (
+                    "MODEL_FULL" in only_data or only_data == "ALL"
+                ):
+                    fname = _getspecfilename(line, self.path)
+                    if os.path.isfile(fname):
+                        self.data["MODEL_FULL"] = SpecData("MODEL_FULL")
+                        self.data["MODEL_FULL"].read_model_full(
                             line,
                             path=self.path,
                         )
@@ -1420,7 +1709,7 @@ class StarData:
             )
             yplotvals = ymult * yvals
             if yoffset_type == "multiply":
-                yplotvals *= yoffset
+                yplotvals *= 10**yoffset
             else:
                 yplotvals += yoffset
             if curtype == "BAND":
@@ -1455,6 +1744,10 @@ class StarData:
                     & (waves <= annotate_wave_range[1])
                 )
                 ann_val = np.nanmedian(yplotvals[ann_indxs])
+                if yoffset_type == "multiply":
+                    ann_val *= 10**annotate_yoffset
+                else:
+                    ann_val += yoffset
                 ann_val += (annotate_yoffset,)
                 ann_xval = 0.5 * np.sum(annotate_wave_range.value)
                 if wavenum:

@@ -3,6 +3,7 @@ import numpy as np
 import astropy.units as u
 
 from astropy.io import fits
+from astropy.table import QTable
 from astropy.modeling.powerlaws import PowerLaw1D
 from astropy.modeling import Parameter
 from astropy.modeling.fitting import LevMarLSQFitter
@@ -13,7 +14,7 @@ from dust_extinction.conversions import AxAvToExv
 
 from measure_extinction.merge_obsspec import _wavegrid
 
-__all__ = ["ExtData", "AverageExtData"]
+__all__ = ["ExtData", "AverageExtData", "conv55toAv", "conv55toRv", "conv55toEbv"]
 
 
 # globals
@@ -27,7 +28,10 @@ _poss_datasources = [
     "SpeX_SXD",
     "SpeX_LXD",
     "IRS",
+    "NIRISS_SOSS",
+    "NIRCam_SS",
     "MIRI_IFU",
+    "MIRI_LRS",
 ]
 
 
@@ -70,12 +74,15 @@ def _rebin(waves, exts, rebin_fac):
     return new_waves, new_exts
 
 
-def _flux_unc_as_mags(fluxes, uncs):
+def _flux_unc_as_mags(fluxes_in, uncs_in):
     """
     Provide the flux uncertainties in magnitudes accounting for the
     case where (fluxes-uncs) is negative
     """
-    uncs_mag = np.empty(len(fluxes))
+    fluxes = np.atleast_1d(fluxes_in)
+    uncs = np.atleast_1d(uncs_in)
+
+    uncs_mag = np.empty(len(np.atleast_1d(fluxes)))
 
     # fluxes-uncs case
     (indxs,) = np.where(fluxes - uncs <= 0)
@@ -158,6 +165,128 @@ def _get_column_plus_unc(column):
         return (column, 0.0)
 
 
+def _get_rel_band(red, comp, rel_band):
+    """
+    Get the band to reference the extinction curve.
+    Supports using a photometric band or a spectroscopic flux
+    """
+    if isinstance(rel_band, str):  # reference photometric band
+        red_rel_band = red.data["BAND"].get_band_mag(rel_band)
+        comp_rel_band = comp.data["BAND"].get_band_mag(rel_band)
+    else:  # reference spectroscopic wavelength
+        # find the source that has the requested wavelength
+        red_rel_band = 0.0
+        for ckey in red.data.keys():
+            if ckey != "BAND":
+                if (
+                    np.min(red.data[ckey].waves)
+                    <= rel_band
+                    <= np.max(red.data[ckey].waves)
+                ):
+                    rflux = np.interp(
+                        rel_band, red.data[ckey].waves, red.data[ckey].fluxes
+                    ).value
+                    runc = np.interp(
+                        rel_band, red.data[ckey].waves, red.data[ckey].uncs
+                    ).value
+                    red_rel_band = (
+                        -2.5 * np.log10(rflux),
+                        _flux_unc_as_mags(rflux, runc)[0],
+                    )
+
+                    cflux = np.interp(
+                        rel_band, comp.data[ckey].waves, comp.data[ckey].fluxes
+                    ).value
+                    cunc = np.interp(
+                        rel_band, comp.data[ckey].waves, comp.data[ckey].uncs
+                    ).value
+                    comp_rel_band = (
+                        -2.5 * np.log10(cflux),
+                        _flux_unc_as_mags(cflux, cunc)[0],
+                    )
+        if red_rel_band == 0.0:
+            raise ValueError(
+                "requested spectroscopic rel_band wavelength not present in any spectra"
+            )
+
+    return (red_rel_band, comp_rel_band)
+
+
+def conv55toAv(A55, E4455):
+    """
+    Function to compute A(V) from A(55) and E(44-55).  Conversion derived from equation 4
+    of Fitzpatrick et al. (2019)
+
+    Parameters
+    ----------
+    A55 : float vector
+        A(55) given as [val, unc]
+
+    E4455 : float vector
+        E(44-55) given as [val, unc]
+
+    Returns
+    -------
+    AV : float vector
+        A(V) given as [val, unc]
+    """
+    val = A55[0] - 0.049 * E4455[0]
+    unc = np.sqrt((A55[1] ** 2) + ((0.049 * E4455[1]) ** 2))
+
+    return np.array([val, unc])
+
+
+def conv55toRv(R55):
+    """
+    Function to compute R(V) from R(55).  Conversion derived is equation 5
+    of Fitzpatrick et al. (2019)
+
+    Parameters
+    ----------
+    R55 : float vector
+        R(55) given as [val, unc]
+
+    Returns
+    -------
+    RV : float vector
+        R(V) given as [val, unc]
+    """
+    val = 1.01 * (R55[0] + 0.049)
+    unc = 1.01 * R55[1]
+
+    return np.array([val, unc])
+
+
+def conv55toEbv(A55, E4455, R55):
+    """
+    Function to compute E(B-V) from A(55) and E(44-55).  Conversion derived from equation 4 & 5
+    of Fitzpatrick et al. (2019)
+
+    Parameters
+    ----------
+    A55 : float vector
+        A(55) given as [val, unc]
+
+    E4455 : float vector
+        E(44-55) given as [val, unc]
+
+    R55 : float vector
+        R(55) given as [val, unc]
+
+    Returns
+    -------
+    EBV : float vector
+        E(B-V) given as [val, unc]
+    """
+    av = conv55toAv(A55, E4455)
+    rv = conv55toRv(R55)
+
+    val = av[0] / rv[0]
+    unc = val * np.sqrt(((av[1] / av[0]) ** 2) + ((rv[1] / rv[0]) ** 2))
+
+    return np.array([val, unc])
+
+
 def AverageExtData(extdatas, min_number=3, mask=[]):
     """
     Generate the average extinction curve from a list of ExtData objects
@@ -185,7 +314,11 @@ def AverageExtData(extdatas, min_number=3, mask=[]):
     for extdata in extdatas:
         # check the data type of the extinction curve, and convert if needed
         # the average curve must be calculated from the A(lambda)/A(V) curves
-        if extdata.type != "alav" and extdata.type != "alax":
+        if (
+            extdata.type != "alav"
+            and extdata.type != "alax"
+            and extdata.type != "elvebv"
+        ):
             extdata.trans_elv_alav()
 
         # collect the keywords of the data in the extinction curves, and collect the names of the BAND data in the extinction curves, and determine the wavelengths of the data
@@ -234,6 +367,7 @@ def AverageExtData(extdatas, min_number=3, mask=[]):
 
         # calculate the average and uncertainties of the spectral extinction data
         else:
+            exts = np.stack(exts, axis=0)
             aveext.exts[src] = np.nanmean(exts, axis=0)
             aveext.npts[src] = np.sum(~np.isnan(exts), axis=0)
             aveext.stds[src] = np.nanstd(exts, axis=0, ddof=1)
@@ -262,7 +396,7 @@ class ExtData:
     """
     Extinction for a single line-of-sight
 
-    Atributes:
+    Attributes:
 
     type : string
         extinction curve type (e.g., elx or alax)
@@ -323,6 +457,7 @@ class ExtData:
         self.npts = {}
         self.names = {}
         self.model = {}
+        self.fit_params = None
 
         if filename is not None:
             self.read(filename)
@@ -353,9 +488,8 @@ class ExtData:
         -------
         updates self.(waves, exts, uncs, npts, names)['BAND']
         """
-        # reference band
-        red_rel_band = red.data["BAND"].get_band_mag(rel_band)
-        comp_rel_band = comp.data["BAND"].get_band_mag(rel_band)
+        red_rel_band, comp_rel_band = _get_rel_band(red, comp, rel_band)
+
         # possible bands for the band extinction curve
         poss_bands = red.data["BAND"].get_poss_bands()
 
@@ -412,14 +546,12 @@ class ExtData:
         updates self.(waves, exts, uncs, npts)[src]
         """
         if (src in red.data.keys()) & (src in comp.data.keys()):
-            # check that the wavelenth grids are identical
+            # check that the wavelength grids are identical
             delt_wave = red.data[src].waves - comp.data[src].waves
             if np.sum(np.absolute(delt_wave)) > 0.01 * u.micron:
                 warnings.warn("wavelength grids not equal for %s" % src, UserWarning)
             else:
-                # reference band
-                red_rel_band = red.data["BAND"].get_band_mag(rel_band)
-                comp_rel_band = comp.data["BAND"].get_band_mag(rel_band)
+                red_rel_band, comp_rel_band = _get_rel_band(red, comp, rel_band)
 
                 # setup the needed variables
                 self.waves[src] = red.data[src].waves
@@ -478,7 +610,8 @@ class ExtData:
         self.type_rel_band = rel_band
         self.red_file = redstar.file
         self.comp_file = compstar.file
-        for cursrc in _poss_datasources:
+        # for cursrc in _poss_datasources:
+        for cursrc in redstar.data.keys():
             if cursrc == "BAND":
                 self.calc_elx_bands(redstar, compstar, rel_band=rel_band)
             else:
@@ -501,7 +634,7 @@ class ExtData:
         else:
             self.columns["EBV"] = (self.exts["BAND"][bindx], self.uncs["BAND"][bindx])
 
-    def calc_AV(self, akav=0.112):
+    def calc_AV(self, akav=0.105):
         """
         Calculate A(V) from the observed extinction curve:
             - fit a powerlaw to the SpeX extinction curve, if available
@@ -509,9 +642,10 @@ class ExtData:
 
         Parameters
         ----------
-        akav : float  [default = 0.112]
+        akav : float
            Value of A(K)/A(V)
-           default is from Rieke & Lebofsky (1985)
+           default is from Decleir et al. (2022)
+           for Rieke & Lebofsky (1985) use akav=0.112
            van de Hulst No. 15 curve has A(K)/A(V) = 0.0885
 
         Returns
@@ -538,23 +672,34 @@ class ExtData:
                 avunc = np.absolute(av * (self.uncs["BAND"][kindx] / ekv))
                 self.columns["AV"] = (av, avunc)
 
-    def calc_AV_JHK(self):
+    def calc_AV_JHK(
+        self,
+        ref_waves=np.array([1.25, 1.6, 2.2]) * u.micron,
+        ref_alav=[0.269, 0.163, 0.105],
+        ref_wave=None,
+    ):
         """
         Calculate A(V) from the observed extinction curve:
             - extrapolate from J, H, & K photometry
-            - assumes functional form from Rieke, Rieke, & Paul (1989)
+
+        Parameters
+        ----------
+        ref_waves : floats
+            wavelengths for reference values (default = JHK)
+        ref_alav : floats
+            A(lambda)/A(V) values for reference
+            default is for JHK from Decleir et al. (2022)
+            for Rieke, Rieke, & Paul (1989) use ref_alav=[0.2815534, 0.17475728, 0.11197411],
 
         Returns
         -------
         Updates self.columns["AV"]
         """
         # J, H, K
-        rrp89_waves = np.array([1.25, 1.6, 2.2]) * u.micron
-        rrp89_alav = [0.2815534, 0.17475728, 0.11197411]
 
         avs = []
         avs_unc = []
-        for cwave, calav in zip(rrp89_waves, rrp89_alav):
+        for cwave, calav in zip(ref_waves, ref_alav):
             dwaves = np.absolute(self.waves["BAND"] - cwave)
             kindx = dwaves.argmin()
             if dwaves[kindx] < 0.1 * u.micron:
@@ -613,7 +758,11 @@ class ExtData:
         -------
         Updates self.(exts, uncs)
         """
-        if self.type_rel_band != "V":
+        if (
+            (self.type_rel_band != "V")
+            and (self.type_rel_band != 0.55 * u.micron)
+            and (self.type_rel_band != 5500.0 * u.angstrom)
+        ):
             warnings.warn(
                 "attempt to normalize a non E(lambda-V) curve with E(B-V)", UserWarning
             )
@@ -660,7 +809,11 @@ class ExtData:
         -------
         Updates self.(exts, uncs)
         """
-        if self.type_rel_band != "V":
+        if (
+            (self.type_rel_band != "V")
+            and (self.type_rel_band != 0.55 * u.micron)
+            and (self.type_rel_band != 5500.0 * u.angstrom)
+        ):
             warnings.warn(
                 "attempt to normalize a non-E(lambda-V) curve with A(V)", UserWarning
             )
@@ -777,9 +930,10 @@ class ExtData:
 
     def get_fitdata(
         self,
-        req_datasources,
+        req_datasources=None,
         remove_uvwind_region=False,
         remove_lya_region=False,
+        remove_below_lya=False,
         remove_irsblue=False,
     ):
         """
@@ -787,8 +941,8 @@ class ExtData:
 
         Parameters
         ----------
-        req_datasources : list of str
-            list of data sources (e.g., ['IUE', 'BAND'])
+        req_datasources : list of str, optional (default=None)
+            None means all, otherwise list of data sources (e.g., ['IUE', 'BAND'])
 
         remove_uvwind_region : boolean, optional (default=False)
             remove the UV wind regions from the returned data
@@ -810,6 +964,8 @@ class ExtData:
         ydata = []
         uncdata = []
         nptsdata = []
+        if req_datasources is None:
+            req_datasources = list(self.waves.keys())
         for cursrc in req_datasources:
             if cursrc in self.waves.keys():
                 if (cursrc == "BAND") & remove_irsblue:
@@ -837,6 +993,9 @@ class ExtData:
         if remove_lya_region:
             npts[np.logical_and(8.0 / u.micron <= x, x < 8.475 / u.micron)] = 0
 
+        if remove_below_lya:
+            npts[8.0 / u.micron <= x] = 0
+
         # sort the data
         # at the same time, remove points with no data
         (gindxs,) = np.where(npts > 0)
@@ -847,15 +1006,58 @@ class ExtData:
         unc = unc[gindxs]
         return (wave, y, unc)
 
+    def create_param_table(
+        self,
+        param_names,
+        parameters,
+        type="best",
+        parameters_punc=None,
+        parameters_munc=None,
+    ):
+        """
+        Parameters
+        ----------
+        param_names : str list
+            parameters names
+
+        parameters : float array
+            values of the parameters - either best for p50
+
+        parameters_punc : float array
+            positive uncertainties of paramters
+            if present, then the type of parameters is "p50", otherwise "best"
+
+        parameters_munc : float array
+            negative uncertainties of paramters
+
+        Returns
+        -------
+        ptable : QTable
+            astropy table giving the best, p50, munc, punc, unc values
+            depending on what is passed
+        """
+        nparams = len(param_names)
+        ptable = QTable(
+            names=np.concatenate([["name"], param_names]),
+            dtype=["str"] + nparams * ["float"],
+        )
+        if parameters_punc is None:
+            ptable.add_row(np.concatenate([["best"], parameters]))
+        else:
+            ptable.add_row(np.concatenate([["p50"], parameters]))
+            ptable.add_row(
+                np.concatenate([["unc"], 0.5 * (parameters_munc + parameters_munc)])
+            )
+            ptable.add_row(np.concatenate([["punc"], parameters_punc]))
+            ptable.add_row(np.concatenate([["munc"], parameters_munc]))
+
+        return ptable
+
     def save(
         self,
         ext_filename,
         column_info=None,
-        save_params=None,
-        fm90_best_params=None,
-        fm90_per_params=None,
-        p92_best_params=None,
-        p92_per_params=None,
+        fit_params=None,
     ):
         """
         Save the extinction curve to a FITS file
@@ -869,26 +1071,9 @@ class ExtData:
             dictionary with information about the dust column
             for example: {'ebv': 0.1, 'rv': 4.2, 'av': 0.42}
 
-        save_params : dict
-            "type" - type of parameters (e.g., FM90, P92)
-            "best" - best fit parameters as tuple (names, values)
-            "per" - percentile parameters as tuple (names, p50s, puncs, muncs)
-
-        fm90_best_params : tuple of 2 float vectors
-           parameter names and best fit values for the FM90 fit
-           (legacy, use save_params instead)
-
-        fm90_per_params : tuple of 2 float vectors
-           parameter names and (p50, +unc, -unc) values for the FM90 fit
-           (legacy, use save_params instead)
-
-        p92_best_params : tuple of 2 float vectors
-           parameter names and best fit values for the P92 fit
-           (legacy, use save_params instead)
-
-        p92_per_params : tuple of 2 float vectors
-           parameter names and (p50, +unc, -unc) values for the P92 fit
-           (legacy, use save_params instead)
+        fit_params : dict
+            dictionary of astropy tables giving the fit parameters
+            can be created using the member function create_param_tables
         """
         # generate the primary header
         pheader = fits.Header()
@@ -899,7 +1084,11 @@ class ExtData:
             "Reddened Star File",
             "Comparison Star File",
         ]
-        hval = [self.type, self.type_rel_band, self.red_file, self.comp_file]
+        if isinstance(self.type_rel_band, str):
+            trelband = self.type_rel_band
+        else:
+            trelband = f"{self.type_rel_band}"
+        hval = [self.type, trelband, self.red_file, self.comp_file]
 
         ext_col_info = {
             "ebv": ("EBV", "E(B-V)"),
@@ -948,70 +1137,12 @@ class ExtData:
                     else:
                         hval.append(self.columns[f"{ckey}"])
 
-        # legacy save param keywords
-        if fm90_best_params is not None:
-            save_params = {"type": "FM90", "best": fm90_best_params}
-            if fm90_per_params is not None:
-                save_params["per"] = fm90_per_params
-        if p92_best_params is not None:
-            save_params = {"type": "P92", "best": p92_best_params}
-            if p92_per_params is not None:
-                save_params["per"] = p92_per_params
-
-        # save parameters
-        if save_params is not None:
-            if "type" in save_params.keys():
-                tstr = save_params["type"]
-            else:
-                raise ValueError("type not in save_params dict")
-
-            if "best" in save_params.keys():
-                best_params = save_params["best"]
-                best_keys = _hierarch_keywords(best_params[0])
-                hname = np.concatenate((hname, best_keys))
-                hval = np.concatenate((hval, best_params[1]))
-                tcomment = [f"{tstr} parameter" for pname in best_params[0]]
-                hcomment = np.concatenate((hcomment, tcomment))
-
-            if "per" in save_params.keys():
-                params = save_params["per"]
-                # p50 values
-                p50_keys = _hierarch_keywords([f"{cp}_p50" for cp in params[0]])
-                hname = np.concatenate((hname, p50_keys))
-                hval = np.concatenate((hval, [cv[0] for cv in params[1]]))
-                tcomment = [f"{tstr} p50 parameter" for pname in params[0]]
-                hcomment = np.concatenate((hcomment, tcomment))
-
-                # +unc values
-                punc_keys = _hierarch_keywords([f"{cp}_punc" for cp in params[0]])
-                hname = np.concatenate((hname, punc_keys))
-                hval = np.concatenate((hval, [cv[1] for cv in params[1]]))
-                tcomment = [f"{tstr} punc parameter" for pname in params[0]]
-                hcomment = np.concatenate((hcomment, tcomment))
-
-                # -unc values
-                munc_keys = _hierarch_keywords([f"{cp}_munc" for cp in params[0]])
-                hname = np.concatenate((hname, munc_keys))
-                hval = np.concatenate((hval, [cv[2] for cv in params[1]]))
-                tcomment = [f"{tstr} munc parameter" for pname in params[0]]
-                hcomment = np.concatenate((hcomment, tcomment))
-
-        # other possible header keywords
-        #   setup to populate if info passed (TBD)
-        #         'LOGT','LOGT_UNC','LOGG','LOGG_UNC','LOGZ','LOGZ_UNC',
-        #         'AV','AV_unc','RV','RV_unc',
-        #         'FMC2','FMC2U','FMC3','FMC3U','FMC4','FMC4U',
-        #         'FMx0','FMx0U','FMgam','FMgamU',
-        #         'LOGHI','LOGHI_U','LOGHIMW','LHIMW_U',
-        #         'NHIAV','NHIAV_U','NHIEBV','NHIEBV_U'
-
         for k in range(len(hname)):
             pheader.set(hname[k], hval[k], hcomment[k])
 
         pheader.add_comment("Created with measure_extinction package")
         pheader.add_comment("https://github.com/karllark/measure_extinction")
         phdu = fits.PrimaryHDU(header=pheader)
-
         hdulist = fits.HDUList([phdu])
 
         # write the portions of the extinction curve from each dataset
@@ -1083,6 +1214,16 @@ class ExtData:
             tbhdu.header.set("EXTNAME", "MODEXT", "Fitted model extinction")
             hdulist.append(tbhdu)
 
+        # save parameters passed as tables in extensions or is a member variable
+        if self.fit_params is not None:
+            fit_params = self.fit_params
+
+        if fit_params is not None:
+            for ptype in fit_params.keys():
+                tbhdu = fits.table_to_hdu(fit_params[ptype])
+                tbhdu.header.set("EXTNAME", f"{ptype}_FIT", f"{ptype} fit parameters")
+                hdulist.append(tbhdu)
+
         hdulist.writeto(ext_filename, overwrite=True)
 
     def read(self, ext_filename):
@@ -1125,6 +1266,8 @@ class ExtData:
         self.type_rel_band = pheader.get("EXTBAND")
         if self.type_rel_band is None:
             self.type_rel_band = "V"
+        if ("Angstrom" in self.type_rel_band) or ("micron" in self.type_rel_band):
+            self.type_rel_band = u.Quantity(self.type_rel_band)
         self.red_file = pheader.get("R_FILE")
         self.comp_file = pheader.get("C_FILE")
 
@@ -1193,6 +1336,16 @@ class ExtData:
                     punc = float(pheader.get(f"{bkey}_punc"))
                     munc = float(pheader.get(f"{bkey}_munc"))
                     self.columns_p50_fit[bkey] = (val, punc, munc)
+
+        # get any fit parameters that are included
+        self.fit_params = {}
+        for cname in extnames:
+            if "FIT" in cname:
+                fname = cname.split("_")[0]
+                self.fit_params[fname] = QTable.read(ext_filename, hdu=cname)
+
+        # legacy code for old way of saving fit parameters
+        # should remove at some point, or make it so that the above new format is created
 
         # get FM90 parameters if they exist
         #   include variant with B3=C3/gamma^2 instead of C3
@@ -1276,7 +1429,12 @@ class ExtData:
         """
         if not ytype:
             ytype = self.type
-        relband = self.type_rel_band.replace("_", "")
+
+        if isinstance(self.type_rel_band, str):
+            relband = self.type_rel_band.replace("_", "")
+        else:
+            relband = f"{self.type_rel_band}"
+
         if ytype == "elx":
             return rf"$E(\lambda - {relband})$"
         elif ytype == "alax":

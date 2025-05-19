@@ -1,9 +1,6 @@
-#!/usr/bin/env python
-
 import glob
 import argparse
 import numpy as np
-import pkg_resources
 import matplotlib.pyplot as plt
 
 from astropy.table import Table
@@ -38,15 +35,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--inpath",
         help="path where original data files are stored",
-        default=pkg_resources.resource_filename("measure_extinction", "data/Orig"),
+        default="./",
     )
     parser.add_argument(
         "--outpath",
         help="path where merged spectra will be stored",
-        default=pkg_resources.resource_filename("measure_extinction", "data/Out"),
+        default="./",
     )
     parser.add_argument(
         "--ralph", action="store_true", help="Ralph Bohlin reduced data"
+    )
+    parser.add_argument(
+        "--normralph",
+        action="store_true",
+        help="pix=3 normalized versions of Ralph Bohlin reduced data",
     )
     parser.add_argument("--outname", help="Output filebase")
     parser.add_argument("--png", help="save figure as a png file", action="store_true")
@@ -54,41 +56,52 @@ if __name__ == "__main__":
     parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
 
-    if args.ralph:
-        sfilename = "%s/%s/%s.mrg" % (args.inpath, args.waveregion, args.starname)
+    stable = []
+    if args.ralph or args.normralph:
+        if args.waveregion == "UV":
+            regtypes = ["140", "230"]
+        else:
+            regtypes = ["430", "750"]
+        if args.normralph:
+            estr = "norm"
+        else:
+            estr = ""
+        sfiles = [
+            f"{args.inpath}{args.starname}.g{grating}l{estr}" for grating in regtypes
+        ]
+        for sfilename in sfiles:
+            print(sfilename)
 
-        # determine the line for the 1st data (can vary between files)
-        f = open(sfilename, "r")
-        k = 0
-        for x in f:
-            if "###" in x:
-                dstart = k + 1
-            else:
-                k += 1
-        f.close()
+            # determine the line for the 1st data (can vary between files)
+            f = open(sfilename, "r")
+            k = 0
+            for x in f:
+                if "###" in x:
+                    dstart = k + 1
+                else:
+                    k += 1
+            f.close()
 
-        stable = Table.read(
-            sfilename,
-            format="ascii",
-            data_start=dstart,
-            names=[
-                "WAVELENGTH",
-                "COUNT-RATE",
-                "FLUX",
-                "STAT-ERROR",
-                "SYS-ERROR",
-                "NPTS",
-                "TIME",
-                "QUAL",
-            ],
-        )
-        stable = [stable]
+            # read
+            t1 = Table.read(
+                sfilename,
+                format="ascii",
+                data_start=dstart,
+                names=[
+                    "WAVELENGTH",
+                    "COUNT-RATE",
+                    "FLUX",
+                    "STAT-ERROR",
+                    "SYS-ERROR",
+                    "NPTS",
+                    "TIME",
+                    "QUAL",
+                ],
+            )
+            stable.append(t1)
     else:
-        sfilename = f"{args.inpath}{args.starname}*_x1d.fits"
-        print(sfilename)
+        sfilename = f"{args.inpath}{args.starname}*.fits"
         sfiles = glob.glob(sfilename)
-        print(sfiles)
-        stable = []
         for cfile in sfiles:
             print(cfile)
             t1 = read_stis_archive_format(cfile)
@@ -102,8 +115,8 @@ if __name__ == "__main__":
         outname = args.outname
     else:
         outname = args.starname.lower()
-    stis_file = "%s_stis_%s.fits" % (outname, args.waveregion)
-    rb_stis.write("%s/%s" % (args.outpath, stis_file), overwrite=True)
+    stis_file = "%s/%s_stis_%s.fits" % (args.outpath, outname, args.waveregion)
+    rb_stis.write(stis_file, overwrite=True)
 
     # plot the original and merged Spectra
     fontsize = 14
@@ -117,13 +130,14 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 5.5))
 
     gvals = stable[0]["NPTS"] > 0
-    ax.plot(
-        stable[0]["WAVELENGTH"][gvals],
-        stable[0]["FLUX"][gvals],
-        "k-",
-        alpha=0.5,
-        label="orig",
-    )
+    for ctable in stable:
+        ax.plot(
+            ctable["WAVELENGTH"][gvals],
+            ctable["FLUX"][gvals],
+            "k-",
+            alpha=0.5,
+            label="orig",
+        )
     gvals = rb_stis["NPTS"] > 0
     ax.plot(
         rb_stis["WAVELENGTH"][gvals],

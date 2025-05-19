@@ -1,8 +1,3 @@
-#!/usr/bin/env python
-
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import pkg_resources
 import argparse
 import matplotlib.pyplot as plt
 import numpy as np
@@ -26,7 +21,7 @@ def plot_HI(path, ax):
     Indicates HI-lines on the plot
     """
     # read in HI-lines
-    table = pd.read_table(path + "HI_lines.list", sep=r"\s+", comment="#")
+    table = pd.read_table(f"{path}/HI_lines.list", sep=r"\s+", comment="#")
     # group lines by series
     series_groups = table.groupby("n'")
     colors = plt.get_cmap("tab10")
@@ -397,7 +392,7 @@ def plot_spectrum(
     plt.rc("ytick.minor", width=2)
 
     # create the plot
-    fig, ax = plt.subplots(figsize=(13, 10))
+    fig, ax = plt.subplots(figsize=(10, 8))
 
     # read in and plot all bands and spectra for this star
     if ".dat" not in star:
@@ -479,7 +474,7 @@ def main():
     parser.add_argument(
         "--path",
         help="path to the data files",
-        default=pkg_resources.resource_filename("measure_extinction", "data/"),
+        default="./",
     )
     parser.add_argument("--mlam4", help="plot lambda^4*F(lambda)", action="store_true")
     parser.add_argument("--HI_lines", help="indicate the HI-lines", action="store_true")

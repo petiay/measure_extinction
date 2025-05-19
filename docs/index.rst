@@ -29,9 +29,9 @@ User Documentation
    :maxdepth: 2
 
    Extinction Calculation <calc_extinction.rst>
-   Capabilities <code_capabilities.rst>
+   Core Capabilities <code_capabilities.rst>
+   Data Formats <data_formats.rst>
    Plotting <plotting.rst>
-   Observed Data Formats <data_formats.rst>
    Stellar Models as Standards <model_standards.rst>
 
 Reporting Issues
@@ -50,21 +50,16 @@ trace if it is necessary.
 Contributing
 ============
 
-Like the `Astropy`_ project, the ``measure_extinction`` is made both by and for its
+Like the `Astropy`_ project, ``measure_extinction`` is made both by and for its
 users.  We accept contributions at all levels, spanning the gamut from fixing a
 typo in the documentation to developing a major new feature. We welcome
 contributors who will abide by the `Python Software Foundation Code of Conduct
 <https://www.python.org/psf/conduct/>`_.
 
 ``measure_extinction`` follows the same workflow and coding guidelines as
-`Astropy`_.  The following pages will help you get started with contributing
-fixes, code, or documentation (no git or GitHub experience necessary):
-
-* `How to make a code contribution <https://docs.astropy.org/en/latest/development/workflow/development_workflow.html>`_
-
-* `Coding Guidelines <https://docs.astropy.org/en/latest/development/codeguide.html>`_
-
-* `Developer Documentation <https://docs.astropy.org/en/latest/index_dev.html>`_
+`Astropy`_.  Take a look at the astropy 
+`developer <https://docs.astropy.org/en/latest/index_dev.html>`_ documentation for
+guidelines.
 
 For the complete list of contributors please see the `measure_extinction
 contributors page on Github
@@ -73,10 +68,7 @@ contributors page on Github
 Reference API
 =============
 
-.. automodapi:: measure_extinction.stardata
+.. toctree::
+   :maxdepth: 1
 
-.. automodapi:: measure_extinction.modeldata
-
-.. automodapi:: measure_extinction.extdata
-
-.. automodapi:: measure_extinction.merge_obsspec
+   reference_api.rst
