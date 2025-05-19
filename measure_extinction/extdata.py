@@ -1215,7 +1215,7 @@ class ExtData:
             hdulist.append(tbhdu)
 
         # save parameters passed as tables in extensions or is a member variable
-        if self.fit_params is not None:
+        if fit_params is None and self.fit_params is not None:
             fit_params = self.fit_params
 
         if fit_params is not None:
