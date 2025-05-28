@@ -1030,6 +1030,8 @@ class MEModel(object):
         ax = axes[0]
         yrange = [100.0, -100.0]
         yrange_lya = [100.0, -100.0]
+
+        first_pass = True
         for cspec in obsdata.data.keys():
             if cspec == "BAND":
                 ptype = "o"
@@ -1049,18 +1051,25 @@ class MEModel(object):
             multlam = self.norm.value * np.power(cwaves, 4.0)
             multval = multlam * nvals
 
+            if first_pass:
+                plabs = ["Obs", "Star", "w/ Foreground", "w/ Dust Ext", "w/ Dust+Gas Ext"]
+            else:
+                plabs = [None, None, None, None, None]
+
             for cax in tax:
                 if self.fore_Av.value > 0.0:
                     cax.plot(
                         cwaves, modsed_nofore[cspec] * multlam, "c" + ptype, alpha=0.2
                     )
-                    cax.plot(cwaves, modsed_nofore[cspec] * multval, "c" + ptype)
+                    cax.plot(cwaves, modsed_nofore[cspec] * multval, "c" + ptype, label=plabs[1])
+                    cax.plot(cwaves, modsed[cspec] * multval, "b" + ptype, label=plabs[2])
+                else:
+                    cax.plot(cwaves, modsed[cspec] * multval, "b" + ptype, label=plabs[1])
                 cax.plot(cwaves, modsed[cspec] * multlam, "b" + ptype, alpha=0.2)
-                cax.plot(cwaves, modsed[cspec] * multval, "b" + ptype)
                 cax.plot(cwaves, ext_modsed[cspec] * multlam, "g" + ptype, alpha=0.2)
-                cax.plot(cwaves, ext_modsed[cspec] * multval, "g" + ptype)
+                cax.plot(cwaves, ext_modsed[cspec] * multval, "g" + ptype, label=plabs[3])
                 cax.plot(cwaves, hi_ext_modsed[cspec] * multlam, "r" + ptype, alpha=0.2)
-                cax.plot(cwaves, hi_ext_modsed[cspec] * multval, "r" + ptype)
+                cax.plot(cwaves, hi_ext_modsed[cspec] * multval, "r" + ptype, label=plabs[4])
 
                 gvals = obsdata.data[cspec].fluxes > 0.0
                 cax.plot(
@@ -1068,7 +1077,6 @@ class MEModel(object):
                     obsdata.data[cspec].fluxes[gvals]
                     * np.power(obsdata.data[cspec].waves[gvals], 4.0),
                     "k" + ptype,
-                    label="data",
                     alpha=0.2,
                 )
                 cax.plot(
@@ -1077,9 +1085,10 @@ class MEModel(object):
                     * np.power(obsdata.data[cspec].waves, 4.0)
                     * nvals,
                     "k" + ptype,
-                    label="data",
+                    label=plabs[0],
                     alpha=0.75,
                 )
+                first_pass = False
 
             # plot the residuals
             gvals = hi_ext_modsed[cspec] > 0.0
@@ -1136,6 +1145,8 @@ class MEModel(object):
                     yrange_lya[0] = np.min([tyrange[0], yrange_lya[0]])
                     yrange_lya[1] = np.max([tyrange[1], yrange_lya[1]])
 
+        tax[0].legend(ncol=2, fontsize=0.7 * fontsize)
+
         ax.set_xscale("log")
         axes[1].set_xscale("log")
         ax.set_yscale("log")
@@ -1151,6 +1162,7 @@ class MEModel(object):
             axes[3].set_xlim(0.115, 0.13)
             axes[3].set_ylim(-1.0 * resid_range, resid_range)
             axes[3].axhline(0.0, color="k", linestyle=":")
+            axes[3].set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.3 * fontsize)
 
         axes[1].set_xlabel(r"$\lambda$ [$\mu m$]", fontsize=1.3 * fontsize)
         ax.set_ylabel(r"$\lambda^4 F(\lambda)$ [RJ units]", fontsize=1.3 * fontsize)
@@ -1169,17 +1181,18 @@ class MEModel(object):
                 else:
                     ptxt = f"{cname} = {param.value:.3f}"
                 ax.text(
-                    0.7,
-                    0.5 - k * 0.04,
+                    0.65,
+                    0.7 - k * 0.0325,
                     ptxt,
                     horizontalalignment="left",
                     verticalalignment="center",
                     transform=ax.transAxes,
-                    fontsize=0.8 * fontsize,
+                    fontsize=0.7 * fontsize,
                 )
                 k += 1
 
-        ax.text(0.1, 0.9, obsdata.file, transform=ax.transAxes, fontsize=fontsize)
+        # ax.text(0.1, 0.9, obsdata.file, transform=ax.transAxes, fontsize=fontsize)
+        ax.set_title((obsdata.file).replace(".dat", ""), fontsize=fontsize)
 
         fig.tight_layout()
 

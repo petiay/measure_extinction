@@ -18,6 +18,7 @@ def main():
         choices=["chains", "corner", "bestfit"],
         default="bestfit",
     )
+    parser.add_argument("--residrange", help="residual range in percentage", default=50.0, type=float)
     parser.add_argument("--burnfrac", help="burn fraction", default=0.5, type=float)
     parser.add_argument(
         "--obspath",
@@ -30,6 +31,8 @@ def main():
     parser.add_argument(
         "--bands", help="only use these observed bands", nargs="+", default=None
     )
+    parser.add_argument("--png", help="save figure as a png file", action="store_true")
+    parser.add_argument("--pdf", help="save figure as a pdf file", action="store_true")
     args = parser.parse_args()
 
     # base filename
@@ -108,13 +111,22 @@ def main():
     memod.pprint_parameters()
 
     if args.plttype == "chains":
-        memod.plot_sampler_chains(reader)
+        fig = memod.plot_sampler_chains(reader)
+        save_str = "_mefit_chains"
     elif args.plttype == "corner":
-        memod.plot_sampler_corner(flat_samples)
+        fig = memod.plot_sampler_corner(flat_samples)
+        save_str = "_mefit_corner"
     else:
-        memod.plot(reddened_star, modinfo)
-    plt.show()
+        fig = memod.plot(reddened_star, modinfo, lyaplot=True, resid_range=args.residrange)
+        save_str = "_mefit_mcmc"
 
+    # plot or save to a file
+    if args.png:
+        fig.savefig(f"{args.starname}{save_str}.png")
+    elif args.pdf:
+        fig.savefig(f"{args.starname}{save_str}.pdf")
+    else:
+        plt.show()
 
 if __name__ == "__main__":
     main()
