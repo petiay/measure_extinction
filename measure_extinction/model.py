@@ -94,7 +94,7 @@ class MEModel(object):
     #  bad regions are defined as those were we know the models do not work
     #  or the data is bad
     exclude_regions = [
-        [8.23 - 0.1, 8.23 + 0.1],  # geocoronal line
+        [8.23 - 0.05, 8.23 + 0.05],  # geocoronal line
         [8.7, 10.0],  # bad data from STIS
         [3.55, 3.6],
         [3.80, 3.90],
