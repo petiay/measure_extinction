@@ -52,8 +52,7 @@ def test_iue():
     _check_genmerge(wave_range, resolution, merge_iue_obsspec, iue=True)
 
 
-# only need to test one of the "generic" merges as all the 
-# rest work the same
+# only need to test one of the "generic" merges as all the rest work the same
 def test_irs():
     wave_range = [5.0, 40.0] * u.micron
     resolution = 150.0
