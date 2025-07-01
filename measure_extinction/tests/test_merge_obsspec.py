@@ -6,18 +6,14 @@ from measure_extinction.merge_obsspec import (
     fluxunit,
     _wavegrid,
     merge_iue_obsspec,
-    merge_irs_obsspec,
-    merge_niriss_soss_obsspec,
-    merge_nircam_ss_obsspec,
-    merge_miri_lrs_obsspec,
-    merge_miri_ifu_obsspec,
+    merge_gen_obsspec,
 )
 
 # still need to add merging of STIS spectroscopy
 #  more complicated due to UV/optical options
 
 
-def _check_genmerge(wave_range, resolution, mergefunc):
+def _check_genmerge(wave_range, resolution, mergefunc, iue=False):
 
     wave1_info = _wavegrid(resolution, wave_range.value)
     wave1 = wave1_info[0] * wave_range.unit
@@ -37,7 +33,10 @@ def _check_genmerge(wave_range, resolution, mergefunc):
     itable2["NPTS"] = np.full(nwaves, 1)
 
     # merge into standard format
-    otable = mergefunc([itable1, itable2])
+    if iue:
+        otable = mergefunc([itable1, itable2])
+    else:
+        otable = mergefunc([itable1, itable2], wave_range, resolution)
 
     # check standard format
     for ckey in ["WAVELENGTH", "FLUX", "SIGMA", "NPTS"]:
@@ -50,34 +49,12 @@ def _check_genmerge(wave_range, resolution, mergefunc):
 def test_iue():
     wave_range = [1000.0, 3400.0] * u.angstrom
     resolution = 1000.0
-    _check_genmerge(wave_range, resolution, merge_iue_obsspec)
+    _check_genmerge(wave_range, resolution, merge_iue_obsspec, iue=True)
 
 
+# only need to test one of the "generic" merges as all the 
+# rest work the same
 def test_irs():
     wave_range = [5.0, 40.0] * u.micron
     resolution = 150.0
-    _check_genmerge(wave_range, resolution, merge_irs_obsspec)
-
-
-def test_niriss_soss():
-    wave_range = [0.85, 2.75] * u.micron
-    resolution = 700.0
-    _check_genmerge(wave_range, resolution, merge_niriss_soss_obsspec)
-
-
-def test_nircam_ss():
-    wave_range = [2.35, 5.55] * u.micron
-    resolution = 1600.0
-    _check_genmerge(wave_range, resolution, merge_nircam_ss_obsspec)
-
-
-def test_miri_lrs():
-    wave_range = [4.0, 15.0] * u.micron
-    resolution = 160.0
-    _check_genmerge(wave_range, resolution, merge_miri_lrs_obsspec)
-
-
-def test_miri_mrs():
-    wave_range = [4.5, 32.0] * u.micron
-    resolution = 4000.0
-    _check_genmerge(wave_range, resolution, merge_miri_ifu_obsspec)
+    _check_genmerge(wave_range, resolution, merge_gen_obsspec)

@@ -7,10 +7,6 @@ __all__ = [
     "merge_iue_obsspec",
     "merge_stis_obsspec",
     "merge_spex_obsspec",
-    "merge_nircam_ss_obsspec",
-    "merge_irs_obsspec",
-    "merge_miri_lrs_obsspec",
-    "merge_miri_ifu_obsspec",
 ]
 
 fluxunit = u.erg / (u.s * u.cm * u.cm * u.angstrom)
