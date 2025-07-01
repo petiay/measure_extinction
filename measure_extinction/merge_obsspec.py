@@ -17,7 +17,16 @@ fluxunit = u.erg / (u.s * u.cm * u.cm * u.angstrom)
 
 
 # define the basic info for each type of spectra
-obsspecinfo = {"wfc3_g102": (210, (0.8, 1.15)), "wfc3_g141": (130, (1.075, 1.70))}
+#   info for each entry is (resolution, wavelength_range)
+obsspecinfo = {
+    "wfc3_g102": (210, [0.8, 1.15] * u.micron),
+    "wfc3_g141": (130, [1.075, 1.70] * u.micron),
+    "niriss_soss": (700, [0.85, 2.75] * u.micron),
+    "nircam_ss": (1600, [2.35, 5.55] * u.micron),
+    "irs": (150, [5.0, 40.0] * u.micron),
+    "miri_lrs": (160, [5.0, 13.0] * u.micron),
+    "miri_ifu": (3000, [4.8, 29.0] * u.micron),
+}
 
 
 def _wavegrid(resolution, wave_range):
@@ -316,146 +325,4 @@ def merge_iue_obsspec(obstables, output_resolution=1000):
         wave_range,
         output_resolution=output_resolution,
     )
-    return otable
-
-
-def merge_irs_obsspec(obstables, output_resolution=150):
-    """
-    Merge one or more Spitzer IRS 1D spectra into a single spectrum
-    on a uniform wavelength scale
-
-    Parameters
-    ----------
-    obstables : list of astropy Table objects
-        list of tables containing the observed IRS spectra
-        usually the result of reading tables
-
-    output_resolution : float
-        output resolution of spectra
-        input spectrum assumed to be at the observed resolution
-
-    Returns
-    -------
-    output_table : astropy Table object
-        merged spectrum
-    """
-    wave_range = [5.0, 40.0] * u.micron
-    otable = merge_gen_obsspec(
-        obstables,
-        wave_range,
-        output_resolution=output_resolution,
-    )
-    return otable
-
-
-def merge_niriss_soss_obsspec(obstables, output_resolution=700):
-    """
-    Merge one or more NIRCam slitless 1D spectra into a single spectrum
-    on a uniform wavelength scale
-
-    Parameters
-    ----------
-    obstables : list of astropy Table objects
-        list of tables containing the observed IRS spectra
-        usually the result of reading tables
-
-    output_resolution : float
-        output resolution of spectra
-        input spectrum assumed to be at the observed resolution
-
-    Returns
-    -------
-    output_table : astropy Table object
-        merged spectrum
-    """
-    wave_range = [0.85, 2.75] * u.micron
-    otable = merge_gen_obsspec(
-        obstables, wave_range, output_resolution=output_resolution
-    )
-    return otable
-
-
-def merge_nircam_ss_obsspec(obstables, output_resolution=1600):
-    """
-    Merge one or more NIRCam slitless 1D spectra into a single spectrum
-    on a uniform wavelength scale
-
-    Parameters
-    ----------
-    obstables : list of astropy Table objects
-        list of tables containing the observed IRS spectra
-        usually the result of reading tables
-
-    output_resolution : float
-        output resolution of spectra
-        input spectrum assumed to be at the observed resolution
-
-    Returns
-    -------
-    output_table : astropy Table object
-        merged spectrum
-    """
-    wave_range = [2.35, 5.55] * u.micron
-    otable = merge_gen_obsspec(
-        obstables, wave_range, output_resolution=output_resolution
-    )
-    return otable
-
-
-def merge_miri_lrs_obsspec(obstables, output_resolution=160):
-    """
-    Merge one or more MIRI LRS spectra into a single spectrum
-    on a uniform wavelength scale
-
-    Parameters
-    ----------
-    obstables : list of astropy Table objects
-        list of tables containing the observed IRS spectra
-        usually the result of reading tables
-
-    output_resolution : float
-        output resolution of spectra
-        input spectrum assumed to be at the observed resolution
-
-    Returns
-    -------
-    output_table : astropy Table object
-        merged spectrum
-    """
-    wave_range = [5.0, 13.0] * u.micron
-    otable = merge_gen_obsspec(
-        obstables,
-        wave_range,
-        output_resolution=output_resolution,
-    )
-    return otable
-
-
-def merge_miri_ifu_obsspec(obstables, output_resolution=3000):
-    """
-    Merge one or more MIRI IFU 1D spectra into a single spectrum
-    on a uniform wavelength scale
-
-    Parameters
-    ----------
-    obstables : list of astropy Table objects
-        list of tables containing the observed IRS spectra
-        usually the result of reading tables
-
-    output_resolution : float
-        output resolution of spectra
-        input spectrum assumed to be at the observed resolution
-
-    Returns
-    -------
-    output_table : astropy Table object
-        merged spectrum
-    """
-    wave_range = [4.8, 29.0] * u.micron
-    otable = merge_gen_obsspec(
-        obstables,
-        wave_range,
-        output_resolution=output_resolution,
-    )
-
     return otable
