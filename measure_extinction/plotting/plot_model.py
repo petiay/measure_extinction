@@ -18,7 +18,9 @@ def main():
         choices=["chains", "corner", "bestfit"],
         default="bestfit",
     )
-    parser.add_argument("--residrange", help="residual range in percentage", default=50.0, type=float)
+    parser.add_argument(
+        "--residrange", help="residual range in percentage", default=50.0, type=float
+    )
     parser.add_argument("--burnfrac", help="burn fraction", default=0.5, type=float)
     parser.add_argument(
         "--obspath",
@@ -117,7 +119,9 @@ def main():
         fig = memod.plot_sampler_corner(flat_samples)
         save_str = "_mefit_corner"
     else:
-        fig = memod.plot(reddened_star, modinfo, lyaplot=True, resid_range=args.residrange)
+        fig = memod.plot(
+            reddened_star, modinfo, lyaplot=True, resid_range=args.residrange
+        )
         save_str = "_mefit_mcmc"
 
     # plot or save to a file
@@ -127,6 +131,7 @@ def main():
         fig.savefig(f"{args.starname}{save_str}.pdf")
     else:
         plt.show()
+
 
 if __name__ == "__main__":
     main()
