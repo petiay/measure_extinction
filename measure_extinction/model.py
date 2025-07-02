@@ -1,6 +1,7 @@
 import copy
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import ScalarFormatter
 import astropy.units as u
 from astropy.table import QTable
 import scipy.optimize as op
@@ -1035,7 +1036,7 @@ class MEModel(object):
         for cspec in obsdata.data.keys():
             if cspec == "BAND":
                 ptype = "o"
-                rcolor = "g"
+                rcolor = "k"
             else:
                 ptype = "-"
                 rcolor = "k"
@@ -1150,6 +1151,12 @@ class MEModel(object):
         ax.set_xscale("log")
         axes[1].set_xscale("log")
         ax.set_yscale("log")
+
+        ax.xaxis.set_major_formatter(ScalarFormatter())
+        ax.xaxis.set_minor_formatter(ScalarFormatter())
+        xticks = [0.1, 0.2, 0.3, 0.5, 0.7, 1.0, 2.0]
+        ax.set_xticks(xticks, minor=True)
+        ax.tick_params(axis="x", which="minor", labelsize=fontsize * 0.8)
 
         ydelt = yrange[1] - yrange[0]
         yrange[0] = 10 ** (yrange[0] - 0.1 * ydelt)
