@@ -418,7 +418,7 @@ class MEModel(object):
             # check for any zero distance cases, requested parameters are directly on a model
             # in this case set the distance to 0.01 of the min distance so this model dominates
             tvals = dist2[gsindxs] == 0.0
-            if (sum(tvals) > 0):
+            if sum(tvals) > 0:
                 dist2[gsindxs[tvals]] = 0.01 * np.min(dist2[gsindxs[~tvals]])
 
             weights = 1.0 / np.sqrt(dist2[gsindxs])
@@ -965,7 +965,14 @@ class MEModel(object):
 
         return (outmod, flat_samples, sampler)
 
-    def plot(self, obsdata, modinfo, resid_range=10.0, lyaplot=False):
+    def plot(
+        self,
+        obsdata,
+        modinfo,
+        resid_range=10.0,
+        lyaplot=False,
+        xticks=[0.1, 0.2, 0.3, 0.5, 0.7, 1.0, 2.0],
+    ):
         """
         Standard plot showing the data and best fit.
 
@@ -979,6 +986,12 @@ class MEModel(object):
 
         resid_range : float
             percentage value for the +/- range for the residual plot
+
+        lyaplot : boolean
+            set to add two panels giving the Ly-alpha fit and residuals
+
+        xticks : vector
+            set to a vector of floats giving the values for the xticks
         """
         # plotting setup for easier to read plots
         fontsize = 16
@@ -1053,7 +1066,13 @@ class MEModel(object):
             multval = multlam * nvals
 
             if first_pass:
-                plabs = ["Obs", "Star", "w/ Foreground", "w/ Dust Ext", "w/ Dust+Gas Ext"]
+                plabs = [
+                    "Obs",
+                    "Star",
+                    "w/ Foreground",
+                    "w/ Dust Ext",
+                    "w/ Dust+Gas Ext",
+                ]
             else:
                 plabs = [None, None, None, None, None]
 
@@ -1062,15 +1081,28 @@ class MEModel(object):
                     cax.plot(
                         cwaves, modsed_nofore[cspec] * multlam, "c" + ptype, alpha=0.2
                     )
-                    cax.plot(cwaves, modsed_nofore[cspec] * multval, "c" + ptype, label=plabs[1])
-                    cax.plot(cwaves, modsed[cspec] * multval, "b" + ptype, label=plabs[2])
+                    cax.plot(
+                        cwaves,
+                        modsed_nofore[cspec] * multval,
+                        "c" + ptype,
+                        label=plabs[1],
+                    )
+                    cax.plot(
+                        cwaves, modsed[cspec] * multval, "b" + ptype, label=plabs[2]
+                    )
                 else:
-                    cax.plot(cwaves, modsed[cspec] * multval, "b" + ptype, label=plabs[1])
+                    cax.plot(
+                        cwaves, modsed[cspec] * multval, "b" + ptype, label=plabs[1]
+                    )
                 cax.plot(cwaves, modsed[cspec] * multlam, "b" + ptype, alpha=0.2)
                 cax.plot(cwaves, ext_modsed[cspec] * multlam, "g" + ptype, alpha=0.2)
-                cax.plot(cwaves, ext_modsed[cspec] * multval, "g" + ptype, label=plabs[3])
+                cax.plot(
+                    cwaves, ext_modsed[cspec] * multval, "g" + ptype, label=plabs[3]
+                )
                 cax.plot(cwaves, hi_ext_modsed[cspec] * multlam, "r" + ptype, alpha=0.2)
-                cax.plot(cwaves, hi_ext_modsed[cspec] * multval, "r" + ptype, label=plabs[4])
+                cax.plot(
+                    cwaves, hi_ext_modsed[cspec] * multval, "r" + ptype, label=plabs[4]
+                )
 
                 gvals = obsdata.data[cspec].fluxes > 0.0
                 cax.plot(
@@ -1152,11 +1184,12 @@ class MEModel(object):
         axes[1].set_xscale("log")
         ax.set_yscale("log")
 
-        ax.xaxis.set_major_formatter(ScalarFormatter())
-        ax.xaxis.set_minor_formatter(ScalarFormatter())
-        xticks = [0.1, 0.2, 0.3, 0.5, 0.7, 1.0, 2.0]
-        ax.set_xticks(xticks, minor=True)
-        ax.tick_params(axis="x", which="minor", labelsize=fontsize * 0.8)
+        if xticks is not None:
+            for tax in [ax, axes[1]]:
+                tax.xaxis.set_major_formatter(ScalarFormatter())
+                tax.xaxis.set_minor_formatter(ScalarFormatter())
+                tax.set_xticks(xticks, minor=True)
+                tax.tick_params(axis="x", which="minor", labelsize=fontsize * 0.8)
 
         ydelt = yrange[1] - yrange[0]
         yrange[0] = 10 ** (yrange[0] - 0.1 * ydelt)
