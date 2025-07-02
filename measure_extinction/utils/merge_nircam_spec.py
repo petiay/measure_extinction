@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from astropy.table import QTable
 import astropy.units as u
 
-from measure_extinction.merge_obsspec import merge_nircam_ss_obsspec
+from measure_extinction.merge_obsspec import obsspecinfo, merge_gen_obsspec
 
 
 fluxunit = u.erg / (u.cm * u.cm * u.s * u.angstrom)
@@ -46,7 +46,8 @@ if __name__ == "__main__":
         cdata["NPTS"][cdata["FLUX"] == 0.0] = 0.0
         stable.append(cdata)
 
-    rb_mrs = merge_nircam_ss_obsspec(stable)
+    cres, crange = obsspecinfo["nircam_ss"]
+    rb_mrs = merge_gen_obsspec(stable, crange, cres)
     if args.outname:
         outname = args.outname
     else:

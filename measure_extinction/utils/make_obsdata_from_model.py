@@ -12,13 +12,10 @@ import stsynphot as STS
 from measure_extinction.utils.helpers import get_datapath
 from measure_extinction.stardata import BandData
 from measure_extinction.merge_obsspec import (
+    obsspecinfo,
+    merge_gen_obsspec,
     merge_iue_obsspec,
     merge_stis_obsspec,
-    merge_irs_obsspec,
-    merge_niriss_soss_obsspec,
-    merge_nircam_ss_obsspec,
-    merge_miri_lrs_obsspec,
-    merge_miri_ifu_obsspec,
 )
 from measure_extinction.utils.mock_spectra_data import mock_stis_data
 
@@ -298,7 +295,8 @@ def make_obsdata_from_model(
     if specs == "all":
         # fmt: off
         specs = ["MODEL_FULL_LOWRES", "MODEL_FULL", "IUE", "STIS", "IRS",
-                 "NIRISS_SOSS", "NIRCam_SS", "MIRI_LRS", "MIRI_MRS"]
+                 "WFC3_G102", "WFC3_G141",
+                 "NIRISS_SOSS", "NIRCAM_SS", "MIRI_LRS", "MIRI_IFU"]
         # fmt: on
 
     # rebin to R=10000 for speed
@@ -307,6 +305,38 @@ def make_obsdata_from_model(
     wave_rebin, flux_rebin, npts_rebin = rebin_spectrum(
         mwave.value, mflux.value, rbres, [912.0, 310000.0]
     )
+
+    # compute photometry
+    john_bands = ["U", "B", "V", "R", "I", "J", "H", "K"]
+    john_fnames = [f"John{cband}.dat" for cband in john_bands]
+    hst_bands = [
+        "HST_WFC3_UVIS1_F275W",
+        "HST_WFC3_UVIS1_F336W",
+        "HST_WFC3_UVIS1_F475W",
+        "HST_WFC3_UVIS1_F625W",
+        "HST_WFC3_UVIS1_F775W",
+        "HST_WFC3_UVIS1_F814W",
+        "HST_WFC3_IR_F110W",
+        "HST_WFC3_IR_F160W",
+        "HST_ACS_WFC1_F475W",
+        "HST_ACS_WFC1_F814W",
+        "HST_WFPC2_4_F170W",
+        "HST_WFPC2_4_F255W",
+        "HST_WFPC2_4_F336W",
+        "HST_WFPC2_4_F439W",
+        "HST_WFPC2_4_F555W",
+        "HST_WFPC2_4_F814W",
+    ]
+    hst_fnames = [""]
+    # fmt: off
+    ir_bands = ['IRAC1', 'IRAC2', 'IRAC3', 'IRAC4', 'IRS15', 'MIPS24',
+                'WISE1', 'WISE2', 'WISE3', 'WISE4']
+    # fmt: on
+    ir_fnames = [f"{cband}.dat" for cband in ir_bands]
+    bands = john_bands + ir_bands + hst_bands
+    band_fnames = john_fnames + ir_fnames + hst_fnames
+
+    bandinfo = get_phot(wave_rebin, flux_rebin, bands, band_fnames)
 
     # dictionary to saye names of spectroscopic filenames
     specinfo = {}
@@ -383,161 +413,6 @@ def make_obsdata_from_model(
     specinfo["STIS"] = stis_uv_file
     specinfo["STIS_Opt"] = stis_opt_file
 
-    lrs_file = "%s_irs.fits" % (output_filebase)
-    if (specs is not None) and ("IRS" in specs):
-        # Spitzer IRS mock observation
-        # Resolution approximately 100
-        lrs_fwhm_pix = rbres / 100.0
-        g = Gaussian1DKernel(stddev=lrs_fwhm_pix / 2.355)
-        # Convolve data
-        nflux = convolve(otable["FLUX"].data, g)
-
-        lrs_table = QTable()
-        lrs_table["WAVELENGTH"] = otable["WAVELENGTH"]
-        lrs_table["FLUX"] = nflux * fluxunit
-        lrs_table["NPTS"] = otable["NPTS"]
-        lrs_table["ERROR"] = Column(np.full((len(lrs_table)), 1.0)) * fluxunit
-
-        rb_lrs = merge_irs_obsspec([lrs_table])
-        rb_lrs["SIGMA"] = rb_lrs["FLUX"] * 0.0
-        rb_lrs.write("%s/Models/%s" % (output_path, lrs_file), overwrite=True)
-
-    specinfo["IRS"] = lrs_file
-
-    nrs_file = "%s_niriss_soss.fits" % (output_filebase)
-    if (specs is not None) and ("NIRISS_SOSS" in specs):
-        # Webb NIRISS SOSS spectra mock observation
-        # Resolution approximately 700
-        nrc_fwhm_pix = rbres / 700
-        g = Gaussian1DKernel(stddev=nrc_fwhm_pix / 2.355)
-        # Convolve data
-        nflux = convolve(otable["FLUX"].data, g)
-
-        niriss_table = QTable()
-        niriss_table["WAVELENGTH"] = otable["WAVELENGTH"]
-        niriss_table["FLUX"] = nflux * fluxunit
-        niriss_table["NPTS"] = otable["NPTS"]
-        niriss_table["ERROR"] = Column(np.full((len(niriss_table)), 1.0)) * fluxunit
-
-        rb_niriss = merge_niriss_soss_obsspec([niriss_table])
-        rb_niriss["SIGMA"] = rb_niriss["FLUX"] * 0.0
-        rb_niriss.write("%s/Models/%s" % (output_path, nrs_file), overwrite=True)
-
-    specinfo["NIRISS_SOSS"] = nrs_file
-
-    nrc_file = "%s_nircam_ss.fits" % (output_filebase)
-    if (specs is not None) and ("NIRCam_SS" in specs):
-        # Webb NIRCam spectra mock observation
-        # Resolution approximately 1600
-        nrc_fwhm_pix = rbres / 1600.0
-        g = Gaussian1DKernel(stddev=nrc_fwhm_pix / 2.355)
-        # Convolve data
-        nflux = convolve(otable["FLUX"].data, g)
-
-        nrc_table = QTable()
-        nrc_table["WAVELENGTH"] = otable["WAVELENGTH"]
-        nrc_table["FLUX"] = nflux * fluxunit
-        nrc_table["NPTS"] = otable["NPTS"]
-        nrc_table["ERROR"] = Column(np.full((len(nrc_table)), 1.0)) * fluxunit
-
-        rb_nrc = merge_nircam_ss_obsspec([nrc_table])
-        rb_nrc["SIGMA"] = rb_nrc["FLUX"] * 0.0
-        rb_nrc.write("%s/Models/%s" % (output_path, nrc_file), overwrite=True)
-
-    specinfo["NIRCam_SS"] = nrc_file
-
-    miri_lrs_file = "%s_miri_lrs.fits" % (output_filebase)
-    if (specs is not None) and ("MIRI_LRS" in specs):
-        # MIRI LRS mock observation
-        # Resolution approximately 40-160
-        miri_lrs_fwhm_pix = rbres / 160.0
-        g = Gaussian1DKernel(stddev=miri_lrs_fwhm_pix / 2.355)
-        # Convolve data
-        nflux = convolve(otable["FLUX"].data, g)
-
-        miri_lrs_table = QTable()
-        miri_lrs_table["WAVELENGTH"] = otable["WAVELENGTH"]
-        miri_lrs_table["FLUX"] = nflux * fluxunit
-        miri_lrs_table["NPTS"] = otable["NPTS"]
-        miri_lrs_table["ERROR"] = Column(np.full((len(miri_lrs_table)), 1.0)) * fluxunit
-
-        rb_miri_lrs = merge_miri_lrs_obsspec([miri_lrs_table])
-        rb_miri_lrs["SIGMA"] = rb_miri_lrs["FLUX"] * 0.0
-        rb_miri_lrs.write("%s/Models/%s" % (output_path, miri_lrs_file), overwrite=True)
-
-    specinfo["MIRI_LRS"] = miri_lrs_file
-
-    mrs_file = "%s_miri_ifu.fits" % (output_filebase)
-    if (specs is not None) and ("MIRI_MRS" in specs):
-        # Webb MIRI IFU mock observation
-        # Resolution approximately 3000
-        mrs_fwhm_pix = rbres / 3000.0
-        g = Gaussian1DKernel(stddev=mrs_fwhm_pix / 2.355)
-        # Convolve data
-        nflux = convolve(otable["FLUX"].data, g)
-
-        mrs_table = QTable()
-        mrs_table["WAVELENGTH"] = otable["WAVELENGTH"]
-        mrs_table["FLUX"] = nflux * fluxunit
-        mrs_table["NPTS"] = otable["NPTS"]
-        mrs_table["ERROR"] = Column(np.full((len(mrs_table)), 1.0)) * fluxunit
-
-        rb_mrs = merge_miri_ifu_obsspec([mrs_table])
-
-        rb_mrs["SIGMA"] = rb_mrs["FLUX"] * 0.0
-        rb_mrs.write("%s/Models/%s" % (output_path, mrs_file), overwrite=True)
-
-    specinfo["MIRI_IFU"] = mrs_file
-
-    # compute photometry
-    # band_path = "%s/Band_RespCurves/" % output_path
-    john_bands = ["U", "B", "V", "R", "I", "J", "H", "K"]
-    john_fnames = [f"John{cband}.dat" for cband in john_bands]
-    hst_bands = [
-        "HST_WFC3_UVIS1_F275W",
-        "HST_WFC3_UVIS1_F336W",
-        "HST_WFC3_UVIS1_F475W",
-        "HST_WFC3_UVIS1_F625W",
-        "HST_WFC3_UVIS1_F775W",
-        "HST_WFC3_UVIS1_F814W",
-        "HST_WFC3_IR_F110W",
-        "HST_WFC3_IR_F160W",
-        "HST_ACS_WFC1_F475W",
-        "HST_ACS_WFC1_F814W",
-        "HST_WFPC2_4_F170W",
-        "HST_WFPC2_4_F255W",
-        "HST_WFPC2_4_F336W",
-        "HST_WFPC2_4_F439W",
-        "HST_WFPC2_4_F555W",
-        "HST_WFPC2_4_F814W",
-    ]
-    hst_fnames = [""]
-    # fmt: off
-    ir_bands = ['IRAC1', 'IRAC2', 'IRAC3', 'IRAC4', 'IRS15', 'MIPS24',
-                'WISE1', 'WISE2', 'WISE3', 'WISE4']
-    # fmt: on
-    ir_fnames = [f"{cband}.dat" for cband in ir_bands]
-    bands = john_bands + ir_bands + hst_bands
-    band_fnames = john_fnames + ir_fnames + hst_fnames
-
-    bandinfo = get_phot(wave_rebin, flux_rebin, bands, band_fnames)
-
-    # create the DAT file
-    dat_filename = "%s/Models/%s.dat" % (output_path, output_filebase)
-    header_info = [
-        "# obsdata created from %s model atmosphere" % model_type,
-        "# %s" % (output_filebase),
-        "# file created by make_obsdata_from_model.py",
-        "model_type = %s" % model_type,
-    ]
-    write_dat_file(
-        dat_filename,
-        bandinfo,
-        specinfo,
-        modelparams=model_params,
-        header_info=header_info,
-    )
-
     if show_plot:
         fig, ax = plt.subplots(figsize=(10, 8))
         ax.plot(wave_rebin * 1e-4, flux_rebin * 2.0, "b-")
@@ -563,40 +438,56 @@ def make_obsdata_from_model(
                 rb_iue["WAVELENGTH"][indxs].to(u.micron), rb_iue["FLUX"][indxs], "r-"
             )
 
-        if (specs is not None) and ("NIRCam_SS" in specs):
-            (indxs,) = np.where(rb_nrc["NPTS"] > 0)
-            ax.plot(
-                rb_nrc["WAVELENGTH"][indxs].to(u.micron), rb_nrc["FLUX"][indxs], "c-"
+    for cspec in obsspecinfo.keys():
+        print(cspec)
+        cres = obsspecinfo[cspec][0]
+        ofile = f"{output_filebase}_{cspec}.fits"
+        if (specs is not None) and (cspec.upper() in specs):
+            print("working on")
+            fwhm_pix = rbres / cres
+            g = Gaussian1DKernel(stddev=fwhm_pix / 2.355)
+            nflux = convolve(otable["FLUX"].data, g)
+
+            outtable = QTable()
+            outtable["WAVELENGTH"] = otable["WAVELENGTH"]
+            outtable["FLUX"] = nflux * fluxunit
+            outtable["NPTS"] = otable["NPTS"]
+            outtable["ERROR"] = Column(np.full((len(otable)), 1.0)) * fluxunit
+
+            rb_info = merge_gen_obsspec(
+                [outtable], obsspecinfo[cspec][1], output_resolution=cres
             )
 
-        if (specs is not None) and ("IRS" in specs):
-            (indxs,) = np.where(rb_lrs["NPTS"] > 0)
-            ax.plot(
-                rb_lrs["WAVELENGTH"][indxs].to(u.micron), rb_lrs["FLUX"][indxs], "r:"
-            )
+            rb_info["SIGMA"] = rb_info["FLUX"] * 0.0
+            rb_info.write(f"{output_path}/Models/{ofile}", overwrite=True)
 
-        if (specs is not None) and ("NIRISS_SOSS" in specs):
-            (indxs,) = np.where(rb_niriss["NPTS"] > 0)
-            ax.plot(
-                rb_niriss["WAVELENGTH"][indxs].to(u.micron),
-                rb_niriss["FLUX"][indxs],
-                "r-",
-            )
+            if show_plot:
+                gvals = rb_info["NPTS"] > 0
+                ax.plot(
+                    rb_info["WAVELENGTH"][gvals].to(u.micron),
+                    rb_info["FLUX"][gvals],
+                    "c-",
+                )
 
-        if (specs is not None) and ("MIRI_LRS" in specs):
-            (indxs,) = np.where(rb_miri_lrs["NPTS"] > 0)
-            ax.plot(
-                rb_miri_lrs["WAVELENGTH"][indxs].to(u.micron),
-                rb_miri_lrs["FLUX"][indxs],
-                "r--",
-            )
+        specinfo[cspec.upper()] = ofile
 
-        if (specs is not None) and ("MIRI_IFU" in specs):
-            (indxs,) = np.where(rb_mrs["NPTS"] > 0)
-            ax.plot(
-                rb_mrs["WAVELENGTH"][indxs].to(u.micron), rb_mrs["FLUX"][indxs], "g-"
-            )
+    # create the DAT file
+    dat_filename = "%s/Models/%s.dat" % (output_path, output_filebase)
+    header_info = [
+        "# obsdata created from %s model atmosphere" % model_type,
+        "# %s" % (output_filebase),
+        "# file created by make_obsdata_from_model.py",
+        "model_type = %s" % model_type,
+    ]
+    write_dat_file(
+        dat_filename,
+        bandinfo,
+        specinfo,
+        modelparams=model_params,
+        header_info=header_info,
+    )
 
+    if show_plot:
         ax.set_xscale("log")
         ax.set_yscale("log")
         plt.tight_layout()
@@ -621,5 +512,5 @@ if __name__ == "__main__":
         model_params=model_params,
         show_plot=True,
         # specs="all",
-        specs=["IUE", "MIRI_LRS"],
+        # specs=["WFC3_G102", "WFC3_G141"],
     )
