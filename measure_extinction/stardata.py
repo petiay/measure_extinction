@@ -1712,7 +1712,7 @@ class StarData:
             )
             yplotvals = ymult * yvals
             if yoffset_type == "multiply":
-                yplotvals = yplotvals * 10**yoffset
+                yplotvals *= 10**yoffset
             else:
                 yplotvals += yoffset
             if curtype == "BAND":
